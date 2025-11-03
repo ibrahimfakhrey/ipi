@@ -178,6 +178,12 @@ class Apartment(db.Model):
         return 0
     
     @property
+    def investors_count(self):
+        """Calculate number of unique investors"""
+        return db.session.query(db.func.count(db.func.distinct(Share.user_id)))\
+            .filter(Share.apartment_id == self.id).scalar() or 0
+    
+    @property
     def status(self):
         """Get apartment status in Arabic"""
         if self.is_closed or self.shares_available == 0:

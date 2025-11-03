@@ -85,13 +85,9 @@ def apartment_detail(apartment_id):
     """Apartment detail page"""
     apartment = Apartment.query.get_or_404(apartment_id)
     
-    # Get investors count
-    investors_count = db.session.query(db.func.count(db.distinct(Share.user_id)))\
-        .filter(Share.apartment_id == apartment_id).scalar()
-    
     return render_template('user/apartment_detail.html', 
                          apartment=apartment,
-                         investors_count=investors_count)
+                         investors_count=apartment.investors_count)
 
 
 @bp.route('/about')
