@@ -467,15 +467,26 @@ def approve_investment_request(request_id):
         if referrer_tree:
             # Use session.no_autoflush to avoid premature flush and UNIQUE constraint error
             with db.session.no_autoflush:
-                # Create tree node for new investor
-                investor_tree = ReferralTree(
+                # Check if investor already has a tree node for this apartment
+                investor_tree = ReferralTree.query.filter_by(
                     user_id=inv_request.user_id,
-                    apartment_id=inv_request.apartment_id,
-                    referred_by_user_id=inv_request.referred_by_user_id,
-                    level=referrer_tree.level + 1
-                )
-                investor_tree.referral_code = inv_request.user.get_or_create_referral_code(investor_tree.apartment_id)
-                db.session.add(investor_tree)
+                    apartment_id=inv_request.apartment_id
+                ).first()
+                
+                if investor_tree:
+                    # User already has a tree node - update it with referral info
+                    investor_tree.referred_by_user_id = inv_request.referred_by_user_id
+                    investor_tree.level = referrer_tree.level + 1
+                else:
+                    # Create new tree node for investor
+                    investor_tree = ReferralTree(
+                        user_id=inv_request.user_id,
+                        apartment_id=inv_request.apartment_id,
+                        referred_by_user_id=inv_request.referred_by_user_id,
+                        level=referrer_tree.level + 1
+                    )
+                    investor_tree.referral_code = inv_request.user.get_or_create_referral_code(investor_tree.apartment_id)
+                    db.session.add(investor_tree)
 
             # Distribute rewards up the referral tree
             upline = referrer_tree.get_upline(max_levels=10)
