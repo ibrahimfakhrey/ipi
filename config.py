@@ -51,11 +51,13 @@ class DevelopmentConfig(Config):
     """Development environment configuration"""
     DEBUG = True
     SQLALCHEMY_ECHO = True  # Log SQL queries
+    SCHEDULER_ENABLED = True  # Enable scheduler in development
 
 
 class ProductionConfig(Config):
     """Production environment configuration"""
     DEBUG = False
+    SCHEDULER_ENABLED = False  # Disable scheduler in production (PythonAnywhere doesn't support it)
     # In production, ensure SECRET_KEY is set via environment variable
     
 

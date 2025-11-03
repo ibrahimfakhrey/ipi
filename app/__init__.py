@@ -53,9 +53,14 @@ def create_app(config_name='default'):
         db.create_all()
         create_admin_user(app)
     
-    # Start scheduler for monthly payouts
-    if not scheduler.running:
-        scheduler.start()
+    # Start scheduler for monthly payouts (only in development mode)
+    # Skip scheduler in production/PythonAnywhere to avoid threading issues
+    if app.config.get('SCHEDULER_ENABLED', False) and not scheduler.running:
+        try:
+            scheduler.start()
+        except RuntimeError as e:
+            # Scheduler not available in this environment (e.g., PythonAnywhere)
+            app.logger.warning(f"Scheduler not started: {e}")
     
     return app
 
