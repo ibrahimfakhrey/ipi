@@ -444,7 +444,7 @@ def upload_contract(request_id):
 @admin_required
 def approve_investment_request(request_id):
     """Quick approve investment request"""
-    from app.models import ReferralTree
+    from app.models import ReferralTree, Share
     
     inv_request = InvestmentRequest.query.get_or_404(request_id)
     
@@ -455,6 +455,22 @@ def approve_investment_request(request_id):
     # Calculate investment amount
     apartment = inv_request.apartment
     investment_amount = apartment.share_price * inv_request.shares_requested
+    
+    # Create Share records for the approved investment
+    for _ in range(inv_request.shares_requested):
+        share = Share(
+            user_id=inv_request.user_id,
+            apartment_id=inv_request.apartment_id,
+            share_price=apartment.share_price
+        )
+        db.session.add(share)
+    
+    # Update available shares
+    apartment.shares_available -= inv_request.shares_requested
+    
+    # Close apartment if all shares sold
+    if apartment.shares_available <= 0:
+        apartment.is_closed = True
     
     # Add investor to referral tree if referred
     if inv_request.referred_by_user_id:

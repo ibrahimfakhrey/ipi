@@ -88,7 +88,11 @@
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">الحصص المتاحة</span>
-                                <span class="detail-value">{{ apartment.shares_available }}</span>
+                                <span class="detail-value">{{ apartment.shares_available }} / {{ apartment.total_shares }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">المستثمرين</span>
+                                <span class="detail-value">{{ apartment.investors_count }}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">الإيجار الشهري</span>

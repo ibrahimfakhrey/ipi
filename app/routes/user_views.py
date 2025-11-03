@@ -62,7 +62,9 @@ def dashboard():
                 'apartment': apartment,
                 'shares_count': 0,
                 'total_invested': 0,
-                'monthly_income': 0
+                'monthly_income': 0,
+                'investors_count': apartment.investors_count,  # Real investor count
+                'shares_sold': apartment.total_shares - apartment.shares_available  # Real shares sold
             }
         investments[apt_id]['shares_count'] += 1
         investments[apt_id]['total_invested'] += share.share_price

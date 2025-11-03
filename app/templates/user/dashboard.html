@@ -108,7 +108,9 @@
                         <thead>
                             <tr>
                                 <th>العقار</th>
-                                <th>عدد الحصص</th>
+                                <th>حصصي</th>
+                                <th>المستثمرين</th>
+                                <th>الحصص المباعة</th>
                                 <th>المبلغ المستثمر</th>
                                 <th>الدخل الشهري</th>
                                 <th>الحالة</th>
@@ -122,6 +124,8 @@
                                     <small class="text-muted">{{ investment.apartment.location }}</small>
                                 </td>
                                 <td>{{ investment.shares_count }} حصة</td>
+                                <td><span class="badge badge-info">{{ investment.investors_count }} مستثمر</span></td>
+                                <td>{{ investment.shares_sold }} / {{ investment.apartment.total_shares }}</td>
                                 <td>{{ "{:,.0f}".format(investment.total_invested) }} جنيه</td>
                                 <td class="text-success">{{ "{:,.0f}".format(investment.monthly_income) }} جنيه</td>
                                 <td><span class="badge badge-{{ 'success' if investment.apartment.is_closed else 'warning' }}">
