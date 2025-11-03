@@ -104,33 +104,78 @@
                 <div class="card">
                     <h3 class="text-gold" style="margin-bottom: 1rem;">المستندات المرفقة</h3>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <!-- ID Document Front -->
                         {% if request.id_document_front %}
-                            <a href="{{ url_for('static', filename='uploads/documents/' + request.id_document_front) }}" 
-                               target="_blank" class="btn btn-secondary">
-                                <i class="fas fa-file-image"></i> صورة وجه البطاقة
-                            </a>
+                            <div style="border: 1px solid var(--border); border-radius: 8px; padding: 1rem; background: var(--card-hover);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                    <strong><i class="fas fa-id-card"></i> صورة وجه البطاقة</strong>
+                                    <a href="{{ url_for('static', filename='uploads/documents/' + request.id_document_front) }}" 
+                                       download class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                                        <i class="fas fa-download"></i> تحميل
+                                    </a>
+                                </div>
+                                <div style="text-align: center;">
+                                    <img src="{{ url_for('static', filename='uploads/documents/' + request.id_document_front) }}" 
+                                         alt="صورة وجه البطاقة"
+                                         style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border);"
+                                         onclick="window.open(this.src, '_blank')">
+                                </div>
+                                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                                    <i class="fas fa-info-circle"></i> انقر على الصورة لعرضها بحجم كامل
+                                </div>
+                            </div>
                         {% else %}
                             <div class="alert alert-danger">
                                 <i class="fas fa-times"></i> لم يتم رفع صورة وجه البطاقة
                             </div>
                         {% endif %}
                         
+                        <!-- ID Document Back -->
                         {% if request.id_document_back %}
-                            <a href="{{ url_for('static', filename='uploads/documents/' + request.id_document_back) }}" 
-                               target="_blank" class="btn btn-secondary">
-                                <i class="fas fa-file-image"></i> صورة ظهر البطاقة
-                            </a>
+                            <div style="border: 1px solid var(--border); border-radius: 8px; padding: 1rem; background: var(--card-hover);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                    <strong><i class="fas fa-id-card"></i> صورة ظهر البطاقة</strong>
+                                    <a href="{{ url_for('static', filename='uploads/documents/' + request.id_document_back) }}" 
+                                       download class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                                        <i class="fas fa-download"></i> تحميل
+                                    </a>
+                                </div>
+                                <div style="text-align: center;">
+                                    <img src="{{ url_for('static', filename='uploads/documents/' + request.id_document_back) }}" 
+                                         alt="صورة ظهر البطاقة"
+                                         style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border);"
+                                         onclick="window.open(this.src, '_blank')">
+                                </div>
+                                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                                    <i class="fas fa-info-circle"></i> انقر على الصورة لعرضها بحجم كامل
+                                </div>
+                            </div>
                         {% else %}
                             <div class="alert alert-danger">
                                 <i class="fas fa-times"></i> لم يتم رفع صورة ظهر البطاقة
                             </div>
                         {% endif %}
                         
+                        <!-- Proof of Address -->
                         {% if request.proof_of_address %}
-                            <a href="{{ url_for('static', filename='uploads/documents/' + request.proof_of_address) }}" 
-                               target="_blank" class="btn btn-secondary">
-                                <i class="fas fa-file-image"></i> إثبات العنوان
-                            </a>
+                            <div style="border: 1px solid var(--border); border-radius: 8px; padding: 1rem; background: var(--card-hover);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                    <strong><i class="fas fa-home"></i> إثبات العنوان</strong>
+                                    <a href="{{ url_for('static', filename='uploads/documents/' + request.proof_of_address) }}" 
+                                       download class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                                        <i class="fas fa-download"></i> تحميل
+                                    </a>
+                                </div>
+                                <div style="text-align: center;">
+                                    <img src="{{ url_for('static', filename='uploads/documents/' + request.proof_of_address) }}" 
+                                         alt="إثبات العنوان"
+                                         style="max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; border: 2px solid var(--border);"
+                                         onclick="window.open(this.src, '_blank')">
+                                </div>
+                                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                                    <i class="fas fa-info-circle"></i> انقر على الصورة لعرضها بحجم كامل
+                                </div>
+                            </div>
                         {% else %}
                             <div class="alert alert-danger">
                                 <i class="fas fa-times"></i> لم يتم رفع إثبات العنوان
@@ -178,10 +223,16 @@
                         <div class="alert alert-success">
                             <i class="fas fa-check-circle"></i> تم رفع العقد بالفعل
                         </div>
-                        <a href="{{ url_for('static', filename='uploads/contracts/' + request.contract_pdf) }}" 
-                           target="_blank" class="btn btn-secondary" style="width: 100%; margin-bottom: 1rem;">
-                            <i class="fas fa-file-pdf"></i> عرض العقد الحالي
-                        </a>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                            <a href="{{ url_for('static', filename='uploads/contracts/' + request.contract_pdf) }}" 
+                               target="_blank" class="btn btn-secondary" style="flex: 1;">
+                                <i class="fas fa-eye"></i> عرض العقد
+                            </a>
+                            <a href="{{ url_for('static', filename='uploads/contracts/' + request.contract_pdf) }}" 
+                               download class="btn btn-primary" style="flex: 1;">
+                                <i class="fas fa-download"></i> تحميل
+                            </a>
+                        </div>
                     {% endif %}
                     
                     <form method="POST" action="{{ url_for('admin.upload_contract', request_id=request.id) }}" 

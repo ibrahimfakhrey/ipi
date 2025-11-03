@@ -59,6 +59,10 @@ def dashboard():
     total_shares_sold = db.session.query(db.func.count(Share.id)).scalar()
     total_revenue = db.session.query(db.func.sum(Share.share_price)).scalar() or 0
     
+    # Investment request statistics
+    pending_requests = InvestmentRequest.query.filter_by(status='pending').count()
+    under_review_requests = InvestmentRequest.query.filter_by(status='under_review').count()
+    
     # Recent activity
     recent_transactions = Transaction.query.order_by(db.desc(Transaction.date)).limit(10).all()
     recent_users = User.query.filter_by(is_admin=False).order_by(db.desc(User.date_joined)).limit(5).all()
@@ -74,7 +78,9 @@ def dashboard():
         'active_apartments': len(active_apartments),
         'closed_apartments': len(closed_apartments),
         'total_shares_sold': total_shares_sold,
-        'total_revenue': total_revenue
+        'total_revenue': total_revenue,
+        'pending_requests': pending_requests,
+        'under_review_requests': under_review_requests
     }
     
     return render_template('admin/dashboard.html',
@@ -408,8 +414,8 @@ def upload_contract(request_id):
     form = UploadContractForm()
     
     if form.validate_on_submit():
-        # Create contracts directory if it doesn't exist
-        contracts_dir = os.path.join('app', 'static', 'uploads', 'contracts')
+        # Create contracts directory if it doesn't exist - use absolute path
+        contracts_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'contracts')
         os.makedirs(contracts_dir, exist_ok=True)
         
         # Save contract file

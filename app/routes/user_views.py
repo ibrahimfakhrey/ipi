@@ -291,8 +291,9 @@ def investment_request(apartment_id):
     form = InvestmentRequestForm()
     
     if form.validate_on_submit():
-        # Create uploads directories if they don't exist
-        upload_dir = os.path.join('app', 'static', 'uploads', 'documents')
+        # Create uploads directories if they don't exist - use absolute path
+        from flask import current_app
+        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'documents')
         os.makedirs(upload_dir, exist_ok=True)
         
         # Save uploaded files

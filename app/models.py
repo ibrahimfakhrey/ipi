@@ -38,7 +38,11 @@ class User(UserMixin, db.Model):
     # Relationships
     shares = db.relationship('Share', backref='investor', lazy='dynamic', cascade='all, delete-orphan')
     transactions = db.relationship('Transaction', backref='user', lazy='dynamic', cascade='all, delete-orphan')
-    investment_requests = db.relationship('InvestmentRequest', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    investment_requests = db.relationship('InvestmentRequest', 
+                                         foreign_keys='InvestmentRequest.user_id',
+                                         backref='user', 
+                                         lazy='dynamic', 
+                                         cascade='all, delete-orphan')
     
     def set_password(self, password):
         """Hash and set user password"""

@@ -47,6 +47,20 @@
         </div>
     </div>
     
+    <!-- Investment Requests Alert -->
+    {% if stats.pending_requests > 0 or stats.under_review_requests > 0 %}
+    <div class="alert alert-warning" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <i class="fas fa-exclamation-circle"></i>
+            <strong>طلبات استثمار جديدة!</strong>
+            <span>لديك {{ stats.pending_requests }} طلب قيد الانتظار و {{ stats.under_review_requests }} طلب قيد المراجعة</span>
+        </div>
+        <a href="{{ url_for('admin.investment_requests') }}" class="btn btn-primary">
+            <i class="fas fa-file-contract"></i> مراجعة الطلبات
+        </a>
+    </div>
+    {% endif %}
+    
     <!-- Quick Actions -->
     <div class="grid grid-4" style="margin-bottom: 3rem;">
         <a href="{{ url_for('admin.add_apartment') }}" class="btn btn-primary" style="text-decoration: none;">
@@ -58,8 +72,23 @@
         <a href="{{ url_for('admin.users') }}" class="btn btn-secondary" style="text-decoration: none;">
             <i class="fas fa-users"></i> إدارة المستخدمين
         </a>
+        <a href="{{ url_for('admin.investment_requests') }}" class="btn btn-secondary" style="text-decoration: none; position: relative;">
+            <i class="fas fa-file-contract"></i> طلبات الاستثمار
+            {% if stats.pending_requests > 0 %}
+            <span style="position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">
+                {{ stats.pending_requests }}
+            </span>
+            {% endif %}
+        </a>
+    </div>
+    
+    <!-- Additional Quick Action Row -->
+    <div class="grid grid-4" style="margin-bottom: 3rem;">
         <a href="{{ url_for('admin.payouts') }}" class="btn btn-secondary" style="text-decoration: none;">
             <i class="fas fa-money-bill-wave"></i> توزيع الأرباح
+        </a>
+        <a href="{{ url_for('admin.transactions') }}" class="btn btn-secondary" style="text-decoration: none;">
+            <i class="fas fa-exchange-alt"></i> المعاملات المالية
         </a>
     </div>
     
