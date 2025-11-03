@@ -43,7 +43,7 @@
                 </h4>
             </div>
             <div class="card-body">
-                <div class="row mb-3">
+                <div class="row mb-4">
                     <div class="col-md-6">
                         <h5>رابط الإحالة الخاص بك:</h5>
                         <div class="input-group">
@@ -69,6 +69,16 @@
                                 <small class="text-muted">المكافآت</small>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Tree Visualization -->
+                <div class="mb-4">
+                    <h5 class="text-navy mb-3">
+                        <i class="fas fa-sitemap"></i> التسلسل الهرمي للإحالات
+                    </h5>
+                    <div class="tree-container bg-light p-4 rounded" style="overflow-x: auto;">
+                        <div id="tree-{{ tree.apartment.id }}" class="referral-tree"></div>
                     </div>
                 </div>
 
@@ -166,6 +176,137 @@
     </div>
 </div>
 
+<style>
+.referral-tree {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 200px;
+}
+
+.tree-node {
+    position: relative;
+    display: inline-block;
+    margin: 20px;
+}
+
+.node-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 2;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.node-circle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+.node-you {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: white;
+    border: 3px solid #FF8C00;
+}
+
+.node-upline {
+    background: linear-gradient(135deg, #6C757D, #495057);
+    color: white;
+    border: 3px solid #343A40;
+}
+
+.node-downline {
+    background: linear-gradient(135deg, #0056b3, #003d82);
+    color: white;
+    border: 3px solid #002752;
+}
+
+.node-direct {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+    color: white;
+    border: 3px solid #155724;
+}
+
+.node-label {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.node-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    border: 2px solid white;
+}
+
+.tree-level {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin: 10px 0;
+    position: relative;
+}
+
+.tree-children {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.connection-line {
+    position: absolute;
+    background: #6C757D;
+    z-index: 1;
+}
+
+.node-info {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: none;
+    white-space: nowrap;
+    z-index: 10;
+    margin-bottom: 10px;
+}
+
+.tree-node:hover .node-info {
+    display: block;
+}
+
+.level-label {
+    text-align: center;
+    font-weight: bold;
+    color: #6C757D;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+</style>
+
 <script>
 function copyReferralLink(apartmentId) {
     const input = document.getElementById('ref-link-' + apartmentId);
@@ -185,5 +326,130 @@ function copyReferralLink(apartmentId) {
         button.classList.add('btn-gold');
     }, 2000);
 }
+
+// Tree data from backend
+const treeData = {
+    {% for tree in trees %}
+    {{ tree.apartment.id }}: {
+        upline: [
+            {% for node in tree.upline %}
+            {
+                name: "{{ node.user.name }}",
+                level: {{ node.level }},
+                rewards: {{ node.total_rewards_earned | round(2) }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
+        you: {
+            name: "{{ current_user.name }}",
+            level: {{ tree.upline|length }},
+            rewards: {{ tree.total_rewards | round(2) }}
+        },
+        downline: [
+            {% for node in tree.downline %}
+            {
+                name: "{{ node.user.name }}",
+                level: {{ node.level }},
+                isDirect: {{ (node.level == tree.upline|length + 1)|lower }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+};
+
+// Render tree visualization
+function renderTree(apartmentId) {
+    const container = document.getElementById('tree-' + apartmentId);
+    if (!container || !treeData[apartmentId]) return;
+    
+    const data = treeData[apartmentId];
+    let html = '';
+    
+    // Render upline
+    if (data.upline.length > 0) {
+        html += '<div class="level-label">⬆️ السلسلة الأعلى</div>';
+        data.upline.reverse().forEach(node => {
+            html += `
+                <div class="tree-level">
+                    <div class="tree-node">
+                        <div class="node-circle node-upline">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="node-label">${node.name}</div>
+                        <div class="node-info">
+                            <div><strong>${node.name}</strong></div>
+                            <div>المستوى: ${node.level}</div>
+                            <div>المكافآت: ${node.rewards} جنيه</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: center; color: #6C757D; font-size: 20px;">⬇️</div>
+            `;
+        });
+    }
+    
+    // Render current user (YOU)
+    html += '<div class="level-label">📍 أنت</div>';
+    html += `
+        <div class="tree-level">
+            <div class="tree-node">
+                <div class="node-circle node-you">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div class="node-label">${data.you.name} (أنت)</div>
+                <div class="node-info">
+                    <div><strong>${data.you.name}</strong></div>
+                    <div>موقعك: مستوى ${data.you.level}</div>
+                    <div>مكافآتك: ${data.you.rewards} جنيه</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Render downline
+    if (data.downline.length > 0) {
+        html += '<div style="text-align: center; color: #6C757D; font-size: 20px; margin: 10px 0;">⬇️</div>';
+        html += '<div class="level-label">⬇️ السلسلة الأدنى (إحالاتك)</div>';
+        html += '<div class="tree-level"><div class="tree-children">';
+        
+        data.downline.forEach(node => {
+            const nodeClass = node.isDirect ? 'node-direct' : 'node-downline';
+            const badge = node.isDirect ? '<div class="node-badge">⭐</div>' : '';
+            html += `
+                <div class="tree-node">
+                    <div class="node-circle ${nodeClass}">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    ${badge}
+                    <div class="node-label">${node.name}</div>
+                    <div class="node-info">
+                        <div><strong>${node.name}</strong></div>
+                        <div>المستوى: ${node.level}</div>
+                        ${node.isDirect ? '<div><span style="color: #28a745;">✓ إحالة مباشرة</span></div>' : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div></div>';
+    } else {
+        html += `
+            <div style="text-align: center; color: #6C757D; margin-top: 30px;">
+                <i class="fas fa-arrow-down" style="font-size: 24px; opacity: 0.3;"></i>
+                <p style="margin-top: 10px; opacity: 0.6;">لا توجد إحالات بعد</p>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+}
+
+// Render all trees on page load
+document.addEventListener('DOMContentLoaded', function() {
+    Object.keys(treeData).forEach(apartmentId => {
+        renderTree(apartmentId);
+    });
+});
 </script>
 {% endblock %}
