@@ -103,6 +103,30 @@
                 <hr style="margin: 2rem 0; border-color: var(--gold);">
                 
                 <h3 class="text-gold" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-users"></i> الإحالة (اختياري)
+                </h3>
+                
+                <div class="form-group">
+                    {{ form.referral_code.label }}
+                    {{ form.referral_code(class="form-control", placeholder="أدخل كود الإحالة إذا كان لديك واحد") }}
+                    {% if form.referral_code.errors %}
+                        <div class="text-danger">{{ form.referral_code.errors[0] }}</div>
+                    {% endif %}
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        إذا كنت مُحالاً من مستثمر آخر، أدخل كود الإحالة الخاص به للحصول على المزايا
+                    </small>
+                    {% if referrer %}
+                        <div class="alert alert-success" style="margin-top: 0.5rem;">
+                            <i class="fas fa-check-circle"></i>
+                            تم الإحالة من: <strong>{{ referrer.name }}</strong>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <hr style="margin: 2rem 0; border-color: var(--gold);">
+                
+                <h3 class="text-gold" style="margin-bottom: 1.5rem;">
                     <i class="fas fa-file-upload"></i> المستندات المطلوبة
                 </h3>
                 

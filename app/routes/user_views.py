@@ -28,6 +28,7 @@ class InvestmentRequestForm(FlaskForm):
     date_of_birth = StringField('تاريخ الميلاد', validators=[DataRequired(message='مطلوب')])
     nationality = StringField('الجنسية', validators=[DataRequired(message='مطلوب')])
     occupation = StringField('المهنة', validators=[DataRequired(message='مطلوب')])
+    referral_code = StringField('كود الإحالة (اختياري)', validators=[])
     id_document_front = FileField('صورة وجه البطاقة', validators=[
         FileRequired(message='مطلوب'),
         FileAllowed(['jpg', 'jpeg', 'png', 'pdf'], 'صور أو PDF فقط')
@@ -301,7 +302,28 @@ def investment_request(apartment_id):
     
     form = InvestmentRequestForm()
     
+    # Pre-populate referral code field if in session
+    if referral_code and request.method == 'GET':
+        form.referral_code.data = referral_code
+    
     if form.validate_on_submit():
+        # Check for manual referral code entry (overrides session)
+        manual_referral_code = form.referral_code.data
+        if manual_referral_code:
+            from app.models import ReferralTree
+            referrer_tree = ReferralTree.query.filter_by(
+                apartment_id=apartment_id,
+                referral_code=manual_referral_code.strip()
+            ).first()
+            if not referrer_tree:
+                flash('كود الإحالة غير صحيح أو غير موجود لهذه الوحدة', 'error')
+                return render_template('user/investment_request.html',
+                                     form=form,
+                                     apartment=apartment,
+                                     shares_count=shares_count,
+                                     total_amount=total_amount,
+                                     referral_code=manual_referral_code,
+                                     referrer=None)
         # Create uploads directories if they don't exist - use absolute path
         from flask import current_app
         upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'documents')
