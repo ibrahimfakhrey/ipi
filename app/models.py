@@ -394,7 +394,8 @@ class ReferralTree(db.Model):
                 upline.append({
                     'user': parent.user,
                     'level': parent.level,
-                    'referral_code': parent.referral_code
+                    'referral_code': parent.referral_code,
+                    'total_rewards_earned': parent.total_rewards_earned
                 })
                 current = parent
                 level += 1

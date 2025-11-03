@@ -81,7 +81,7 @@
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <strong>{{ node.user.full_name }}</strong>
+                                    <strong>{{ node.user.name }}</strong>
                                     <span class="badge bg-secondary ms-2">مستوى {{ node.level }}</span>
                                 </div>
                                 <div>
@@ -106,15 +106,15 @@
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <strong>{{ node.user.full_name }}</strong>
+                                    <strong>{{ node.user.name }}</strong>
                                     <span class="badge bg-primary ms-2">مستوى {{ node.level }}</span>
-                                    {% if node.level == 1 %}
+                                    {% if node.level == tree.upline|length + 1 %}
                                         <span class="badge bg-success">إحالة مباشرة</span>
                                     {% endif %}
                                 </div>
                                 <div>
                                     <small class="text-muted">
-                                        انضم: {{ node.date_joined_tree.strftime('%Y-%m-%d') }}
+                                        انضم: {{ node.date_joined.strftime('%Y-%m-%d') }}
                                     </small>
                                 </div>
                             </div>
