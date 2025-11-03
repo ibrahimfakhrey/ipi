@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}الرئيسية - منصة الاستثمار العقاري{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <h1 class="hero-title">استثمر في العقارات بذكاء</h1>
+            <p class="hero-subtitle">شارك في امتلاك عقارات عالية الجودة واحصل على دخل شهري ثابت من الإيجار</p>
+            <div class="hero-cta">
+                {% if not current_user.is_authenticated %}
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">ابدأ الاستثمار الآن</a>
+                    <a href="{{ url_for('main.market') }}" class="btn btn-secondary btn-lg">تصفح الفرص</a>
+                {% else %}
+                    <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg">تصفح الفرص المتاحة</a>
+                    <a href="{{ url_for('user_views.dashboard') }}" class="btn btn-secondary btn-lg">لوحة التحكم</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section">
+    <div class="container">
+        <div class="stats-container">
+            <div class="stat-card fade-in">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-number counter" data-target="{{ stats.users }}">0</div>
+                <div class="stat-label">مستثمر</div>
+            </div>
+            
+            <div class="stat-card fade-in">
+                <div class="stat-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="stat-number counter" data-target="{{ stats.apartments }}">0</div>
+                <div class="stat-label">عقار متاح</div>
+            </div>
+            
+            <div class="stat-card fade-in">
+                <div class="stat-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="stat-number counter" data-target="{{ stats.invested|int }}">0</div>
+                <div class="stat-label">جنيه مستثمر</div>
+            </div>
+            
+            <div class="stat-card fade-in">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-number">12%</div>
+                <div class="stat-label">عائد سنوي متوسط</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <h2 class="section-title">لماذا تختار منصتنا؟</h2>
+        <p class="section-subtitle">نوفر لك فرصة استثمارية فريدة بأعلى معايير الأمان والشفافية</p>
+        
+        <div class="features-grid">
+            <div class="feature-card fade-in">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3 class="feature-title">استثمار آمن</h3>
+                <p class="feature-description">جميع العقارات مفحوصة ومضمونة بعقود قانونية موثقة</p>
+            </div>
+            
+            <div class="feature-card fade-in">
+                <div class="feature-icon">
+                    <i class="fas fa-hand-holding-usd"></i>
+                </div>
+                <h3 class="feature-title">دخل شهري ثابت</h3>
+                <p class="feature-description">احصل على حصتك من الإيجار الشهري بشكل تلقائي</p>
+            </div>
+            
+            <div class="feature-card fade-in">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <h3 class="feature-title">تنويع الاستثمار</h3>
+                <p class="feature-description">استثمر في عقارات متعددة بمبالغ صغيرة لتقليل المخاطر</p>
+            </div>
+            
+            <div class="feature-card fade-in">
+                <div class="feature-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h3 class="feature-title">إدارة سهلة</h3>
+                <p class="feature-description">تابع استثماراتك وأرباحك من خلال لوحة تحكم بسيطة</p>
+            </div>
+            
+            <div class="feature-card fade-in">
+                <div class="feature-icon">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <h3 class="feature-title">فريق محترف</h3>
+                <p class="feature-description">فريق متخصص في إدارة العقارات وخدمة المستثمرين</p>
+            </div>
+            
+            <div class="feature-card fade-in">
+                <div class="feature-icon">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <h3 class="feature-title">بداية سريعة</h3>
+                <p class="feature-description">ابدأ الاستثمار بمبالغ صغيرة تناسب ميزانيتك</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Apartments Section -->
+{% if featured_apartments %}
+<section class="apartments-showcase">
+    <div class="container">
+        <h2 class="section-title">الفرص الاستثمارية المتاحة</h2>
+        <p class="section-subtitle">اختر العقار المناسب وابدأ رحلتك الاستثمارية اليوم</p>
+        
+        <div class="apartments-grid">
+            {% for apartment in featured_apartments %}
+            <div class="apartment-card slide-in-up">
+                <div class="apartment-image-wrapper" style="position: relative;">
+                    {% if apartment.image and apartment.image != 'default_apartment.jpg' %}
+                        <img src="{{ url_for('static', filename='images/apartments/' + apartment.image) }}" 
+                             alt="{{ apartment.title }}" 
+                             class="apartment-image">
+                    {% else %}
+                        <div class="apartment-image-placeholder">
+                            <i class="fas fa-building"></i>
+                        </div>
+                    {% endif %}
+                    <span class="apartment-status badge-{{ 'success' if apartment.status == 'جديد' else 'warning' if apartment.status == 'متاح' else 'danger' }}">
+                        {{ apartment.status }}
+                    </span>
+                </div>
+                
+                <div class="apartment-content">
+                    <h3 class="apartment-title">{{ apartment.title }}</h3>
+                    <div class="apartment-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ apartment.location }}
+                    </div>
+                    
+                    <div class="apartment-price">
+                        {{ "{:,.0f}".format(apartment.total_price) }} جنيه
+                    </div>
+                    
+                    <div class="apartment-details">
+                        <div class="detail-item">
+                            <span class="detail-label">سعر الحصة</span>
+                            <span class="detail-value">{{ "{:,.0f}".format(apartment.share_price) }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">الحصص المتاحة</span>
+                            <span class="detail-value">{{ apartment.shares_available }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">الإيجار الشهري</span>
+                            <span class="detail-value">{{ "{:,.0f}".format(apartment.monthly_rent) }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" data-percentage="{{ apartment.completion_percentage }}" style="width: 0%"></div>
+                    </div>
+                    <p class="progress-text">تم بيع {{ apartment.completion_percentage|round(1) }}% من الحصص</p>
+                    
+                    <div style="margin-top: 1rem;">
+                        <a href="{{ url_for('main.apartment_detail', apartment_id=apartment.id) }}" 
+                           class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-eye"></i> عرض التفاصيل
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center" style="margin-top: 2rem;">
+            <a href="{{ url_for('main.market') }}" class="btn btn-secondary btn-lg">
+                عرض جميع الفرص <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- How It Works Section -->
+<section class="how-it-works">
+    <div class="container">
+        <h2 class="section-title">كيف تبدأ الاستثمار؟</h2>
+        <p class="section-subtitle">خطوات بسيطة للبدء في رحلتك الاستثمارية</p>
+        
+        <div class="steps-container">
+            <div class="step-card fade-in">
+                <div class="step-number">1</div>
+                <h3 class="step-title">إنشاء حساب</h3>
+                <p class="step-description">سجل حسابك مجاناً في دقائق معدودة</p>
+            </div>
+            
+            <div class="step-card fade-in">
+                <div class="step-number">2</div>
+                <h3 class="step-title">اختر العقار</h3>
+                <p class="step-description">تصفح العقارات المتاحة واختر ما يناسبك</p>
+            </div>
+            
+            <div class="step-card fade-in">
+                <div class="step-number">3</div>
+                <h3 class="step-title">اشترِ الحصص</h3>
+                <p class="step-description">حدد عدد الحصص التي تريد شراءها</p>
+            </div>
+            
+            <div class="step-card fade-in">
+                <div class="step-number">4</div>
+                <h3 class="step-title">احصل على الأرباح</h3>
+                <p class="step-description">استلم حصتك من الإيجار شهرياً</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-content">
+            <h2 class="cta-title">ابدأ رحلتك الاستثمارية اليوم</h2>
+            <p class="cta-description">انضم إلى آلاف المستثمرين الذين يحققون دخلاً شهرياً ثابتاً من العقارات</p>
+            {% if not current_user.is_authenticated %}
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-user-plus"></i> إنشاء حساب مجاني
+                </a>
+            {% else %}
+                <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-search"></i> استكشف الفرص المتاحة
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

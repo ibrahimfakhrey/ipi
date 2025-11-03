@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}الملف الشخصي{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; padding: 3rem 0;">
+    <h1 style="margin-bottom: 2rem;">
+        <i class="fas fa-user"></i> الملف الشخصي
+    </h1>
+    
+    <!-- User Info -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header">
+            <h3 class="card-title">المعلومات الأساسية</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('user_views.update_profile') }}">
+                <div class="form-group">
+                    <label for="name" class="form-label">الاسم الكامل</label>
+                    <input type="text" 
+                           id="name" 
+                           name="name" 
+                           class="form-control" 
+                           value="{{ current_user.name }}"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">البريد الإلكتروني</label>
+                    <input type="email" 
+                           id="email" 
+                           class="form-control" 
+                           value="{{ current_user.email }}"
+                           disabled>
+                    <small class="text-muted">لا يمكن تغيير البريد الإلكتروني</small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">تاريخ التسجيل</label>
+                    <input type="text" 
+                           class="form-control" 
+                           value="{{ current_user.date_joined.strftime('%Y-%m-%d') }}"
+                           disabled>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> حفظ التغييرات
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Change Password -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header">
+            <h3 class="card-title">تغيير كلمة المرور</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('user_views.change_password') }}">
+                <div class="form-group">
+                    <label for="current_password" class="form-label">كلمة المرور الحالية</label>
+                    <input type="password" 
+                           id="current_password" 
+                           name="current_password" 
+                           class="form-control"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="new_password" class="form-label">كلمة المرور الجديدة</label>
+                    <input type="password" 
+                           id="new_password" 
+                           name="new_password" 
+                           class="form-control"
+                           minlength="6"
+                           required>
+                    <small class="text-muted">6 أحرف على الأقل</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password" class="form-label">تأكيد كلمة المرور</label>
+                    <input type="password" 
+                           id="confirm_password" 
+                           name="confirm_password" 
+                           class="form-control"
+                           required>
+                </div>
+                
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-key"></i> تغيير كلمة المرور
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Account Stats -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">إحصائيات الحساب</h3>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-2" style="gap: 1.5rem;">
+                <div style="text-align: center; padding: 1.5rem; background: rgba(212, 175, 55, 0.1); border-radius: 0.75rem;">
+                    <div style="font-size: 2rem; font-weight: 900; color: var(--primary-gold);">
+                        {{ "{:,.0f}".format(current_user.wallet_balance) }}
+                    </div>
+                    <div style="color: var(--text-muted); margin-top: 0.5rem;">رصيد المحفظة (جنيه)</div>
+                </div>
+                
+                <div style="text-align: center; padding: 1.5rem; background: rgba(212, 175, 55, 0.1); border-radius: 0.75rem;">
+                    <div style="font-size: 2rem; font-weight: 900; color: var(--primary-gold);">
+                        {{ current_user.shares.count() }}
+                    </div>
+                    <div style="color: var(--text-muted); margin-top: 0.5rem;">إجمالي الحصص</div>
+                </div>
+                
+                <div style="text-align: center; padding: 1.5rem; background: rgba(16, 185, 129, 0.1); border-radius: 0.75rem;">
+                    <div style="font-size: 2rem; font-weight: 900; color: var(--success);">
+                        {{ "{:,.0f}".format(current_user.get_total_invested()) }}
+                    </div>
+                    <div style="color: var(--text-muted); margin-top: 0.5rem;">إجمالي الاستثمار (جنيه)</div>
+                </div>
+                
+                <div style="text-align: center; padding: 1.5rem; background: rgba(16, 185, 129, 0.1); border-radius: 0.75rem;">
+                    <div style="font-size: 2rem; font-weight: 900; color: var(--success);">
+                        {{ "{:,.0f}".format(current_user.get_monthly_expected_income()) }}
+                    </div>
+                    <div style="color: var(--text-muted); margin-top: 0.5rem;">الدخل الشهري المتوقع (جنيه)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+"""
+Main application initialization file
+Sets up Flask app, database, login manager, and scheduler
+"""
+from flask import Flask
+from flask_login import LoginManager
+from flask_apscheduler import APScheduler
+from config import config
+from app.models import db, User
+import os
+
+
+# Initialize login manager
+login_manager = LoginManager()
+login_manager.login_view = 'auth.login'
+login_manager.login_message = 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة'
+
+# Initialize scheduler
+scheduler = APScheduler()
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Load user for Flask-Login"""
+    return User.query.get(int(user_id))
+
+
+def create_app(config_name='default'):
+    """
+    Application factory function
+    Creates and configures the Flask application
+    """
+    app = Flask(__name__)
+    app.config.from_object(config[config_name])
+    
+    # Initialize extensions
+    db.init_app(app)
+    login_manager.init_app(app)
+    scheduler.init_app(app)
+    
+    # Create upload folder if it doesn't exist
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    
+    # Register blueprints
+    from app.routes import auth, main, admin, user_views
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(main.bp)
+    app.register_blueprint(admin.bp)
+    app.register_blueprint(user_views.bp)
+    
+    # Create database tables
+    with app.app_context():
+        db.create_all()
+        create_admin_user(app)
+    
+    # Start scheduler for monthly payouts
+    if not scheduler.running:
+        scheduler.start()
+    
+    return app
+
+
+def create_admin_user(app):
+    """Create default admin user if it doesn't exist"""
+    from app.models import User
+    
+    admin = User.query.filter_by(email=app.config['ADMIN_EMAIL']).first()
+    if not admin:
+        admin = User(
+            name='Admin',
+            email=app.config['ADMIN_EMAIL'],
+            is_admin=True
+        )
+        admin.set_password(app.config['ADMIN_PASSWORD'])
+        db.session.add(admin)
+        db.session.commit()
+        print(f"Admin user created: {app.config['ADMIN_EMAIL']}")
+
+
+def schedule_monthly_payouts():
+    """
+    Scheduled task to distribute monthly rent to all investors
+    Runs on the 1st day of each month at 00:00
+    """
+    from app.models import Apartment
+    from datetime import datetime
+    
+    apartments = Apartment.query.filter_by(is_closed=True).all()
+    total_payouts = 0
+    
+    for apartment in apartments:
+        payouts = apartment.distribute_monthly_rent()
+        total_payouts += payouts
+    
+    db.session.commit()
+    print(f"Monthly payouts completed: {total_payouts} payments processed at {datetime.utcnow()}")
+
+
+# Register scheduled tasks
+@scheduler.task('cron', id='monthly_rent_distribution', day=1, hour=0, minute=0)
+def scheduled_rent_distribution():
+    """Monthly rent distribution task"""
+    schedule_monthly_payouts()
