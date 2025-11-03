@@ -82,6 +82,20 @@
         </a>
     </div>
     
+    <!-- Referral Rewards Quick Action -->
+    <div class="grid grid-1" style="margin-bottom: 3rem;">
+        <a href="{{ url_for('admin.users_with_rewards') }}" 
+           class="btn" 
+           style="text-decoration: none; background: linear-gradient(135deg, #D4AF37 0%, #C19B2E 100%); color: white; position: relative;">
+            <i class="fas fa-money-bill-wave"></i> صرف مكافآت الإحالة
+            {% if stats.users_with_rewards is defined and stats.users_with_rewards > 0 %}
+            <span style="position: absolute; top: -5px; right: -5px; background: var(--success); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">
+                {{ stats.users_with_rewards }}
+            </span>
+            {% endif %}
+        </a>
+    </div>
+    
     <!-- Additional Quick Action Row -->
     <div class="grid grid-4" style="margin-bottom: 3rem;">
         <a href="{{ url_for('admin.payouts') }}" class="btn btn-secondary" style="text-decoration: none;">

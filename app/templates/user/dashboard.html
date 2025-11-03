@@ -43,6 +43,25 @@
         </div>
     </div>
     
+    <!-- Referral Rewards Card -->
+    {% if current_user.rewards_balance > 0 %}
+    <div class="alert alert-warning" style="margin-bottom: 2rem;">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h5 style="margin: 0; color: #D4AF37;">
+                    <i class="fas fa-gift"></i> لديك مكافآت إحالة بقيمة {{ "{:,.2f}".format(current_user.rewards_balance) }} جنيه
+                </h5>
+                <small style="color: #666;">يتم صرفها بواسطة الإدارة. راجع شجرة الإحالات لمزيد من التفاصيل.</small>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{{ url_for('user_views.my_referrals') }}" class="btn btn-sm" style="background: #D4AF37; color: white;">
+                    <i class="fas fa-tree"></i> شجرة الإحالات
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Quick Actions -->
     <div class="grid grid-3" style="margin-bottom: 3rem;">
         <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg" style="text-decoration: none;">
@@ -54,6 +73,27 @@
         <a href="{{ url_for('user_views.my_investments') }}" class="btn btn-secondary btn-lg" style="text-decoration: none;">
             <i class="fas fa-chart-pie"></i> استثماراتي
         </a>
+    </div>
+    
+    <!-- Referral Section -->
+    <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, #D4AF37 0%, #C19B2E 100%); color: white;">
+        <div style="padding: 1.5rem;">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4 style="margin: 0 0 0.5rem 0; color: white;">
+                        <i class="fas fa-users"></i> برنامج الإحالة
+                    </h4>
+                    <p style="margin: 0; opacity: 0.9;">
+                        احصل على مكافآت عند إحالة مستثمرين جدد. شارك روابط الإحالة واكسب من استثماراتهم!
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{{ url_for('user_views.my_referrals') }}" class="btn btn-light btn-lg">
+                        <i class="fas fa-share-alt"></i> روابط الإحالة
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Investments -->

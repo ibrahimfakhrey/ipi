@@ -6,6 +6,7 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import secrets
 
 # Initialize SQLAlchemy
 db = SQLAlchemy()
@@ -23,6 +24,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(200), nullable=False)
     wallet_balance = db.Column(db.Float, default=0.0)
+    rewards_balance = db.Column(db.Float, default=0.0)  # Separate balance for referral rewards
     is_admin = db.Column(db.Boolean, default=False)
     date_joined = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -88,6 +90,46 @@ class User(UserMixin, db.Model):
                 share_percentage = 1 / apartment.total_shares
                 total += apartment.monthly_rent * share_percentage
         return total
+    
+    def get_or_create_referral_code(self, apartment_id):
+        """Get or create referral code for a specific apartment"""
+        # Import here to avoid circular import
+        from app.models import ReferralTree
+        
+        # Check if user already has a referral node for this apartment
+        referral_node = ReferralTree.query.filter_by(
+            user_id=self.id,
+            apartment_id=apartment_id
+        ).first()
+        
+        if referral_node:
+            return referral_node.referral_code
+        
+        # Create new referral code
+        referral_code = f"REF{self.id}APT{apartment_id}{secrets.token_hex(4).upper()}"
+        
+        # Create referral tree node
+        new_node = ReferralTree(
+            user_id=self.id,
+            apartment_id=apartment_id,
+            referral_code=referral_code,
+            level=0  # Root level (will be updated if they were referred)
+        )
+        db.session.add(new_node)
+        db.session.commit()
+        
+        return referral_code
+    
+    def add_rewards(self, amount, description='referral_reward'):
+        """Add amount to rewards balance and create transaction"""
+        self.rewards_balance += amount
+        transaction = Transaction(
+            user_id=self.id,
+            amount=amount,
+            transaction_type='reward',
+            description=description
+        )
+        db.session.add(transaction)
     
     def __repr__(self):
         return f'<User {self.email}>'
@@ -257,6 +299,7 @@ class InvestmentRequest(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     apartment_id = db.Column(db.Integer, db.ForeignKey('apartments.id'), nullable=False)
     shares_requested = db.Column(db.Integer, nullable=False)
+    referred_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # Who referred this user
     
     # KYC Documents
     full_name = db.Column(db.String(200), nullable=False)
@@ -284,6 +327,7 @@ class InvestmentRequest(db.Model):
     # Relationships
     apartment = db.relationship('Apartment', backref='investment_requests')
     reviewer = db.relationship('User', foreign_keys=[reviewed_by])
+    referrer = db.relationship('User', foreign_keys=[referred_by_user_id], backref='referred_investments')
     
     @property
     def status_arabic(self):
@@ -306,3 +350,84 @@ class InvestmentRequest(db.Model):
     
     def __repr__(self):
         return f'<InvestmentRequest User:{self.user_id} Apartment:{self.apartment_id} Status:{self.status}>'
+
+
+class ReferralTree(db.Model):
+    """
+    Referral Tree model to track multi-level referrals per apartment
+    Each user can have multiple trees (one per apartment they invest in)
+    """
+    __tablename__ = 'referral_trees'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartments.id'), nullable=False)
+    referred_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # Parent in the tree
+    referral_code = db.Column(db.String(100), unique=True, nullable=False, index=True)  # Unique code for this user-apartment
+    level = db.Column(db.Integer, default=0)  # 0 = root, 1 = direct referral, 2 = second level, etc.
+    date_joined_tree = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Track total rewards earned from this tree branch
+    total_rewards_earned = db.Column(db.Float, default=0.0)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='referral_nodes')
+    apartment = db.relationship('Apartment', backref='referral_tree_nodes')
+    referred_by = db.relationship('User', foreign_keys=[referred_by_user_id])
+    
+    # Unique constraint: one entry per user per apartment
+    __table_args__ = (db.UniqueConstraint('user_id', 'apartment_id', name='_user_apartment_uc'),)
+    
+    def get_upline(self, max_levels=10):
+        """Get all users above this user in the tree"""
+        upline = []
+        current = self
+        level = 0
+        
+        while current.referred_by_user_id and level < max_levels:
+            parent = ReferralTree.query.filter_by(
+                user_id=current.referred_by_user_id,
+                apartment_id=current.apartment_id
+            ).first()
+            
+            if parent:
+                upline.append({
+                    'user': parent.user,
+                    'level': parent.level,
+                    'referral_code': parent.referral_code
+                })
+                current = parent
+                level += 1
+            else:
+                break
+        
+        return upline
+    
+    def get_downline(self, max_levels=10):
+        """Get all users below this user in the tree (recursive)"""
+        def get_children(node, current_level=1):
+            if current_level > max_levels:
+                return []
+            
+            children = ReferralTree.query.filter_by(
+                referred_by_user_id=node.user_id,
+                apartment_id=node.apartment_id
+            ).all()
+            
+            result = []
+            for child in children:
+                result.append({
+                    'user': child.user,
+                    'level': child.level,
+                    'referral_code': child.referral_code,
+                    'date_joined': child.date_joined_tree
+                })
+                # Recursively get children's children
+                result.extend(get_children(child, current_level + 1))
+            
+            return result
+        
+        return get_children(self)
+    
+    def __repr__(self):
+        return f'<ReferralTree User:{self.user_id} Apartment:{self.apartment_id} Level:{self.level}>'

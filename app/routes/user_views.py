@@ -2,14 +2,14 @@
 User-facing view routes
 Dashboard, wallet, and share purchase functionality
 """
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, IntegerField, BooleanField, SelectField
 from wtforms.validators import DataRequired, Email, Length, Regexp
 from werkzeug.utils import secure_filename
-from app.models import db, Apartment, Share, Transaction, InvestmentRequest
+from app.models import db, Apartment, Share, Transaction, InvestmentRequest, User
 from sqlalchemy import desc
 import os
 from datetime import datetime
@@ -288,6 +288,17 @@ def investment_request(apartment_id):
     shares_count = int(request.args.get('shares', 1))
     total_amount = apartment.share_price * shares_count
     
+    # Check for referral code in session
+    referral_code = None
+    referrer_tree = None
+    if 'referral_code' in session and session.get('referral_apartment') == apartment_id:
+        referral_code = session['referral_code']
+        from app.models import ReferralTree
+        referrer_tree = ReferralTree.query.filter_by(
+            apartment_id=apartment_id,
+            referral_code=referral_code
+        ).first()
+    
     form = InvestmentRequestForm()
     
     if form.validate_on_submit():
@@ -329,20 +340,33 @@ def investment_request(apartment_id):
             id_document_front=front_filename,
             id_document_back=back_filename,
             proof_of_address=address_filename,
-            status='pending'
+            status='pending',
+            referred_by_user_id=referrer_tree.user_id if referrer_tree else None
         )
         
         db.session.add(inv_request)
         db.session.commit()
         
+        # Clear referral from session
+        session.pop('referral_code', None)
+        session.pop('referral_apartment', None)
+        
         flash('تم إرسال طلبك بنجاح! سنتواصل معك قريباً', 'success')
         return redirect(url_for('user_views.request_confirmation', request_id=inv_request.id))
+    
+    # If form has errors, flash them
+    if form.errors:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'error')
     
     return render_template('user/investment_request.html',
                          form=form,
                          apartment=apartment,
                          shares_count=shares_count,
-                         total_amount=total_amount)
+                         total_amount=total_amount,
+                         referral_code=referral_code,
+                         referrer=User.query.get(referrer_tree.user_id) if referrer_tree else None)
 
 
 @bp.route('/request-confirmation/<int:request_id>')
@@ -367,3 +391,76 @@ def my_investment_requests():
         .order_by(desc(InvestmentRequest.date_submitted)).all()
     
     return render_template('user/my_investment_requests.html', requests=requests)
+
+
+# ============= REFERRAL SYSTEM =============
+
+@bp.route('/my-referrals')
+@login_required
+def my_referrals():
+    """Show user's referral trees for all apartments they invested in"""
+    from app.models import ReferralTree
+    
+    # Get all apartments where user has approved investments
+    approved_requests = InvestmentRequest.query.filter_by(
+        user_id=current_user.id,
+        status='approved'
+    ).all()
+    
+    trees = []
+    for req in approved_requests:
+        # Get or create referral code for this apartment
+        referral_code = current_user.get_or_create_referral_code(req.apartment_id)
+        
+        # Get referral tree node
+        tree_node = ReferralTree.query.filter_by(
+            user_id=current_user.id,
+            apartment_id=req.apartment_id
+        ).first()
+        
+        if tree_node:
+            upline = tree_node.get_upline()
+            downline = tree_node.get_downline()
+            
+            trees.append({
+                'apartment': req.apartment,
+                'referral_code': referral_code,
+                'upline': upline,
+                'downline': downline,
+                'total_referrals': len(downline),
+                'total_rewards': tree_node.total_rewards_earned
+            })
+    
+    return render_template('user/my_referrals.html', trees=trees)
+
+
+@bp.route('/refer/<int:apartment_id>')
+@login_required
+def get_referral_link(apartment_id):
+    """Generate and display referral link for an apartment"""
+    from app.models import ReferralTree
+    
+    apartment = Apartment.query.get_or_404(apartment_id)
+    
+    # Check if user has approved investment in this apartment
+    approved_request = InvestmentRequest.query.filter_by(
+        user_id=current_user.id,
+        apartment_id=apartment_id,
+        status='approved'
+    ).first()
+    
+    if not approved_request:
+        flash('يجب أن يتم قبول استثمارك أولاً للحصول على رابط إحالة', 'error')
+        return redirect(url_for('user_views.my_investments'))
+    
+    # Get or create referral code
+    referral_code = current_user.get_or_create_referral_code(apartment_id)
+    referral_link = url_for('main.referred_investment', 
+                            apartment_id=apartment_id, 
+                            ref=referral_code, 
+                            _external=True)
+    
+    return render_template('user/referral_link.html',
+                         apartment=apartment,
+                         referral_code=referral_code,
+                         referral_link=referral_link)

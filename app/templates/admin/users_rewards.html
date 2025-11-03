@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة مكافآت الإحالة{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-4 text-navy">
+                <i class="fas fa-money-bill-wave"></i> صرف مكافآت الإحالة
+            </h1>
+            <p class="lead text-muted">إدارة المكافآت المتراكمة للمستثمرين</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-navy">
+                <i class="fas fa-arrow-right"></i> العودة للوحة التحكم
+            </a>
+        </div>
+    </div>
+
+    {% if users %}
+        <!-- Summary Card -->
+        <div class="card border-gold mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h3 class="text-gold mb-0">{{ users | length }}</h3>
+                        <p class="text-muted mb-0">مستخدمين بمكافآت</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h3 class="text-success mb-0">{{ '{:,.2f}'.format(users | sum(attribute='rewards_balance')) }} جنيه</h3>
+                        <p class="text-muted mb-0">إجمالي المكافآت</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h3 class="text-navy mb-0">{{ '{:,.2f}'.format((users | sum(attribute='rewards_balance')) / (users | length)) }} جنيه</h3>
+                        <p class="text-muted mb-0">متوسط المكافآت</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="card">
+            <div class="card-header bg-navy text-white">
+                <h4 class="mb-0">المستخدمين بمكافآت متاحة</h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>المستخدم</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>رصيد المكافآت</th>
+                                <th>رصيد المحفظة</th>
+                                <th>تاريخ التسجيل</th>
+                                <th class="text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>
+                                    <strong>{{ user.full_name }}</strong>
+                                    {% if user.is_admin %}
+                                        <span class="badge bg-danger ms-2">مسؤول</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    <span class="badge bg-warning text-dark fs-6">
+                                        <i class="fas fa-coins"></i> {{ '{:,.2f}'.format(user.rewards_balance) }} جنيه
+                                    </span>
+                                </td>
+                                <td>{{ '{:,.2f}'.format(user.wallet_balance) }} جنيه</td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ user.date_created.strftime('%Y-%m-%d') if user.date_created else 'غير متوفر' }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <!-- Full Payout Button -->
+                                        <form method="POST" 
+                                              action="{{ url_for('admin.payout_rewards', user_id=user.id) }}"
+                                              style="display: inline;"
+                                              onsubmit="return confirm('هل تريد صرف {{ '{:,.2f}'.format(user.rewards_balance) }} جنيه إلى محفظة {{ user.full_name }}؟');">
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="fas fa-check-circle"></i> صرف الكل
+                                            </button>
+                                        </form>
+                                        
+                                        <!-- Partial Payout Button (Modal Trigger) -->
+                                        <button type="button" 
+                                                class="btn btn-info btn-sm"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#partialPayoutModal{{ user.id }}">
+                                            <i class="fas fa-edit"></i> صرف جزئي
+                                        </button>
+                                        
+                                        <!-- View User Referrals -->
+                                        <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" 
+                                           class="btn btn-outline-navy btn-sm">
+                                            <i class="fas fa-eye"></i> التفاصيل
+                                        </a>
+                                    </div>
+
+                                    <!-- Partial Payout Modal -->
+                                    <div class="modal fade" id="partialPayoutModal{{ user.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-navy text-white">
+                                                    <h5 class="modal-title">صرف جزئي - {{ user.full_name }}</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <form method="POST" action="{{ url_for('admin.payout_partial_rewards', user_id=user.id) }}">
+                                                    <div class="modal-body">
+                                                        <div class="alert alert-info">
+                                                            <i class="fas fa-info-circle"></i>
+                                                            رصيد المكافآت المتاح: <strong>{{ '{:,.2f}'.format(user.rewards_balance) }} جنيه</strong>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label">المبلغ المراد صرفه:</label>
+                                                            <input type="number" 
+                                                                   name="amount" 
+                                                                   class="form-control" 
+                                                                   step="0.01" 
+                                                                   min="0.01"
+                                                                   max="{{ user.rewards_balance }}"
+                                                                   required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                        <button type="submit" class="btn btn-success">
+                                                            <i class="fas fa-check"></i> تأكيد الصرف
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    {% else %}
+        <!-- No Rewards -->
+        <div class="card border-gold">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h3 class="text-navy">لا توجد مكافآت معلقة</h3>
+                <p class="text-muted">جميع المستخدمين ليس لديهم مكافآت إحالة حالياً</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Info Card -->
+    <div class="card mt-4 bg-light">
+        <div class="card-body">
+            <h5 class="text-navy mb-3">
+                <i class="fas fa-info-circle"></i> معلومات هامة:
+            </h5>
+            <ul class="mb-0">
+                <li>يتم تراكم مكافآت الإحالة تلقائياً عند الموافقة على طلبات الاستثمار</li>
+                <li>يجب على الإدارة صرف المكافآت يدوياً من هذه الصفحة</li>
+                <li>يتم نقل المكافآت من رصيد المكافآت إلى المحفظة الرئيسية</li>
+                <li>يمكن صرف المبلغ كاملاً أو جزئياً حسب الحاجة</li>
+                <li>يتم تسجيل جميع العمليات في سجل المعاملات</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

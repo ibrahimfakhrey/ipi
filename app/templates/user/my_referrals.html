@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}شجرة الإحالات{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-4 text-navy">🌳 شجرة الإحالات</h1>
+            <p class="lead text-muted">شارك روابط الإحالة واحصل على مكافآت من استثماراتهم</p>
+        </div>
+    </div>
+
+    {% if trees %}
+        <!-- Rewards Summary Card -->
+        <div class="card border-gold mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h3 class="text-gold mb-0">{{ current_user.rewards_balance | round(2) }} جنيه</h3>
+                        <p class="text-muted mb-0">رصيد المكافآت</p>
+                        <small class="text-muted">يتم الدفع بواسطة الإدارة</small>
+                    </div>
+                    <div class="col-md-4">
+                        <h3 class="text-navy mb-0">{{ trees | length }}</h3>
+                        <p class="text-muted mb-0">عدد الوحدات</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h3 class="text-success mb-0">{{ trees | sum(attribute='total_referrals') }}</h3>
+                        <p class="text-muted mb-0">إجمالي الإحالات</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Referral Trees by Apartment -->
+        {% for tree in trees %}
+        <div class="card mb-4">
+            <div class="card-header bg-navy text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-building"></i> {{ tree.apartment.title }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h5>رابط الإحالة الخاص بك:</h5>
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="ref-link-{{ tree.apartment.id }}"
+                                   value="{{ url_for('main.referred_investment', apartment_id=tree.apartment.id, ref=tree.referral_code, _external=True) }}" 
+                                   readonly>
+                            <button class="btn btn-gold" 
+                                    onclick="copyReferralLink({{ tree.apartment.id }})">
+                                <i class="fas fa-copy"></i> نسخ
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h4 class="text-success mb-0">{{ tree.total_referrals }}</h4>
+                                <small class="text-muted">الإحالات</small>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-gold mb-0">{{ tree.total_rewards | round(2) }} جنيه</h4>
+                                <small class="text-muted">المكافآت</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upline (People above) -->
+                {% if tree.upline %}
+                <div class="mb-3">
+                    <h5 class="text-navy">⬆️ السلسلة الأعلى (من أحالك):</h5>
+                    <div class="list-group">
+                        {% for node in tree.upline %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ node.user.full_name }}</strong>
+                                    <span class="badge bg-secondary ms-2">مستوى {{ node.level }}</span>
+                                </div>
+                                <div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-coins text-gold"></i> 
+                                        {{ node.total_rewards_earned | round(2) }} جنيه
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Downline (People below) -->
+                {% if tree.downline %}
+                <div>
+                    <h5 class="text-navy">⬇️ السلسلة الأدنى (من أحلتهم):</h5>
+                    <div class="list-group">
+                        {% for node in tree.downline %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ node.user.full_name }}</strong>
+                                    <span class="badge bg-primary ms-2">مستوى {{ node.level }}</span>
+                                    {% if node.level == 1 %}
+                                        <span class="badge bg-success">إحالة مباشرة</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <small class="text-muted">
+                                        انضم: {{ node.date_joined_tree.strftime('%Y-%m-%d') }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    لم تقم بإحالة أحد بعد. شارك رابط الإحالة أعلاه لتبدأ في كسب المكافآت!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+    {% else %}
+        <!-- No Referrals Yet -->
+        <div class="card border-gold">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-users fa-4x text-gold mb-3"></i>
+                <h3 class="text-navy">لم تبدأ في الإحالات بعد</h3>
+                <p class="text-muted mb-4">
+                    ستحصل على روابط إحالة بمجرد الموافقة على طلبات استثمارك
+                </p>
+                <a href="{{ url_for('main.market') }}" class="btn btn-gold btn-lg">
+                    <i class="fas fa-search"></i> تصفح الوحدات
+                </a>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- How It Works -->
+    <div class="card mt-4 bg-light">
+        <div class="card-body">
+            <h5 class="text-navy mb-3">
+                <i class="fas fa-question-circle"></i> كيف يعمل نظام الإحالة؟
+            </h5>
+            <ul class="mb-0">
+                <li>احصل على رابط إحالة خاص لكل وحدة استثمرت فيها</li>
+                <li>شارك الرابط مع الأصدقاء والعائلة</li>
+                <li>احصل على <strong class="text-gold">0.05%</strong> من استثماراتهم المباشرة</li>
+                <li>احصل على <strong class="text-gold">0.005%</strong> من إحالات المستوى الثاني</li>
+                <li>احصل على <strong class="text-gold">0.0005%</strong> من إحالات المستوى الثالث... وهكذا</li>
+                <li>تتراكم المكافآت في رصيدك ويتم دفعها بواسطة الإدارة</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyReferralLink(apartmentId) {
+    const input = document.getElementById('ref-link-' + apartmentId);
+    input.select();
+    document.execCommand('copy');
+    
+    // Show feedback
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check"></i> تم النسخ!';
+    button.classList.add('btn-success');
+    button.classList.remove('btn-gold');
+    
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.classList.remove('btn-success');
+        button.classList.add('btn-gold');
+    }, 2000);
+}
+</script>
+{% endblock %}

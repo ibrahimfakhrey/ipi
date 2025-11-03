@@ -2,8 +2,9 @@
 Main public routes
 Landing page and market listings
 """
-from flask import Blueprint, render_template, request
-from app.models import Apartment, User
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask_login import current_user
+from app.models import Apartment, User, ReferralTree
 from sqlalchemy import desc
 
 bp = Blueprint('main', __name__)
@@ -125,6 +126,45 @@ def faq():
         }
     ]
     return render_template('user/faq.html', faqs=faqs)
+
+
+@bp.route('/invest-via-referral/<int:apartment_id>')
+def referred_investment(apartment_id):
+    """Handle referral links for investment"""
+    ref_code = request.args.get('ref')
+    
+    if not ref_code:
+        flash('رابط الإحالة غير صحيح', 'error')
+        return redirect(url_for('main.apartment_detail', apartment_id=apartment_id))
+    
+    # Validate referral code
+    referrer_tree = ReferralTree.query.filter_by(
+        apartment_id=apartment_id,
+        referral_code=ref_code
+    ).first()
+    
+    if not referrer_tree:
+        flash('رمز الإحالة غير صحيح أو منتهي الصلاحية', 'error')
+        return redirect(url_for('main.apartment_detail', apartment_id=apartment_id))
+    
+    # Store referral info in session
+    session['referral_code'] = ref_code
+    session['referral_apartment'] = apartment_id
+    
+    # If user is logged in, redirect to investment request
+    if current_user.is_authenticated:
+        flash(f'تم تطبيق رمز الإحالة. سيحصل المُحيل على مكافأة عند قبول طلبك!', 'success')
+        return redirect(url_for('user_views.investment_request', apartment_id=apartment_id))
+    
+    # If not logged in, show them they need to register/login
+    apartment = Apartment.query.get_or_404(apartment_id)
+    referrer = User.query.get(referrer_tree.user_id)
+    
+    flash(f'تمت دعوتك للاستثمار من قبل {referrer.name}. سجل حسابك أو سجل دخولك للمتابعة!', 'info')
+    return render_template('user/referred_investment.html', 
+                         apartment=apartment,
+                         referrer=referrer,
+                         ref_code=ref_code)
 
 
 # Import db and Share for apartment_detail route

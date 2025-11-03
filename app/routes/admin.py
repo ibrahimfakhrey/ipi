@@ -63,6 +63,9 @@ def dashboard():
     pending_requests = InvestmentRequest.query.filter_by(status='pending').count()
     under_review_requests = InvestmentRequest.query.filter_by(status='under_review').count()
     
+    # Referral rewards statistics
+    users_with_rewards = User.query.filter(User.rewards_balance > 0).count()
+    
     # Recent activity
     recent_transactions = Transaction.query.order_by(db.desc(Transaction.date)).limit(10).all()
     recent_users = User.query.filter_by(is_admin=False).order_by(db.desc(User.date_joined)).limit(5).all()
@@ -80,7 +83,8 @@ def dashboard():
         'total_shares_sold': total_shares_sold,
         'total_revenue': total_revenue,
         'pending_requests': pending_requests,
-        'under_review_requests': under_review_requests
+        'under_review_requests': under_review_requests,
+        'users_with_rewards': users_with_rewards
     }
     
     return render_template('admin/dashboard.html',
@@ -440,15 +444,65 @@ def upload_contract(request_id):
 @admin_required
 def approve_investment_request(request_id):
     """Quick approve investment request"""
+    from app.models import ReferralTree
+    
     inv_request = InvestmentRequest.query.get_or_404(request_id)
     
     inv_request.status = 'approved'
     inv_request.date_reviewed = datetime.utcnow()
     inv_request.reviewed_by = current_user.id
     
+    # Calculate investment amount
+    apartment = inv_request.apartment
+    investment_amount = apartment.share_price * inv_request.shares_requested
+    
+    # Add investor to referral tree if referred
+    if inv_request.referred_by_user_id:
+        # Get referrer's tree node
+        referrer_tree = ReferralTree.query.filter_by(
+            user_id=inv_request.referred_by_user_id,
+            apartment_id=inv_request.apartment_id
+        ).first()
+        
+        if referrer_tree:
+            # Use session.no_autoflush to avoid premature flush and UNIQUE constraint error
+            with db.session.no_autoflush:
+                # Create tree node for new investor
+                investor_tree = ReferralTree(
+                    user_id=inv_request.user_id,
+                    apartment_id=inv_request.apartment_id,
+                    referred_by_user_id=inv_request.referred_by_user_id,
+                    level=referrer_tree.level + 1
+                )
+                investor_tree.referral_code = inv_request.user.get_or_create_referral_code(investor_tree.apartment_id)
+                db.session.add(investor_tree)
+
+            # Distribute rewards up the referral tree
+            upline = referrer_tree.get_upline(max_levels=10)
+            upline.insert(0, referrer_tree)  # Include direct referrer
+
+            for level, node in enumerate(upline):
+                # Calculate reward: 0.05% for level 0, 0.005% for level 1, etc.
+                reward_percentage = 0.05 * (0.1 ** level)  # 0.05%, 0.005%, 0.0005%, etc.
+                reward_amount = investment_amount * (reward_percentage / 100)
+
+                if reward_amount > 0:
+                    # Add reward to user's rewards balance
+                    upline_user = User.query.get(node.user_id)
+                    upline_user.add_rewards(
+                        reward_amount, 
+                        f'إحالة من {inv_request.user.name} - {apartment.title}'
+                    )
+
+                    # Update tree node's total rewards
+                    node.total_rewards_earned += reward_amount
+    
     db.session.commit()
     
     flash(f'تمت الموافقة على الطلب #{request_id}', 'success')
+    if inv_request.referred_by_user_id:
+        flash(f'تم توزيع مكافآت الإحالة على السلسلة', 'info')
+    
     return redirect(url_for('admin.review_investment_request', request_id=request_id))
 
 
@@ -466,3 +520,78 @@ def reject_investment_request(request_id):
     
     flash(f'تم رفض الطلب #{request_id}', 'success')
     return redirect(url_for('admin.review_investment_request', request_id=request_id))
+
+
+# ============= REFERRAL REWARDS MANAGEMENT =============
+
+@bp.route('/users-with-rewards')
+@admin_required
+def users_with_rewards():
+    """List all users with pending referral rewards"""
+    users = User.query.filter(User.rewards_balance > 0).order_by(User.rewards_balance.desc()).all()
+    
+    return render_template('admin/users_rewards.html', users=users)
+
+
+@bp.route('/payout-rewards/<int:user_id>', methods=['POST'])
+@admin_required
+def payout_rewards(user_id):
+    """Transfer rewards from rewards_balance to wallet_balance"""
+    user = User.query.get_or_404(user_id)
+    
+    if user.rewards_balance <= 0:
+        flash('لا توجد مكافآت متاحة للدفع', 'error')
+        return redirect(url_for('admin.users_with_rewards'))
+    
+    amount = user.rewards_balance
+    
+    # Transfer from rewards to wallet
+    user.wallet_balance += amount
+    user.rewards_balance = 0
+    
+    # Create transaction record
+    transaction = Transaction(
+        user_id=user.id,
+        transaction_type='reward_payout',
+        amount=amount,
+        description=f'صرف مكافآت الإحالة - {amount:.2f} جنيه'
+    )
+    db.session.add(transaction)
+    db.session.commit()
+    
+    flash(f'تم صرف {amount:.2f} جنيه من مكافآت الإحالة إلى محفظة {user.name}', 'success')
+    return redirect(url_for('admin.users_with_rewards'))
+
+
+@bp.route('/payout-partial-rewards/<int:user_id>', methods=['POST'])
+@admin_required
+def payout_partial_rewards(user_id):
+    """Transfer partial amount from rewards_balance to wallet_balance"""
+    user = User.query.get_or_404(user_id)
+    
+    amount = float(request.form.get('amount', 0))
+    
+    if amount <= 0:
+        flash('المبلغ يجب أن يكون أكبر من صفر', 'error')
+        return redirect(url_for('admin.users_with_rewards'))
+    
+    if amount > user.rewards_balance:
+        flash('المبلغ أكبر من رصيد المكافآت المتاح', 'error')
+        return redirect(url_for('admin.users_with_rewards'))
+    
+    # Transfer from rewards to wallet
+    user.wallet_balance += amount
+    user.rewards_balance -= amount
+    
+    # Create transaction record
+    transaction = Transaction(
+        user_id=user.id,
+        transaction_type='reward_payout',
+        amount=amount,
+        description=f'صرف جزئي لمكافآت الإحالة - {amount:.2f} جنيه'
+    )
+    db.session.add(transaction)
+    db.session.commit()
+    
+    flash(f'تم صرف {amount:.2f} جنيه من مكافآت الإحالة إلى محفظة {user.name}', 'success')
+    return redirect(url_for('admin.users_with_rewards'))
