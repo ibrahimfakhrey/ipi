@@ -37,8 +37,10 @@
                 {% if current_user.is_authenticated %}
                     {% if current_user.is_admin %}
                         <li><a href="{{ url_for('admin.dashboard') }}"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
+                        <li><a href="{{ url_for('admin.investment_requests') }}"><i class="fas fa-file-contract"></i> طلبات الاستثمار</a></li>
                     {% else %}
                         <li><a href="{{ url_for('user_views.dashboard') }}"><i class="fas fa-chart-line"></i> لوحتي</a></li>
+                        <li><a href="{{ url_for('user_views.my_investment_requests') }}"><i class="fas fa-file-contract"></i> طلباتي</a></li>
                         <li><a href="{{ url_for('user_views.wallet') }}"><i class="fas fa-wallet"></i> المحفظة</a></li>
                     {% endif %}
                     <li><a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-sm">تسجيل الخروج</a></li>

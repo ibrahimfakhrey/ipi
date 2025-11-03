@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}طلبات الاستثمار - الإدارة{% endblock %}
+
+{% block content %}
+<div style="padding: 3rem 0;">
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1 class="text-gold">
+                <i class="fas fa-file-contract"></i> طلبات الاستثمار
+            </h1>
+            
+            <div style="display: flex; gap: 1rem;">
+                <span class="badge badge-warning">قيد الانتظار: {{ pending_count }}</span>
+                <span class="badge badge-info">قيد المراجعة: {{ under_review_count }}</span>
+            </div>
+        </div>
+        
+        <!-- Filter Tabs -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--secondary-navy); padding-bottom: 0;">
+            <a href="?status=all" class="btn btn-sm {{ 'btn-primary' if status_filter == 'all' else 'btn-secondary' }}" style="border-radius: 0.5rem 0.5rem 0 0;">
+                الكل ({{ all_count }})
+            </a>
+            <a href="?status=pending" class="btn btn-sm {{ 'btn-primary' if status_filter == 'pending' else 'btn-secondary' }}" style="border-radius: 0.5rem 0.5rem 0 0;">
+                قيد الانتظار ({{ pending_count }})
+            </a>
+            <a href="?status=under_review" class="btn btn-sm {{ 'btn-primary' if status_filter == 'under_review' else 'btn-secondary' }}" style="border-radius: 0.5rem 0.5rem 0 0;">
+                قيد المراجعة ({{ under_review_count }})
+            </a>
+            <a href="?status=approved" class="btn btn-sm {{ 'btn-primary' if status_filter == 'approved' else 'btn-secondary' }}" style="border-radius: 0.5rem 0.5rem 0 0;">
+                تمت الموافقة ({{ approved_count }})
+            </a>
+            <a href="?status=rejected" class="btn btn-sm {{ 'btn-primary' if status_filter == 'rejected' else 'btn-secondary' }}" style="border-radius: 0.5rem 0.5rem 0 0;">
+                مرفوض ({{ rejected_count }})
+            </a>
+        </div>
+        
+        {% if requests %}
+            <div style="display: grid; gap: 1.5rem;">
+                {% for req in requests %}
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                                    <h3 style="margin: 0;">طلب #{{ req.id }}</h3>
+                                    <span class="badge badge-{{ 'success' if req.status == 'approved' else 'warning' if req.status == 'pending' or req.status == 'under_review' else 'danger' if req.status == 'rejected' else 'secondary' }}">
+                                        {{ req.status_arabic }}
+                                    </span>
+                                </div>
+                                <p class="text-muted" style="margin: 0;">{{ req.date_submitted.strftime('%Y-%m-%d %H:%M') }}</p>
+                            </div>
+                            <a href="{{ url_for('admin.review_investment_request', request_id=req.id) }}" class="btn btn-primary">
+                                <i class="fas fa-eye"></i> مراجعة
+                            </a>
+                        </div>
+                        
+                        <hr style="margin: 1rem 0;">
+                        
+                        <div class="grid grid-2" style="gap: 2rem;">
+                            <div>
+                                <h4 class="text-gold" style="margin-bottom: 1rem;">بيانات المستثمر</h4>
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <div><strong>الاسم:</strong> {{ req.full_name }}</div>
+                                    <div><strong>البريد:</strong> {{ req.user.email }}</div>
+                                    <div><strong>الهاتف:</strong> {{ req.phone }}</div>
+                                    <div><strong>الرقم القومي:</strong> {{ req.national_id }}</div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="text-gold" style="margin-bottom: 1rem;">تفاصيل الاستثمار</h4>
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <div><strong>العقار:</strong> {{ req.apartment.title }}</div>
+                                    <div><strong>عدد الحصص:</strong> <span class="text-gold">{{ req.shares_requested }}</span></div>
+                                    <div><strong>المبلغ الإجمالي:</strong> <span class="text-success">{{ "{:,.0f}".format(req.total_amount) }} جنيه</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Pagination -->
+            {% if pagination.pages > 1 %}
+                <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 2rem;">
+                    {% if pagination.has_prev %}
+                        <a href="?status={{ status_filter }}&page={{ pagination.prev_num }}" class="btn btn-secondary">السابق</a>
+                    {% endif %}
+                    
+                    {% for page_num in pagination.iter_pages() %}
+                        {% if page_num %}
+                            <a href="?status={{ status_filter }}&page={{ page_num }}" 
+                               class="btn {{ 'btn-primary' if page_num == pagination.page else 'btn-secondary' }}">
+                                {{ page_num }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pagination.has_next %}
+                        <a href="?status={{ status_filter }}&page={{ pagination.next_num }}" class="btn btn-secondary">التالي</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="card text-center" style="padding: 3rem;">
+                <div style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <h3 class="text-muted">لا توجد طلبات</h3>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

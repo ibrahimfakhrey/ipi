@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}مراجعة الطلب #{{ request.id }}{% endblock %}
+
+{% block content %}
+<div style="padding: 3rem 0;">
+    <div class="container" style="max-width: 1200px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1 class="text-gold">
+                <i class="fas fa-file-contract"></i> مراجعة طلب الاستثمار #{{ request.id }}
+            </h1>
+            <a href="{{ url_for('admin.investment_requests') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> رجوع
+            </a>
+        </div>
+        
+        <div class="grid grid-2" style="gap: 2rem;">
+            <!-- Left Column: Request Details -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Status Card -->
+                <div class="card">
+                    <h3 class="text-gold" style="margin-bottom: 1rem;">حالة الطلب</h3>
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <span class="badge badge-{{ 'success' if request.status == 'approved' else 'warning' if request.status == 'pending' or request.status == 'under_review' else 'danger' if request.status == 'rejected' else 'secondary' }}" 
+                              style="font-size: 1.2rem; padding: 0.75rem 1.5rem;">
+                            {{ request.status_arabic }}
+                        </span>
+                    </div>
+                    <div style="font-size: 0.9rem; color: var(--text-muted);">
+                        <div>تاريخ التقديم: {{ request.date_submitted.strftime('%Y-%m-%d %H:%M') }}</div>
+                        {% if request.date_reviewed %}
+                            <div>تاريخ المراجعة: {{ request.date_reviewed.strftime('%Y-%m-%d %H:%M') }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Personal Info -->
+                <div class="card">
+                    <h3 class="text-gold" style="margin-bottom: 1rem;">البيانات الشخصية</h3>
+                    <div style="display: grid; gap: 1rem;">
+                        <div>
+                            <strong>الاسم الكامل:</strong>
+                            <p style="margin: 0.25rem 0 0;">{{ request.full_name }}</p>
+                        </div>
+                        <div>
+                            <strong>البريد الإلكتروني:</strong>
+                            <p style="margin: 0.25rem 0 0;">{{ request.user.email }}</p>
+                        </div>
+                        <div>
+                            <strong>رقم الهاتف:</strong>
+                            <p style="margin: 0.25rem 0 0;">{{ request.phone }}</p>
+                        </div>
+                        <div>
+                            <strong>الرقم القومي:</strong>
+                            <p style="margin: 0.25rem 0 0;">{{ request.national_id }}</p>
+                        </div>
+                        <div>
+                            <strong>تاريخ الميلاد:</strong>
+                            <p style="margin: 0.25rem 0 0;">{{ request.date_of_birth }}</p>
+                        </div>
+                        <div>
+                            <strong>الجنسية:</strong>
+                            <p style="margin: 0.25rem 0 0;">{{ request.nationality }}</p>
+                        </div>
+                        <div>
+                            <strong>المهنة:</strong>
+                            <p style="margin: 0.25rem 0 0;">{{ request.occupation }}</p>
+                        </div>
+                        <div>
+                            <strong>العنوان:</strong>
+                            <p style="margin: 0.25rem 0 0; white-space: pre-wrap;">{{ request.address }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Investment Details -->
+                <div class="card">
+                    <h3 class="text-gold" style="margin-bottom: 1rem;">تفاصيل الاستثمار</h3>
+                    <div style="display: grid; gap: 1rem;">
+                        <div>
+                            <strong>العقار:</strong>
+                            <p style="margin: 0.25rem 0 0;">
+                                <a href="{{ url_for('main.apartment_detail', apartment_id=request.apartment.id) }}" class="text-gold">
+                                    {{ request.apartment.title }}
+                                </a>
+                            </p>
+                        </div>
+                        <div>
+                            <strong>عدد الحصص المطلوبة:</strong>
+                            <p style="margin: 0.25rem 0 0;" class="text-gold">{{ request.shares_requested }} حصة</p>
+                        </div>
+                        <div>
+                            <strong>سعر الحصة:</strong>
+                            <p style="margin: 0.25rem 0 0;">{{ "{:,.0f}".format(request.apartment.share_price) }} جنيه</p>
+                        </div>
+                        <div>
+                            <strong>المبلغ الإجمالي:</strong>
+                            <p style="margin: 0.25rem 0 0;" class="text-success">{{ "{:,.0f}".format(request.total_amount) }} جنيه</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Documents -->
+                <div class="card">
+                    <h3 class="text-gold" style="margin-bottom: 1rem;">المستندات المرفقة</h3>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        {% if request.id_document_front %}
+                            <a href="{{ url_for('static', filename='uploads/documents/' + request.id_document_front) }}" 
+                               target="_blank" class="btn btn-secondary">
+                                <i class="fas fa-file-image"></i> صورة وجه البطاقة
+                            </a>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times"></i> لم يتم رفع صورة وجه البطاقة
+                            </div>
+                        {% endif %}
+                        
+                        {% if request.id_document_back %}
+                            <a href="{{ url_for('static', filename='uploads/documents/' + request.id_document_back) }}" 
+                               target="_blank" class="btn btn-secondary">
+                                <i class="fas fa-file-image"></i> صورة ظهر البطاقة
+                            </a>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times"></i> لم يتم رفع صورة ظهر البطاقة
+                            </div>
+                        {% endif %}
+                        
+                        {% if request.proof_of_address %}
+                            <a href="{{ url_for('static', filename='uploads/documents/' + request.proof_of_address) }}" 
+                               target="_blank" class="btn btn-secondary">
+                                <i class="fas fa-file-image"></i> إثبات العنوان
+                            </a>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times"></i> لم يتم رفع إثبات العنوان
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column: Actions -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Update Status Form -->
+                <div class="card">
+                    <h3 class="text-gold" style="margin-bottom: 1.5rem;">إجراءات المراجعة</h3>
+                    
+                    <form method="POST" action="{{ url_for('admin.update_investment_request_status', request_id=request.id) }}">
+                        {{ status_form.hidden_tag() }}
+                        
+                        <div class="form-group">
+                            {{ status_form.status.label }}
+                            {{ status_form.status(class="form-control") }}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ status_form.admin_notes.label }}
+                            {{ status_form.admin_notes(class="form-control", rows=4, placeholder="ملاحظات للعميل...") }}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ status_form.missing_documents.label }}
+                            {{ status_form.missing_documents(class="form-control", rows=2, placeholder="اذكر المستندات الناقصة (إن وجدت)") }}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-save"></i> تحديث الحالة
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Upload Contract Form -->
+                <div class="card">
+                    <h3 class="text-gold" style="margin-bottom: 1.5rem;">رفع العقد</h3>
+                    
+                    {% if request.contract_pdf %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> تم رفع العقد بالفعل
+                        </div>
+                        <a href="{{ url_for('static', filename='uploads/contracts/' + request.contract_pdf) }}" 
+                           target="_blank" class="btn btn-secondary" style="width: 100%; margin-bottom: 1rem;">
+                            <i class="fas fa-file-pdf"></i> عرض العقد الحالي
+                        </a>
+                    {% endif %}
+                    
+                    <form method="POST" action="{{ url_for('admin.upload_contract', request_id=request.id) }}" 
+                          enctype="multipart/form-data">
+                        {{ contract_form.hidden_tag() }}
+                        
+                        <div class="form-group">
+                            {{ contract_form.contract_file.label }}
+                            {{ contract_form.contract_file(class="form-control", accept=".pdf") }}
+                            <small class="text-muted">PDF فقط - حجم أقصى 10 ميجا</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-upload"></i> رفع العقد
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="card">
+                    <h3 class="text-gold" style="margin-bottom: 1.5rem;">إجراءات سريعة</h3>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <form method="POST" action="{{ url_for('admin.approve_investment_request', request_id=request.id) }}" 
+                              onsubmit="return confirm('هل أنت متأكد من الموافقة على هذا الطلب؟');">
+                            <button type="submit" class="btn btn-success" style="width: 100%;" 
+                                    {{ 'disabled' if request.status == 'approved' }}>
+                                <i class="fas fa-check"></i> الموافقة على الطلب
+                            </button>
+                        </form>
+                        
+                        <form method="POST" action="{{ url_for('admin.reject_investment_request', request_id=request.id) }}" 
+                              onsubmit="return confirm('هل أنت متأكد من رفض هذا الطلب؟');">
+                            <button type="submit" class="btn btn-danger" style="width: 100%;"
+                                    {{ 'disabled' if request.status == 'rejected' }}>
+                                <i class="fas fa-times"></i> رفض الطلب
+                            </button>
+                        </form>
+                        
+                        <a href="mailto:{{ request.user.email }}" class="btn btn-secondary" style="width: 100%;">
+                            <i class="fas fa-envelope"></i> إرسال بريد للعميل
+                        </a>
+                        
+                        <a href="tel:{{ request.phone }}" class="btn btn-secondary" style="width: 100%;">
+                            <i class="fas fa-phone"></i> الاتصال بالعميل
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

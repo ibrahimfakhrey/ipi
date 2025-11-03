@@ -4,10 +4,44 @@ Dashboard, wallet, and share purchase functionality
 """
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from app.models import db, Apartment, Share, Transaction
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed, FileRequired
+from wtforms import StringField, TextAreaField, IntegerField, BooleanField, SelectField
+from wtforms.validators import DataRequired, Email, Length, Regexp
+from werkzeug.utils import secure_filename
+from app.models import db, Apartment, Share, Transaction, InvestmentRequest
 from sqlalchemy import desc
+import os
+from datetime import datetime
 
 bp = Blueprint('user_views', __name__, url_prefix='/user')
+
+
+# Investment Request Form
+class InvestmentRequestForm(FlaskForm):
+    full_name = StringField('الاسم الكامل', validators=[DataRequired(message='مطلوب')])
+    phone = StringField('رقم الهاتف', validators=[DataRequired(message='مطلوب'), 
+                                                   Regexp(r'^\+?[\d\s-]{10,}$', message='رقم هاتف غير صحيح')])
+    national_id = StringField('الرقم القومي', validators=[DataRequired(message='مطلوب'),
+                                                           Length(min=10, max=20, message='رقم غير صحيح')])
+    address = TextAreaField('العنوان', validators=[DataRequired(message='مطلوب')])
+    date_of_birth = StringField('تاريخ الميلاد', validators=[DataRequired(message='مطلوب')])
+    nationality = StringField('الجنسية', validators=[DataRequired(message='مطلوب')])
+    occupation = StringField('المهنة', validators=[DataRequired(message='مطلوب')])
+    id_document_front = FileField('صورة وجه البطاقة', validators=[
+        FileRequired(message='مطلوب'),
+        FileAllowed(['jpg', 'jpeg', 'png', 'pdf'], 'صور أو PDF فقط')
+    ])
+    id_document_back = FileField('صورة ظهر البطاقة', validators=[
+        FileRequired(message='مطلوب'),
+        FileAllowed(['jpg', 'jpeg', 'png', 'pdf'], 'صور أو PDF فقط')
+    ])
+    proof_of_address = FileField('إثبات العنوان', validators=[
+        FileRequired(message='مطلوب'),
+        FileAllowed(['jpg', 'jpeg', 'png', 'pdf'], 'صور أو PDF فقط')
+    ])
+    agree_terms = BooleanField('أوافق على الشروط', validators=[DataRequired(message='يجب الموافقة')])
+
 
 
 @bp.route('/dashboard')
@@ -134,7 +168,7 @@ def withdraw():
 @bp.route('/buy-shares/<int:apartment_id>', methods=['GET', 'POST'])
 @login_required
 def buy_shares(apartment_id):
-    """Buy shares page and processing"""
+    """Buy shares page - redirects to investment request"""
     apartment = Apartment.query.get_or_404(apartment_id)
     
     if request.method == 'POST':
@@ -144,15 +178,10 @@ def buy_shares(apartment_id):
             flash('يجب شراء حصة واحدة على الأقل', 'error')
             return render_template('user/buy_shares.html', apartment=apartment)
         
-        # Process purchase
-        success, message = apartment.purchase_shares(current_user, num_shares)
-        
-        if success:
-            db.session.commit()
-            flash(message, 'success')
-            return redirect(url_for('user_views.dashboard'))
-        else:
-            flash(message, 'error')
+        # Redirect to investment request form instead of direct purchase
+        return redirect(url_for('user_views.investment_request', 
+                              apartment_id=apartment_id, 
+                              shares=num_shares))
     
     return render_template('user/buy_shares.html', apartment=apartment)
 
@@ -247,3 +276,93 @@ def change_password():
     
     flash('تم تغيير كلمة المرور بنجاح', 'success')
     return redirect(url_for('user_views.profile'))
+
+
+@bp.route('/investment-request/<int:apartment_id>', methods=['GET', 'POST'])
+@login_required
+def investment_request(apartment_id):
+    """Submit investment request with KYC documents"""
+    apartment = Apartment.query.get_or_404(apartment_id)
+    
+    # Get shares count from session or query params
+    shares_count = int(request.args.get('shares', 1))
+    total_amount = apartment.share_price * shares_count
+    
+    form = InvestmentRequestForm()
+    
+    if form.validate_on_submit():
+        # Create uploads directories if they don't exist
+        upload_dir = os.path.join('app', 'static', 'uploads', 'documents')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Save uploaded files
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        front_file = form.id_document_front.data
+        front_filename = secure_filename(f"{timestamp}_front_{current_user.id}_{front_file.filename}")
+        front_path = os.path.join(upload_dir, front_filename)
+        front_file.save(front_path)
+        
+        back_file = form.id_document_back.data
+        back_filename = secure_filename(f"{timestamp}_back_{current_user.id}_{back_file.filename}")
+        back_path = os.path.join(upload_dir, back_filename)
+        back_file.save(back_path)
+        
+        address_file = form.proof_of_address.data
+        address_filename = secure_filename(f"{timestamp}_address_{current_user.id}_{address_file.filename}")
+        address_path = os.path.join(upload_dir, address_filename)
+        address_file.save(address_path)
+        
+        # Create investment request
+        inv_request = InvestmentRequest(
+            user_id=current_user.id,
+            apartment_id=apartment_id,
+            shares_requested=shares_count,
+            full_name=form.full_name.data,
+            phone=form.phone.data,
+            national_id=form.national_id.data,
+            address=form.address.data,
+            date_of_birth=form.date_of_birth.data,
+            nationality=form.nationality.data,
+            occupation=form.occupation.data,
+            id_document_front=front_filename,
+            id_document_back=back_filename,
+            proof_of_address=address_filename,
+            status='pending'
+        )
+        
+        db.session.add(inv_request)
+        db.session.commit()
+        
+        flash('تم إرسال طلبك بنجاح! سنتواصل معك قريباً', 'success')
+        return redirect(url_for('user_views.request_confirmation', request_id=inv_request.id))
+    
+    return render_template('user/investment_request.html',
+                         form=form,
+                         apartment=apartment,
+                         shares_count=shares_count,
+                         total_amount=total_amount)
+
+
+@bp.route('/request-confirmation/<int:request_id>')
+@login_required
+def request_confirmation(request_id):
+    """Show confirmation page after submitting investment request"""
+    inv_request = InvestmentRequest.query.get_or_404(request_id)
+    
+    # Ensure user can only see their own requests
+    if inv_request.user_id != current_user.id:
+        flash('غير مصرح لك بعرض هذا الطلب', 'error')
+        return redirect(url_for('user_views.dashboard'))
+    
+    return render_template('user/request_confirmation.html', request_id=request_id)
+
+
+@bp.route('/my-investment-requests')
+@login_required
+def my_investment_requests():
+    """Show user's investment requests"""
+    requests = InvestmentRequest.query.filter_by(user_id=current_user.id)\
+        .order_by(desc(InvestmentRequest.date_submitted)).all()
+    
+    return render_template('user/my_investment_requests.html', requests=requests)

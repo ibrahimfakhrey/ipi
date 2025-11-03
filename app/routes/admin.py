@@ -4,12 +4,36 @@ Full CRUD operations for apartments, users, and system management
 """
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed, FileRequired
+from wtforms import StringField, TextAreaField, SelectField
+from wtforms.validators import Optional
 from werkzeug.utils import secure_filename
-from app.models import db, Apartment, User, Share, Transaction
+from app.models import db, Apartment, User, Share, Transaction, InvestmentRequest
 from datetime import datetime
 import os
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+
+# Admin Forms
+class UpdateStatusForm(FlaskForm):
+    status = SelectField('الحالة', choices=[
+        ('pending', 'قيد الانتظار'),
+        ('under_review', 'قيد المراجعة'),
+        ('approved', 'تمت الموافقة'),
+        ('rejected', 'مرفوض'),
+        ('documents_missing', 'مستندات ناقصة')
+    ])
+    admin_notes = TextAreaField('ملاحظات الإدارة', validators=[Optional()])
+    missing_documents = TextAreaField('المستندات الناقصة', validators=[Optional()])
+
+
+class UploadContractForm(FlaskForm):
+    contract_file = FileField('ملف العقد', validators=[
+        FileRequired(message='مطلوب'),
+        FileAllowed(['pdf'], 'PDF فقط')
+    ])
 
 
 def admin_required(f):
@@ -302,3 +326,137 @@ def distribute_all_payouts():
     
     flash(f'تم توزيع {total_payouts} دفعة بنجاح على جميع الشقق', 'success')
     return redirect(url_for('admin.payouts'))
+
+
+# Investment Requests Management
+
+@bp.route('/investment-requests')
+@admin_required
+def investment_requests():
+    """List all investment requests with filters"""
+    status_filter = request.args.get('status', 'all')
+    page = request.args.get('page', 1, type=int)
+    
+    query = InvestmentRequest.query
+    
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    
+    pagination = query.order_by(db.desc(InvestmentRequest.date_submitted))\
+        .paginate(page=page, per_page=20, error_out=False)
+    
+    # Get counts for each status
+    all_count = InvestmentRequest.query.count()
+    pending_count = InvestmentRequest.query.filter_by(status='pending').count()
+    under_review_count = InvestmentRequest.query.filter_by(status='under_review').count()
+    approved_count = InvestmentRequest.query.filter_by(status='approved').count()
+    rejected_count = InvestmentRequest.query.filter_by(status='rejected').count()
+    
+    return render_template('admin/investment_requests.html',
+                         requests=pagination.items,
+                         pagination=pagination,
+                         status_filter=status_filter,
+                         all_count=all_count,
+                         pending_count=pending_count,
+                         under_review_count=under_review_count,
+                         approved_count=approved_count,
+                         rejected_count=rejected_count)
+
+
+@bp.route('/investment-request/<int:request_id>')
+@admin_required
+def review_investment_request(request_id):
+    """Review specific investment request"""
+    inv_request = InvestmentRequest.query.get_or_404(request_id)
+    status_form = UpdateStatusForm(obj=inv_request)
+    contract_form = UploadContractForm()
+    
+    return render_template('admin/review_investment_request.html',
+                         request=inv_request,
+                         status_form=status_form,
+                         contract_form=contract_form)
+
+
+@bp.route('/investment-request/<int:request_id>/update-status', methods=['POST'])
+@admin_required
+def update_investment_request_status(request_id):
+    """Update investment request status"""
+    inv_request = InvestmentRequest.query.get_or_404(request_id)
+    form = UpdateStatusForm()
+    
+    if form.validate_on_submit():
+        inv_request.status = form.status.data
+        inv_request.admin_notes = form.admin_notes.data
+        inv_request.missing_documents = form.missing_documents.data
+        inv_request.date_reviewed = datetime.utcnow()
+        inv_request.reviewed_by = current_user.id
+        
+        db.session.commit()
+        
+        flash('تم تحديث حالة الطلب بنجاح', 'success')
+    else:
+        flash('حدث خطأ في تحديث الحالة', 'error')
+    
+    return redirect(url_for('admin.review_investment_request', request_id=request_id))
+
+
+@bp.route('/investment-request/<int:request_id>/upload-contract', methods=['POST'])
+@admin_required
+def upload_contract(request_id):
+    """Upload contract PDF for investment request"""
+    inv_request = InvestmentRequest.query.get_or_404(request_id)
+    form = UploadContractForm()
+    
+    if form.validate_on_submit():
+        # Create contracts directory if it doesn't exist
+        contracts_dir = os.path.join('app', 'static', 'uploads', 'contracts')
+        os.makedirs(contracts_dir, exist_ok=True)
+        
+        # Save contract file
+        contract_file = form.contract_file.data
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = secure_filename(f"contract_{request_id}_{timestamp}_{contract_file.filename}")
+        filepath = os.path.join(contracts_dir, filename)
+        contract_file.save(filepath)
+        
+        # Update request
+        inv_request.contract_pdf = filename
+        db.session.commit()
+        
+        flash('تم رفع العقد بنجاح', 'success')
+    else:
+        flash('حدث خطأ في رفع العقد', 'error')
+    
+    return redirect(url_for('admin.review_investment_request', request_id=request_id))
+
+
+@bp.route('/investment-request/<int:request_id>/approve', methods=['POST'])
+@admin_required
+def approve_investment_request(request_id):
+    """Quick approve investment request"""
+    inv_request = InvestmentRequest.query.get_or_404(request_id)
+    
+    inv_request.status = 'approved'
+    inv_request.date_reviewed = datetime.utcnow()
+    inv_request.reviewed_by = current_user.id
+    
+    db.session.commit()
+    
+    flash(f'تمت الموافقة على الطلب #{request_id}', 'success')
+    return redirect(url_for('admin.review_investment_request', request_id=request_id))
+
+
+@bp.route('/investment-request/<int:request_id>/reject', methods=['POST'])
+@admin_required
+def reject_investment_request(request_id):
+    """Quick reject investment request"""
+    inv_request = InvestmentRequest.query.get_or_404(request_id)
+    
+    inv_request.status = 'rejected'
+    inv_request.date_reviewed = datetime.utcnow()
+    inv_request.reviewed_by = current_user.id
+    
+    db.session.commit()
+    
+    flash(f'تم رفض الطلب #{request_id}', 'success')
+    return redirect(url_for('admin.review_investment_request', request_id=request_id))

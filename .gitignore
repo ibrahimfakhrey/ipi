@@ -49,5 +49,13 @@ instance/
 app/static/images/apartments/*
 !app/static/images/apartments/.gitkeep
 
+# User uploaded documents
+app/static/uploads/documents/*
+!app/static/uploads/documents/.gitkeep
+
+# Admin uploaded contracts
+app/static/uploads/contracts/*
+!app/static/uploads/contracts/.gitkeep
+
 # Database
 apartment_platform.db

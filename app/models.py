@@ -26,9 +26,19 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     date_joined = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # KYC Information
+    phone = db.Column(db.String(20))
+    national_id = db.Column(db.String(50))
+    address = db.Column(db.Text)
+    date_of_birth = db.Column(db.String(20))
+    nationality = db.Column(db.String(50))
+    occupation = db.Column(db.String(100))
+    id_document_path = db.Column(db.String(300))  # Path to uploaded ID document
+    
     # Relationships
     shares = db.relationship('Share', backref='investor', lazy='dynamic', cascade='all, delete-orphan')
     transactions = db.relationship('Transaction', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    investment_requests = db.relationship('InvestmentRequest', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     
     def set_password(self, password):
         """Hash and set user password"""
@@ -230,3 +240,65 @@ class Transaction(db.Model):
     
     def __repr__(self):
         return f'<Transaction {self.transaction_type}: {self.amount}>'
+
+
+class InvestmentRequest(db.Model):
+    """
+    Investment Request model for KYC and investment approval process
+    Stores user documents and admin approval workflow
+    """
+    __tablename__ = 'investment_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartments.id'), nullable=False)
+    shares_requested = db.Column(db.Integer, nullable=False)
+    
+    # KYC Documents
+    full_name = db.Column(db.String(200), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+    national_id = db.Column(db.String(50), nullable=False)
+    address = db.Column(db.Text, nullable=False)
+    date_of_birth = db.Column(db.String(20), nullable=False)
+    nationality = db.Column(db.String(50), nullable=False)
+    occupation = db.Column(db.String(100), nullable=False)
+    id_document_front = db.Column(db.String(300))  # Front of ID
+    id_document_back = db.Column(db.String(300))   # Back of ID
+    proof_of_address = db.Column(db.String(300))   # Utility bill, etc.
+    
+    # Request Status
+    status = db.Column(db.String(50), default='pending')  # pending, under_review, approved, rejected, documents_missing
+    admin_notes = db.Column(db.Text)
+    missing_documents = db.Column(db.Text)  # Comma-separated list of missing docs
+    contract_pdf = db.Column(db.String(300))  # Admin uploaded contract
+    
+    # Timestamps
+    date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
+    date_reviewed = db.Column(db.DateTime)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'))  # Admin who reviewed
+    
+    # Relationships
+    apartment = db.relationship('Apartment', backref='investment_requests')
+    reviewer = db.relationship('User', foreign_keys=[reviewed_by])
+    
+    @property
+    def status_arabic(self):
+        """Get status in Arabic"""
+        statuses = {
+            'pending': 'قيد الانتظار',
+            'under_review': 'قيد المراجعة',
+            'approved': 'تمت الموافقة',
+            'rejected': 'مرفوض',
+            'documents_missing': 'مستندات ناقصة'
+        }
+        return statuses.get(self.status, self.status)
+    
+    @property
+    def total_amount(self):
+        """Calculate total investment amount"""
+        if self.apartment:
+            return self.apartment.share_price * self.shares_requested
+        return 0
+    
+    def __repr__(self):
+        return f'<InvestmentRequest User:{self.user_id} Apartment:{self.apartment_id} Status:{self.status}>'

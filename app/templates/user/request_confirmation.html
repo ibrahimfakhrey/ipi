@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}تم استلام الطلب{% endblock %}
+
+{% block content %}
+<div style="padding: 3rem 0;">
+    <div class="container" style="max-width: 700px;">
+        <div class="card text-center">
+            <div style="font-size: 5rem; color: var(--success); margin-bottom: 1.5rem;">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            
+            <h1 class="text-gold" style="margin-bottom: 1rem;">تم استلام طلبك بنجاح!</h1>
+            
+            <p style="font-size: 1.2rem; line-height: 1.8; margin-bottom: 2rem;">
+                شكراً لك على تقديم طلب الاستثمار. تم استلام بياناتك والمستندات المرفقة بنجاح.
+            </p>
+            
+            <div style="background: var(--secondary-navy); padding: 2rem; border-radius: 0.5rem; margin-bottom: 2rem;">
+                <h3 class="text-gold" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-info-circle"></i> ما هي الخطوات التالية؟
+                </h3>
+                
+                <div style="text-align: right; max-width: 500px; margin: 0 auto;">
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div style="flex-shrink: 0; width: 40px; height: 40px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">1</div>
+                        <div style="flex: 1;">
+                            <strong>مراجعة البيانات</strong>
+                            <p class="text-muted" style="margin: 0.5rem 0 0;">سيقوم فريقنا بمراجعة بياناتك والمستندات المقدمة</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div style="flex-shrink: 0; width: 40px; height: 40px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">2</div>
+                        <div style="flex: 1;">
+                            <strong>إعداد العقد</strong>
+                            <p class="text-muted" style="margin: 0.5rem 0 0;">بعد الموافقة، سيتم إعداد عقد الاستثمار الخاص بك</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <div style="flex-shrink: 0; width: 40px; height: 40px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">3</div>
+                        <div style="flex: 1;">
+                            <strong>التواصل معك</strong>
+                            <p class="text-muted" style="margin: 0.5rem 0 0;">سيتواصل معك أحد ممثلينا لإتمام الإجراءات النهائية</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-clock"></i>
+                <strong>المدة المتوقعة:</strong> سيتم مراجعة طلبك خلال 24-48 ساعة عمل
+            </div>
+            
+            <div style="margin-top: 2rem;">
+                <p class="text-muted" style="margin-bottom: 1rem;">رقم الطلب: <strong>#{{ request_id }}</strong></p>
+                <p class="text-muted">يمكنك متابعة حالة طلبك من لوحة التحكم</p>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                <a href="{{ url_for('user_views.my_investment_requests') }}" class="btn btn-primary">
+                    <i class="fas fa-list"></i> طلباتي
+                </a>
+                <a href="{{ url_for('user_views.dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> لوحة التحكم
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

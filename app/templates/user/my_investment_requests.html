@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}طلبات الاستثمار{% endblock %}
+
+{% block content %}
+<div style="padding: 3rem 0;">
+    <div class="container">
+        <h1 class="text-gold" style="margin-bottom: 2rem;">
+            <i class="fas fa-file-contract"></i> طلبات الاستثمار
+        </h1>
+        
+        {% if requests %}
+            <div style="display: grid; gap: 1.5rem;">
+                {% for req in requests %}
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                            <div>
+                                <h3 style="margin-bottom: 0.5rem;">{{ req.apartment.title }}</h3>
+                                <p class="text-muted">رقم الطلب: #{{ req.id }}</p>
+                            </div>
+                            <span class="badge badge-{{ 'success' if req.status == 'approved' else 'warning' if req.status == 'pending' or req.status == 'under_review' else 'danger' if req.status == 'rejected' else 'secondary' }}">
+                                {{ req.status_arabic }}
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-3" style="gap: 1rem; margin-bottom: 1.5rem;">
+                            <div>
+                                <span class="text-muted">عدد الحصص:</span>
+                                <strong class="text-gold">{{ req.shares_requested }}</strong>
+                            </div>
+                            <div>
+                                <span class="text-muted">المبلغ الإجمالي:</span>
+                                <strong class="text-success">{{ "{:,.0f}".format(req.total_amount) }} جنيه</strong>
+                            </div>
+                            <div>
+                                <span class="text-muted">تاريخ التقديم:</span>
+                                <strong>{{ req.date_submitted.strftime('%Y-%m-%d') }}</strong>
+                            </div>
+                        </div>
+                        
+                        {% if req.status == 'documents_missing' and req.missing_documents %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>مستندات ناقصة:</strong> {{ req.missing_documents }}
+                            </div>
+                        {% endif %}
+                        
+                        {% if req.admin_notes %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-comment"></i>
+                                <strong>ملاحظات الإدارة:</strong> {{ req.admin_notes }}
+                            </div>
+                        {% endif %}
+                        
+                        {% if req.contract_pdf %}
+                            <div style="margin-top: 1rem;">
+                                <a href="{{ url_for('static', filename='uploads/contracts/' + req.contract_pdf) }}" 
+                                   class="btn btn-primary" target="_blank" download>
+                                    <i class="fas fa-file-pdf"></i> تحميل العقد
+                                </a>
+                            </div>
+                        {% endif %}
+                        
+                        {% if req.status == 'approved' %}
+                            <div class="alert alert-success" style="margin-top: 1rem;">
+                                <i class="fas fa-check-circle"></i>
+                                تمت الموافقة على طلبك! يمكنك الآن تحميل العقد والتواصل معنا لإتمام الإجراءات.
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card text-center" style="padding: 3rem;">
+                <div style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <h3 class="text-muted">لا توجد طلبات استثمار</h3>
+                <p class="text-muted">ابدأ الاستثمار الآن واختر العقار المناسب</p>
+                <a href="{{ url_for('main.market') }}" class="btn btn-primary" style="margin-top: 1rem;">
+                    <i class="fas fa-search"></i> تصفح العقارات
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
