@@ -544,3 +544,24 @@ Hero Section, Animations, and Features
     background-size: 1000px 100%;
     animation: shimmer 2s infinite;
 }
+
+/* ============= Section Reveal Utilities ============= */
+.reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 600ms ease, transform 600ms ease;
+    will-change: opacity, transform;
+}
+
+.reveal.reveal-up { transform: translateY(24px); }
+.reveal.reveal-fade { transform: none; }
+.reveal.reveal-scale { transform: scale(0.98); }
+
+.reveal.in-view {
+    opacity: 1;
+    transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+}
