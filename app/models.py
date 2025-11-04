@@ -438,3 +438,264 @@ class ReferralTree(db.Model):
     
     def __repr__(self):
         return f'<ReferralTree User:{self.user_id} Apartment:{self.apartment_id} Level:{self.level}>'
+
+
+# ===================== CARS DOMAIN MODELS =====================
+
+class Car(db.Model):
+    """
+    Car model representing investable vehicles
+    Mirrors Apartment model fields for consistency
+    """
+    __tablename__ = 'cars'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    image = db.Column(db.String(300), default='default_car.jpg')
+    total_price = db.Column(db.Float, nullable=False)
+    total_shares = db.Column(db.Integer, nullable=False)
+    shares_available = db.Column(db.Integer, nullable=False)
+    monthly_rent = db.Column(db.Float, nullable=False)  # leasing/operations income
+    location = db.Column(db.String(200), nullable=False)
+    is_closed = db.Column(db.Boolean, default=False)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow)
+    last_payout_date = db.Column(db.DateTime)
+
+    # Optional car-specific metadata
+    brand = db.Column(db.String(100))
+    model = db.Column(db.String(100))
+    year = db.Column(db.String(10))
+
+    # Relationships
+    shares = db.relationship('CarShare', backref='car', lazy='dynamic', cascade='all, delete-orphan')
+
+    @property
+    def share_price(self):
+        if self.total_shares > 0:
+            return self.total_price / self.total_shares
+        return 0
+
+    @property
+    def shares_sold(self):
+        return self.total_shares - self.shares_available
+
+    @property
+    def completion_percentage(self):
+        if self.total_shares > 0:
+            return (self.shares_sold / self.total_shares) * 100
+        return 0
+
+    @property
+    def investors_count(self):
+        return db.session.query(db.func.count(db.func.distinct(CarShare.user_id)))\
+            .filter(CarShare.car_id == self.id).scalar() or 0
+
+    @property
+    def status(self):
+        if self.is_closed or self.shares_available == 0:
+            return 'مغلق'
+        elif self.shares_available == self.total_shares:
+            return 'جديد'
+        else:
+            return 'متاح'
+
+    def can_purchase_shares(self, num_shares):
+        return not self.is_closed and self.shares_available >= num_shares
+
+    def purchase_shares(self, user, num_shares):
+        if not self.can_purchase_shares(num_shares):
+            return False, "عدد الحصص غير متاح"
+
+        total_cost = self.share_price * num_shares
+        if user.wallet_balance < total_cost:
+            return False, "رصيد المحفظة غير كافي"
+
+        user.deduct_from_wallet(total_cost, 'share_purchase')
+
+        for _ in range(num_shares):
+            share = CarShare(
+                user_id=user.id,
+                car_id=self.id,
+                share_price=self.share_price
+            )
+            db.session.add(share)
+
+        self.shares_available -= num_shares
+        if self.shares_available == 0:
+            self.is_closed = True
+
+        return True, "تم شراء الحصص بنجاح"
+
+    def distribute_monthly_rent(self):
+        if self.shares.count() == 0:
+            return 0
+
+        rent_per_share = self.monthly_rent / self.total_shares
+        payouts = 0
+
+        for share in self.shares:
+            share.investor.add_to_wallet(rent_per_share, 'rental_income')
+            payouts += 1
+
+        self.last_payout_date = datetime.utcnow()
+        return payouts
+
+    def __repr__(self):
+        return f'<Car {self.title}>'
+
+
+class CarShare(db.Model):
+    """
+    CarShare model linking users to cars via individual shares
+    """
+    __tablename__ = 'car_shares'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    car_id = db.Column(db.Integer, db.ForeignKey('cars.id'), nullable=False)
+    share_price = db.Column(db.Float, nullable=False)
+    date_purchased = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationship back to user
+    investor = db.relationship('User', backref=db.backref('car_shares', lazy='dynamic', cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<CarShare User:{self.user_id} Car:{self.car_id}>'
+
+
+class CarInvestmentRequest(db.Model):
+    """
+    Investment Request model for cars (mirrors InvestmentRequest)
+    """
+    __tablename__ = 'car_investment_requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    car_id = db.Column(db.Integer, db.ForeignKey('cars.id'), nullable=False)
+    shares_requested = db.Column(db.Integer, nullable=False)
+    referred_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    # KYC Documents
+    full_name = db.Column(db.String(200), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+    national_id = db.Column(db.String(50), nullable=False)
+    address = db.Column(db.Text, nullable=False)
+    date_of_birth = db.Column(db.String(20), nullable=False)
+    nationality = db.Column(db.String(50), nullable=False)
+    occupation = db.Column(db.String(100), nullable=False)
+    id_document_front = db.Column(db.String(300))
+    id_document_back = db.Column(db.String(300))
+    proof_of_address = db.Column(db.String(300))
+
+    # Request Status
+    status = db.Column(db.String(50), default='pending')
+    admin_notes = db.Column(db.Text)
+    missing_documents = db.Column(db.Text)
+    contract_pdf = db.Column(db.String(300))
+
+    # Timestamps
+    date_submitted = db.Column(db.DateTime, default=datetime.utcnow)
+    date_reviewed = db.Column(db.DateTime)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    # Relationships
+    car = db.relationship('Car', backref='investment_requests')
+    reviewer = db.relationship('User', foreign_keys=[reviewed_by])
+    referrer = db.relationship('User', foreign_keys=[referred_by_user_id], backref='referred_car_investments')
+
+    @property
+    def status_arabic(self):
+        statuses = {
+            'pending': 'قيد الانتظار',
+            'under_review': 'قيد المراجعة',
+            'approved': 'تمت الموافقة',
+            'rejected': 'مرفوض',
+            'documents_missing': 'مستندات ناقصة'
+        }
+        return statuses.get(self.status, self.status)
+
+    @property
+    def total_amount(self):
+        if self.car:
+            return self.car.share_price * self.shares_requested
+        return 0
+
+    def __repr__(self):
+        return f'<CarInvestmentRequest User:{self.user_id} Car:{self.car_id} Status:{self.status}>'
+
+
+class CarReferralTree(db.Model):
+    """
+    Referral tree per car (mirrors ReferralTree)
+    """
+    __tablename__ = 'car_referral_trees'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    car_id = db.Column(db.Integer, db.ForeignKey('cars.id'), nullable=False)
+    referred_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    referral_code = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    level = db.Column(db.Integer, default=0)
+    date_joined_tree = db.Column(db.DateTime, default=datetime.utcnow)
+
+    total_rewards_earned = db.Column(db.Float, default=0.0)
+
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='car_referral_nodes')
+    car = db.relationship('Car', backref='referral_tree_nodes')
+    referred_by = db.relationship('User', foreign_keys=[referred_by_user_id])
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'car_id', name='_user_car_uc'),)
+
+    def get_upline(self, max_levels=10):
+        upline = []
+        current = self
+        level = 0
+
+        while current.referred_by_user_id and level < max_levels:
+            parent = CarReferralTree.query.filter_by(
+                user_id=current.referred_by_user_id,
+                car_id=current.car_id
+            ).first()
+
+            if parent:
+                upline.append({
+                    'user': parent.user,
+                    'level': parent.level,
+                    'referral_code': parent.referral_code,
+                    'total_rewards_earned': parent.total_rewards_earned
+                })
+                current = parent
+                level += 1
+            else:
+                break
+
+        return upline
+
+    def get_downline(self, max_levels=10):
+        def get_children(node, current_level=1):
+            if current_level > max_levels:
+                return []
+
+            children = CarReferralTree.query.filter_by(
+                referred_by_user_id=node.user_id,
+                car_id=node.car_id
+            ).all()
+
+            result = []
+            for child in children:
+                result.append({
+                    'user': child.user,
+                    'level': child.level,
+                    'referral_code': child.referral_code,
+                    'date_joined': child.date_joined_tree
+                })
+                result.extend(get_children(child, current_level + 1))
+
+            return result
+
+        return get_children(self)
+
+    def __repr__(self):
+        return f'<CarReferralTree User:{self.user_id} Car:{self.car_id} Level:{self.level}>'

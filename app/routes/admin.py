@@ -9,7 +9,7 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, SelectField
 from wtforms.validators import Optional
 from werkzeug.utils import secure_filename
-from app.models import db, Apartment, User, Share, Transaction, InvestmentRequest
+from app.models import db, Apartment, User, Share, Transaction, InvestmentRequest, Car, CarShare, CarInvestmentRequest, CarReferralTree
 from datetime import datetime
 import os
 
@@ -56,6 +56,7 @@ def dashboard():
     # Calculate statistics
     total_users = User.query.filter_by(is_admin=False).count()
     total_apartments = Apartment.query.count()
+    total_cars = Car.query.count()
     total_shares_sold = db.session.query(db.func.count(Share.id)).scalar()
     total_revenue = db.session.query(db.func.sum(Share.share_price)).scalar() or 0
     
@@ -72,14 +73,20 @@ def dashboard():
     
     # Apartment statistics
     apartments = Apartment.query.all()
+    cars = Car.query.all()
     active_apartments = [apt for apt in apartments if not apt.is_closed]
     closed_apartments = [apt for apt in apartments if apt.is_closed]
+    active_cars = [c for c in cars if not c.is_closed]
+    closed_cars = [c for c in cars if c.is_closed]
     
     stats = {
         'total_users': total_users,
-        'total_apartments': total_apartments,
+    'total_apartments': total_apartments,
+    'total_cars': total_cars,
         'active_apartments': len(active_apartments),
         'closed_apartments': len(closed_apartments),
+    'active_cars': len(active_cars),
+    'closed_cars': len(closed_cars),
         'total_shares_sold': total_shares_sold,
         'total_revenue': total_revenue,
         'pending_requests': pending_requests,
@@ -91,6 +98,132 @@ def dashboard():
                          stats=stats,
                          recent_transactions=recent_transactions,
                          recent_users=recent_users)
+
+
+# ============= CAR MANAGEMENT =============
+
+@bp.route('/cars')
+@admin_required
+def cars_list():
+    cars = Car.query.order_by(db.desc(Car.date_created)).all()
+    return render_template('admin/cars.html', cars=cars)
+
+
+@bp.route('/cars/add', methods=['GET', 'POST'])
+@admin_required
+def add_car():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        total_price = float(request.form.get('total_price'))
+        total_shares = int(request.form.get('total_shares'))
+        monthly_rent = float(request.form.get('monthly_rent'))
+        location = request.form.get('location')
+        brand = request.form.get('brand')
+        model = request.form.get('model')
+        year = request.form.get('year')
+
+        image_filename = 'default_car.jpg'
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                image_filename = f"{timestamp}_{filename}"
+                # Save under cars images directory
+                upload_dir = os.path.join(current_app.root_path, 'static', 'images', 'cars')
+                os.makedirs(upload_dir, exist_ok=True)
+                file.save(os.path.join(upload_dir, image_filename))
+
+        car = Car(
+            title=title,
+            description=description,
+            image=image_filename,
+            total_price=total_price,
+            total_shares=total_shares,
+            shares_available=total_shares,
+            monthly_rent=monthly_rent,
+            location=location,
+            brand=brand,
+            model=model,
+            year=year
+        )
+
+        db.session.add(car)
+        db.session.commit()
+
+        flash('تم إضافة السيارة بنجاح', 'success')
+        return redirect(url_for('admin.cars_list'))
+
+    return render_template('admin/car_form.html', car=None)
+
+
+@bp.route('/cars/edit/<int:car_id>', methods=['GET', 'POST'])
+@admin_required
+def edit_car(car_id):
+    car = Car.query.get_or_404(car_id)
+    if request.method == 'POST':
+        car.title = request.form.get('title')
+        car.description = request.form.get('description')
+        car.total_price = float(request.form.get('total_price'))
+        car.total_shares = int(request.form.get('total_shares'))
+        car.monthly_rent = float(request.form.get('monthly_rent'))
+        car.location = request.form.get('location')
+        car.brand = request.form.get('brand')
+        car.model = request.form.get('model')
+        car.year = request.form.get('year')
+
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                image_filename = f"{timestamp}_{filename}"
+                upload_dir = os.path.join(current_app.root_path, 'static', 'images', 'cars')
+                os.makedirs(upload_dir, exist_ok=True)
+                file.save(os.path.join(upload_dir, image_filename))
+                car.image = image_filename
+
+        db.session.commit()
+        flash('تم تحديث السيارة بنجاح', 'success')
+        return redirect(url_for('admin.cars_list'))
+    return render_template('admin/car_form.html', car=car)
+
+
+@bp.route('/cars/delete/<int:car_id>', methods=['POST'])
+@admin_required
+def delete_car(car_id):
+    car = Car.query.get_or_404(car_id)
+    if car.shares.count() > 0:
+        flash('لا يمكن حذف سيارة تم بيع حصص فيها', 'error')
+        return redirect(url_for('admin.cars_list'))
+    db.session.delete(car)
+    db.session.commit()
+    flash('تم حذف السيارة بنجاح', 'success')
+    return redirect(url_for('admin.cars_list'))
+
+
+@bp.route('/cars/close/<int:car_id>', methods=['POST'])
+@admin_required
+def close_car(car_id):
+    car = Car.query.get_or_404(car_id)
+    car.is_closed = True
+    db.session.commit()
+    flash(f'تم إغلاق السيارة: {car.title}', 'success')
+    return redirect(url_for('admin.cars_list'))
+
+
+@bp.route('/cars/reopen/<int:car_id>', methods=['POST'])
+@admin_required
+def reopen_car(car_id):
+    car = Car.query.get_or_404(car_id)
+    if car.shares_available > 0:
+        car.is_closed = False
+        db.session.commit()
+        flash(f'تم إعادة فتح السيارة: {car.title}', 'success')
+    else:
+        flash('لا يمكن فتح سيارة ليس بها حصص متاحة', 'error')
+    return redirect(url_for('admin.cars_list'))
 
 
 # ============= APARTMENT MANAGEMENT =============
@@ -300,17 +433,24 @@ def transactions():
 @admin_required
 def payouts():
     """Payout management page"""
-    # Closed apartments (fully sold)
+    # Closed & eligible units
     closed_apartments = Apartment.query.filter_by(is_closed=True).all()
-    # Eligible active apartments (partially sold but with investors)
     eligible_apartments = Apartment.query.filter(
         Apartment.is_closed == False,
         Apartment.shares_available < Apartment.total_shares
     ).all()
+    # Closed & eligible cars
+    closed_cars = Car.query.filter_by(is_closed=True).all()
+    eligible_cars = Car.query.filter(
+        Car.is_closed == False,
+        Car.shares_available < Car.total_shares
+    ).all()
 
     return render_template('admin/payouts.html', 
                          closed_apartments=closed_apartments,
-                         eligible_apartments=eligible_apartments)
+                         eligible_apartments=eligible_apartments,
+                         closed_cars=closed_cars,
+                         eligible_cars=eligible_cars)
 
 
 @bp.route('/payouts/distribute/<int:apartment_id>', methods=['POST'])
@@ -330,25 +470,204 @@ def distribute_payout(apartment_id):
     return redirect(url_for('admin.payouts'))
 
 
+@bp.route('/payouts/distribute-car/<int:car_id>', methods=['POST'])
+@admin_required
+def distribute_car_payout(car_id):
+    """Manually trigger payout for specific car"""
+    car = Car.query.get_or_404(car_id)
+    if car.shares.count() == 0:
+        flash('لا يمكن توزيع العائد على سيارة بدون مستثمرين', 'error')
+        return redirect(url_for('admin.payouts'))
+    payouts = car.distribute_monthly_rent()
+    db.session.commit()
+    flash(f'تم توزيع {payouts} دفعة بنجاح للسيارة: {car.title}', 'success')
+    return redirect(url_for('admin.payouts'))
+
+
 @bp.route('/payouts/distribute-all', methods=['POST'])
 @admin_required
 def distribute_all_payouts():
-    """Distribute payouts to all closed apartments"""
-    # Distribute to all apartments that have investors (shares sold), whether closed or active
+    """Distribute payouts to all eligible units and cars"""
     apartments = Apartment.query.filter(
         Apartment.shares_available < Apartment.total_shares
     ).all()
+    cars = Car.query.filter(
+        Car.shares_available < Car.total_shares
+    ).all()
     total_payouts = 0
-    
+
     for apartment in apartments:
         if apartment.shares.count() > 0:
-            payouts = apartment.distribute_monthly_rent()
-            total_payouts += payouts
-    
+            total_payouts += apartment.distribute_monthly_rent()
+
+    for car in cars:
+        if car.shares.count() > 0:
+            total_payouts += car.distribute_monthly_rent()
+
     db.session.commit()
-    
-    flash(f'تم توزيع {total_payouts} دفعة بنجاح على جميع الشقق', 'success')
+    flash(f'تم توزيع {total_payouts} دفعة بنجاح على جميع الأصول', 'success')
     return redirect(url_for('admin.payouts'))
+
+
+# Car Investment Requests
+
+@bp.route('/car-investment-requests')
+@admin_required
+def car_investment_requests():
+    status_filter = request.args.get('status', 'all')
+    page = request.args.get('page', 1, type=int)
+    query = CarInvestmentRequest.query
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    pagination = query.order_by(db.desc(CarInvestmentRequest.date_submitted))\
+        .paginate(page=page, per_page=20, error_out=False)
+
+    all_count = CarInvestmentRequest.query.count()
+    pending_count = CarInvestmentRequest.query.filter_by(status='pending').count()
+    under_review_count = CarInvestmentRequest.query.filter_by(status='under_review').count()
+    approved_count = CarInvestmentRequest.query.filter_by(status='approved').count()
+    rejected_count = CarInvestmentRequest.query.filter_by(status='rejected').count()
+
+    return render_template('admin/car_investment_requests.html',
+                         requests=pagination.items,
+                         pagination=pagination,
+                         status_filter=status_filter,
+                         all_count=all_count,
+                         pending_count=pending_count,
+                         under_review_count=under_review_count,
+                         approved_count=approved_count,
+                         rejected_count=rejected_count)
+
+
+@bp.route('/car-investment-request/<int:request_id>')
+@admin_required
+def review_car_investment_request(request_id):
+    inv_request = CarInvestmentRequest.query.get_or_404(request_id)
+    status_form = UpdateStatusForm(obj=inv_request)
+    contract_form = UploadContractForm()
+    return render_template('admin/review_car_investment_request.html',
+                         request=inv_request,
+                         status_form=status_form,
+                         contract_form=contract_form)
+
+
+@bp.route('/car-investment-request/<int:request_id>/update-status', methods=['POST'])
+@admin_required
+def update_car_investment_request_status(request_id):
+    inv_request = CarInvestmentRequest.query.get_or_404(request_id)
+    form = UpdateStatusForm()
+    if form.validate_on_submit():
+        inv_request.status = form.status.data
+        inv_request.admin_notes = form.admin_notes.data
+        inv_request.missing_documents = form.missing_documents.data
+        inv_request.date_reviewed = datetime.utcnow()
+        inv_request.reviewed_by = current_user.id
+        db.session.commit()
+        flash('تم تحديث حالة الطلب بنجاح', 'success')
+    else:
+        flash('حدث خطأ في تحديث الحالة', 'error')
+    return redirect(url_for('admin.review_car_investment_request', request_id=request_id))
+
+
+@bp.route('/car-investment-request/<int:request_id>/upload-contract', methods=['POST'])
+@admin_required
+def upload_car_contract(request_id):
+    inv_request = CarInvestmentRequest.query.get_or_404(request_id)
+    form = UploadContractForm()
+    if form.validate_on_submit():
+        contracts_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'contracts')
+        os.makedirs(contracts_dir, exist_ok=True)
+        contract_file = form.contract_file.data
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = secure_filename(f"car_contract_{request_id}_{timestamp}_{contract_file.filename}")
+        filepath = os.path.join(contracts_dir, filename)
+        contract_file.save(filepath)
+        inv_request.contract_pdf = filename
+        db.session.commit()
+        flash('تم رفع العقد بنجاح', 'success')
+    else:
+        flash('حدث خطأ في رفع العقد', 'error')
+    return redirect(url_for('admin.review_car_investment_request', request_id=request_id))
+
+
+@bp.route('/car-investment-request/<int:request_id>/approve', methods=['POST'])
+@admin_required
+def approve_car_investment_request(request_id):
+    inv_request = CarInvestmentRequest.query.get_or_404(request_id)
+    inv_request.status = 'approved'
+    inv_request.date_reviewed = datetime.utcnow()
+    inv_request.reviewed_by = current_user.id
+
+    car = inv_request.car
+    investment_amount = car.share_price * inv_request.shares_requested
+
+    for _ in range(inv_request.shares_requested):
+        share = CarShare(
+            user_id=inv_request.user_id,
+            car_id=inv_request.car_id,
+            share_price=car.share_price
+        )
+        db.session.add(share)
+
+    car.shares_available -= inv_request.shares_requested
+    if car.shares_available <= 0:
+        car.is_closed = True
+
+    if inv_request.referred_by_user_id:
+        referrer_tree = CarReferralTree.query.filter_by(
+            user_id=inv_request.referred_by_user_id,
+            car_id=inv_request.car_id
+        ).first()
+        if referrer_tree:
+            with db.session.no_autoflush:
+                investor_tree = CarReferralTree.query.filter_by(
+                    user_id=inv_request.user_id,
+                    car_id=inv_request.car_id
+                ).first()
+                if investor_tree:
+                    investor_tree.referred_by_user_id = inv_request.referred_by_user_id
+                    investor_tree.level = referrer_tree.level + 1
+                else:
+                    investor_tree = CarReferralTree(
+                        user_id=inv_request.user_id,
+                        car_id=inv_request.car_id,
+                        referred_by_user_id=inv_request.referred_by_user_id,
+                        level=referrer_tree.level + 1
+                    )
+                    # Create a referral code for car context
+                    investor_tree.referral_code = f"REF{inv_request.user_id}CAR{inv_request.car_id}{os.urandom(4).hex().upper()}"
+                    db.session.add(investor_tree)
+
+            upline = referrer_tree.get_upline(max_levels=10)
+            upline.insert(0, referrer_tree)
+            for level, node in enumerate(upline):
+                reward_percentage = 0.05 * (0.1 ** level)
+                reward_amount = investment_amount * (reward_percentage / 100)
+                if reward_amount > 0:
+                    upline_user = User.query.get(node.user_id)
+                    upline_user.add_rewards(
+                        reward_amount,
+                        f'إحالة سيارة من {inv_request.user.name} - {car.title}'
+                    )
+                    node.total_rewards_earned += reward_amount
+
+    db.session.commit()
+    flash(f'تمت الموافقة على الطلب #{request_id}', 'success')
+    if inv_request.referred_by_user_id:
+        flash('تم توزيع مكافآت الإحالة على السلسلة', 'info')
+    return redirect(url_for('admin.review_car_investment_request', request_id=request_id))
+
+
+@bp.route('/car-investment-request/<int:request_id>/reject', methods=['POST'])
+@admin_required
+def reject_car_investment_request(request_id):
+    inv_request = CarInvestmentRequest.query.get_or_404(request_id)
+    inv_request.status = 'rejected'
+    inv_request.date_reviewed = datetime.utcnow()
+    inv_request.reviewed_by = current_user.id
+    db.session.commit()
+    flash(f'تم رفض الطلب #{request_id}', 'success')
+    return redirect(url_for('admin.review_car_investment_request', request_id=request_id))
 
 
 # Investment Requests Management

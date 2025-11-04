@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    {% if trees %}
+    {% if trees or car_trees %}
         <!-- Rewards Summary Card -->
         <div class="card border-gold mb-4">
             <div class="card-body">
@@ -141,6 +141,110 @@
             </div>
         </div>
         {% endfor %}
+
+        <!-- Referral Trees by Car -->
+        {% if car_trees %}
+        {% for tree in car_trees %}
+        <div class="card mb-4">
+            <div class="card-header bg-navy text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-car"></i> {{ tree.car.title }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5>رابط الإحالة الخاص بك:</h5>
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="ref-link-car-{{ tree.car.id }}"
+                                   value="{{ url_for('main.referred_investment_car', car_id=tree.car.id, ref=tree.referral_code, _external=True) }}" 
+                                   readonly>
+                            <button class="btn btn-gold" 
+                                    onclick="copyReferralLinkCar({{ tree.car.id }})">
+                                <i class="fas fa-copy"></i> نسخ
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h4 class="text-success mb-0">{{ tree.total_referrals }}</h4>
+                                <small class="text-muted">الإحالات</small>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-gold mb-0">{{ tree.total_rewards | round(2) }} جنيه</h4>
+                                <small class="text-muted">المكافآت</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h5 class="text-navy mb-3">
+                        <i class="fas fa-sitemap"></i> التسلسل الهرمي للإحالات
+                    </h5>
+                    <div class="tree-container bg-light p-4 rounded" style="overflow-x: auto;">
+                        <div id="car-tree-{{ tree.car.id }}" class="referral-tree"></div>
+                    </div>
+                </div>
+
+                {% if tree.upline %}
+                <div class="mb-3">
+                    <h5 class="text-navy">⬆️ السلسلة الأعلى (من أحالك):</h5>
+                    <div class="list-group">
+                        {% for node in tree.upline %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ node.user.name }}</strong>
+                                    <span class="badge bg-secondary ms-2">مستوى {{ node.level }}</span>
+                                </div>
+                                <div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-coins text-gold"></i> 
+                                        {{ node.total_rewards_earned | round(2) }} جنيه
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if tree.downline %}
+                <div>
+                    <h5 class="text-navy">⬇️ السلسلة الأدنى (من أحلتهم):</h5>
+                    <div class="list-group">
+                        {% for node in tree.downline %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ node.user.name }}</strong>
+                                    <span class="badge bg-primary ms-2">مستوى {{ node.level }}</span>
+                                </div>
+                                <div>
+                                    <small class="text-muted">
+                                        انضم: {{ node.date_joined.strftime('%Y-%m-%d') }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    لم تقم بإحالة أحد بعد. شارك رابط الإحالة أعلاه لتبدأ في كسب المكافآت!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
 
     {% else %}
         <!-- No Referrals Yet -->
@@ -327,6 +431,22 @@ function copyReferralLink(apartmentId) {
     }, 2000);
 }
 
+function copyReferralLinkCar(carId) {
+    const input = document.getElementById('ref-link-car-' + carId);
+    input.select();
+    document.execCommand('copy');
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check"></i> تم النسخ!';
+    button.classList.add('btn-success');
+    button.classList.remove('btn-gold');
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.classList.remove('btn-success');
+        button.classList.add('btn-gold');
+    }, 2000);
+}
+
 // Tree data from backend
 const treeData = {
     {% for tree in trees %}
@@ -351,6 +471,37 @@ const treeData = {
                 name: "{{ node.user.name }}",
                 level: {{ node.level }},
                 isDirect: {{ (node.level == tree.upline|length + 1)|lower }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+};
+
+// Car tree data
+const carTreeData = {
+    {% for tree in car_trees %}
+    {{ tree.car.id }}: {
+        upline: [
+            {% for node in tree.upline %}
+            {
+                name: "{{ node.user.name }}",
+                level: {{ node.level }},
+                rewards: {{ node.total_rewards_earned | round(2) }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
+        you: {
+            name: "{{ current_user.name }}",
+            level: {{ tree.upline|length }},
+            rewards: {{ tree.total_rewards | round(2) }}
+        },
+        downline: [
+            {% for node in tree.downline %}
+            {
+                name: "{{ node.user.name }}",
+                level: {{ node.level }},
+                isDirect: false
             }{% if not loop.last %},{% endif %}
             {% endfor %}
         ]
@@ -445,11 +596,96 @@ function renderTree(apartmentId) {
     container.innerHTML = html;
 }
 
+function renderCarTree(carId) {
+    const container = document.getElementById('car-tree-' + carId);
+    if (!container || !carTreeData[carId]) return;
+
+    const data = carTreeData[carId];
+    let html = '';
+
+    if (data.upline.length > 0) {
+        html += '<div class="level-label">⬆️ السلسلة الأعلى</div>';
+        data.upline.reverse().forEach(node => {
+            html += `
+                <div class="tree-level">
+                    <div class="tree-node">
+                        <div class="node-circle node-upline">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="node-label">${node.name}</div>
+                        <div class="node-info">
+                            <div><strong>${node.name}</strong></div>
+                            <div>المستوى: ${node.level}</div>
+                            <div>المكافآت: ${node.rewards} جنيه</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: center; color: #6C757D; font-size: 20px;">⬇️</div>
+            `;
+        });
+    }
+
+    html += '<div class="level-label">📍 أنت</div>';
+    html += `
+        <div class="tree-level">
+            <div class="tree-node">
+                <div class="node-circle node-you">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div class="node-label">${data.you.name} (أنت)</div>
+                <div class="node-info">
+                    <div><strong>${data.you.name}</strong></div>
+                    <div>موقعك: مستوى ${data.you.level}</div>
+                    <div>مكافآتك: ${data.you.rewards} جنيه</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    if (data.downline.length > 0) {
+        html += '<div style="text-align: center; color: #6C757D; font-size: 20px; margin: 10px 0;">⬇️</div>';
+        html += '<div class="level-label">⬇️ السلسلة الأدنى (إحالاتك)</div>';
+        html += '<div class="tree-level"><div class="tree-children">';
+        data.downline.forEach(node => {
+            const nodeClass = node.isDirect ? 'node-direct' : 'node-downline';
+            const badge = node.isDirect ? '<div class="node-badge">⭐</div>' : '';
+            html += `
+                <div class="tree-node">
+                    <div class="node-circle ${nodeClass}">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    ${badge}
+                    <div class="node-label">${node.name}</div>
+                    <div class="node-info">
+                        <div><strong>${node.name}</strong></div>
+                        <div>المستوى: ${node.level}</div>
+                        ${node.isDirect ? '<div><span style="color: #28a745;">✓ إحالة مباشرة</span></div>' : ''}
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div></div>';
+    } else {
+        html += `
+            <div style="text-align: center; color: #6C757D; margin-top: 30px;">
+                <i class="fas fa-arrow-down" style="font-size: 24px; opacity: 0.3;"></i>
+                <p style="margin-top: 10px; opacity: 0.6;">لا توجد إحالات بعد</p>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
 // Render all trees on page load
 document.addEventListener('DOMContentLoaded', function() {
     Object.keys(treeData).forEach(apartmentId => {
         renderTree(apartmentId);
     });
+    if (typeof carTreeData !== 'undefined') {
+        Object.keys(carTreeData).forEach(carId => {
+            renderCarTree(carId);
+        });
+    }
 });
 </script>
 {% endblock %}

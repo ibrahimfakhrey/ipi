@@ -38,6 +38,30 @@ Hero Section, Animations, and Features
     margin: 0 auto;
 }
 
+/* Premium brand display */
+.brand-premium {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 1rem;
+}
+.brand-premium .brand-text {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: clamp(2.5rem, 8vw, 6rem);
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+    color: transparent;
+    -webkit-text-stroke: 2px var(--primary-gold);
+    text-shadow: 0 0 12px rgba(212, 175, 55, 0.25);
+    -webkit-text-fill-color: transparent;
+    opacity: 0;
+    animation: brandFade 0.8s ease forwards;
+}
+@keyframes brandFade {
+  from { opacity: 0; letter-spacing: 0.2em; }
+  to { opacity: 1; letter-spacing: 0.14em; }
+}
+
 .hero-title {
     font-size: 3.5rem;
     font-weight: 900;
@@ -55,6 +79,27 @@ Hero Section, Animations, and Features
     margin-bottom: var(--spacing-xl);
     animation: slideInUp 1s ease 0.2s both;
 }
+
+.hero .emphasis {
+        color: var(--primary-gold);
+        font-weight: 800;
+}
+
+.flip-word {
+        display: inline-block;
+        min-width: 6ch;
+}
+.flip-in { opacity: 0; animation: flipIn 0.3s ease forwards; }
+.flip-out { opacity: 1; animation: flipOut 0.2s ease forwards; }
+@keyframes flipIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes flipOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(-8px) scale(0.98); }
+}
+
 
 .hero-cta {
     display: flex;

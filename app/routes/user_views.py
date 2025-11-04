@@ -9,7 +9,7 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, IntegerField, BooleanField, SelectField
 from wtforms.validators import DataRequired, Email, Length, Regexp
 from werkzeug.utils import secure_filename
-from app.models import db, Apartment, Share, Transaction, InvestmentRequest, User
+from app.models import db, Apartment, Share, Transaction, InvestmentRequest, User, Car, CarShare, CarInvestmentRequest, CarReferralTree
 from sqlalchemy import desc
 import os
 from datetime import datetime
@@ -48,43 +48,77 @@ class InvestmentRequestForm(FlaskForm):
 @bp.route('/dashboard')
 @login_required
 def dashboard():
-    """User dashboard showing investments and statistics"""
-    # Get user's shares grouped by apartment
-    shares = Share.query.filter_by(user_id=current_user.id).all()
-    
-    # Group shares by apartment
-    investments = {}
-    for share in shares:
+    """User dashboard showing investments and statistics across units and cars"""
+    # Apartments investments grouped
+    apt_shares = Share.query.filter_by(user_id=current_user.id).all()
+    apt_investments_map = {}
+    for share in apt_shares:
         apt_id = share.apartment_id
-        if apt_id not in investments:
+        if apt_id not in apt_investments_map:
             apartment = share.apartment
-            investments[apt_id] = {
-                'apartment': apartment,
+            apt_investments_map[apt_id] = {
+                'type': 'unit',
+                'title': apartment.title,
+                'location': apartment.location,
+                'status': apartment.status,
+                'is_closed': apartment.is_closed,
+                'total_shares': apartment.total_shares,
+                'shares_sold': apartment.total_shares - apartment.shares_available,
+                'investors_count': apartment.investors_count,
                 'shares_count': 0,
                 'total_invested': 0,
-                'monthly_income': 0,
-                'investors_count': apartment.investors_count,  # Real investor count
-                'shares_sold': apartment.total_shares - apartment.shares_available  # Real shares sold
+                'monthly_income': 0
             }
-        investments[apt_id]['shares_count'] += 1
-        investments[apt_id]['total_invested'] += share.share_price
-        
-        # Calculate monthly income
+        apt_investments_map[apt_id]['shares_count'] += 1
+        apt_investments_map[apt_id]['total_invested'] += share.share_price
         apartment = share.apartment
         if apartment.total_shares > 0:
-            share_percentage = 1 / apartment.total_shares
-            investments[apt_id]['monthly_income'] += apartment.monthly_rent * share_percentage
+            apt_investments_map[apt_id]['monthly_income'] += apartment.monthly_rent * (1 / apartment.total_shares)
+
+    # Cars investments grouped
+    car_shares = CarShare.query.filter_by(user_id=current_user.id).all()
+    car_investments_map = {}
+    for cshare in car_shares:
+        car_id = cshare.car_id
+        if car_id not in car_investments_map:
+            car = cshare.car
+            car_investments_map[car_id] = {
+                'type': 'car',
+                'title': car.title,
+                'location': car.location,
+                'status': car.status,
+                'is_closed': car.is_closed,
+                'total_shares': car.total_shares,
+                'shares_sold': car.total_shares - car.shares_available,
+                'investors_count': car.investors_count,
+                'shares_count': 0,
+                'total_invested': 0,
+                'monthly_income': 0
+            }
+        car_investments_map[car_id]['shares_count'] += 1
+        car_investments_map[car_id]['total_invested'] += cshare.share_price
+        car = cshare.car
+        if car.total_shares > 0:
+            car_investments_map[car_id]['monthly_income'] += car.monthly_rent * (1 / car.total_shares)
+
+    # Merge into one list
+    investments = list(apt_investments_map.values()) + list(car_investments_map.values())
     
     # Calculate totals
-    total_invested = current_user.get_total_invested()
-    expected_monthly = current_user.get_monthly_expected_income()
+    # Totals across both assets
+    total_invested = (current_user.get_total_invested() or 0) + \
+                     (db.session.query(db.func.sum(CarShare.share_price)).filter(CarShare.user_id == current_user.id).scalar() or 0)
+    # Expected monthly across both
+    expected_monthly = 0
+    for inv in investments:
+        expected_monthly += inv['monthly_income']
     
     # Get recent transactions
     recent_transactions = Transaction.query.filter_by(user_id=current_user.id)\
         .order_by(desc(Transaction.date)).limit(10).all()
     
     return render_template('user/dashboard.html',
-                         investments=investments.values(),
+                         investments=investments,
                          total_invested=total_invested,
                          expected_monthly=expected_monthly,
                          recent_transactions=recent_transactions)
@@ -189,20 +223,34 @@ def buy_shares(apartment_id):
     return render_template('user/buy_shares.html', apartment=apartment)
 
 
+@bp.route('/buy-car-shares/<int:car_id>', methods=['GET', 'POST'])
+@login_required
+def buy_car_shares(car_id):
+    """Buy car shares page - redirects to car investment request"""
+    car = Car.query.get_or_404(car_id)
+
+    if request.method == 'POST':
+        num_shares = int(request.form.get('num_shares', 1))
+        if num_shares < 1:
+            flash('يجب شراء حصة واحدة على الأقل', 'error')
+            return render_template('user/buy_car_shares.html', car=car)
+        return redirect(url_for('user_views.car_investment_request', car_id=car_id, shares=num_shares))
+
+    return render_template('user/buy_car_shares.html', car=car)
+
+
 @bp.route('/my-investments')
 @login_required
 def my_investments():
-    """Detailed view of all user investments"""
-    # Get user's shares grouped by apartment
+    """Detailed view of all user investments (apartments + cars)"""
+    # Apartments
     shares = Share.query.filter_by(user_id=current_user.id).all()
-    
-    # Group shares by apartment
-    investments = {}
+    apt_investments = {}
     for share in shares:
         apt_id = share.apartment_id
-        if apt_id not in investments:
+        if apt_id not in apt_investments:
             apartment = share.apartment
-            investments[apt_id] = {
+            apt_investments[apt_id] = {
                 'apartment': apartment,
                 'shares': [],
                 'shares_count': 0,
@@ -210,25 +258,51 @@ def my_investments():
                 'monthly_income': 0,
                 'roi_percentage': 0
             }
-        
-        investments[apt_id]['shares'].append(share)
-        investments[apt_id]['shares_count'] += 1
-        investments[apt_id]['total_invested'] += share.share_price
-        
-        # Calculate monthly income
+
+        apt_investments[apt_id]['shares'].append(share)
+        apt_investments[apt_id]['shares_count'] += 1
+        apt_investments[apt_id]['total_invested'] += share.share_price
+
         apartment = share.apartment
         if apartment.total_shares > 0:
             share_percentage = 1 / apartment.total_shares
             monthly_per_share = apartment.monthly_rent * share_percentage
-            investments[apt_id]['monthly_income'] += monthly_per_share
-            
-            # Calculate ROI
-            if investments[apt_id]['total_invested'] > 0:
-                yearly_income = monthly_per_share * 12 * investments[apt_id]['shares_count']
-                investments[apt_id]['roi_percentage'] = (yearly_income / investments[apt_id]['total_invested']) * 100
-    
+            apt_investments[apt_id]['monthly_income'] += monthly_per_share
+            if apt_investments[apt_id]['total_invested'] > 0:
+                yearly_income = monthly_per_share * 12 * apt_investments[apt_id]['shares_count']
+                apt_investments[apt_id]['roi_percentage'] = (yearly_income / apt_investments[apt_id]['total_invested']) * 100
+
+    # Cars
+    cshares = CarShare.query.filter_by(user_id=current_user.id).all()
+    car_investments = {}
+    for cshare in cshares:
+        car_id = cshare.car_id
+        if car_id not in car_investments:
+            car = cshare.car
+            car_investments[car_id] = {
+                'car': car,
+                'shares': [],
+                'shares_count': 0,
+                'total_invested': 0,
+                'monthly_income': 0,
+                'roi_percentage': 0
+            }
+        car_investments[car_id]['shares'].append(cshare)
+        car_investments[car_id]['shares_count'] += 1
+        car_investments[car_id]['total_invested'] += cshare.share_price
+
+        car = cshare.car
+        if car.total_shares > 0:
+            share_percentage = 1 / car.total_shares
+            monthly_per_share = car.monthly_rent * share_percentage
+            car_investments[car_id]['monthly_income'] += monthly_per_share
+            if car_investments[car_id]['total_invested'] > 0:
+                yearly_income = monthly_per_share * 12 * car_investments[car_id]['shares_count']
+                car_investments[car_id]['roi_percentage'] = (yearly_income / car_investments[car_id]['total_invested']) * 100
+
     return render_template('user/my_investments.html',
-                         investments=investments.values())
+                         investments=list(apt_investments.values()),
+                         car_investments=list(car_investments.values()))
 
 
 @bp.route('/profile')
@@ -393,6 +467,117 @@ def investment_request(apartment_id):
                          referrer=User.query.get(referrer_tree.user_id) if referrer_tree else None)
 
 
+@bp.route('/car-investment-request/<int:car_id>', methods=['GET', 'POST'])
+@login_required
+def car_investment_request(car_id):
+    """Submit car investment request with KYC documents"""
+    car = Car.query.get_or_404(car_id)
+
+    shares_count = int(request.args.get('shares', 1))
+    total_amount = car.share_price * shares_count
+
+    # Check for referral code in session
+    referral_code = None
+    referrer_tree = None
+    if 'referral_code' in session and session.get('referral_car') == car_id:
+        referral_code = session['referral_code']
+        referrer_tree = CarReferralTree.query.filter_by(
+            car_id=car_id,
+            referral_code=referral_code
+        ).first()
+
+    form = InvestmentRequestForm()
+    if referral_code and request.method == 'GET':
+        form.referral_code.data = referral_code
+
+    if form.validate_on_submit():
+        manual_referral_code = form.referral_code.data
+        if manual_referral_code:
+            referrer_tree = CarReferralTree.query.filter_by(
+                car_id=car_id,
+                referral_code=manual_referral_code.strip()
+            ).first()
+            if not referrer_tree:
+                flash('كود الإحالة غير صحيح أو غير موجود لهذه السيارة', 'error')
+                return render_template('user/investment_request.html',
+                                     form=form,
+                                     car=car,
+                                     shares_count=shares_count,
+                                     total_amount=total_amount,
+                                     referral_code=manual_referral_code,
+                                     referrer=None)
+
+        from flask import current_app
+        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'documents')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        front_file = form.id_document_front.data
+        front_filename = secure_filename(f"{timestamp}_front_{current_user.id}_{front_file.filename}")
+        front_path = os.path.join(upload_dir, front_filename)
+        front_file.save(front_path)
+
+        back_file = form.id_document_back.data
+        back_filename = secure_filename(f"{timestamp}_back_{current_user.id}_{back_file.filename}")
+        back_path = os.path.join(upload_dir, back_filename)
+        back_file.save(back_path)
+
+        address_file = form.proof_of_address.data
+        address_filename = secure_filename(f"{timestamp}_address_{current_user.id}_{address_file.filename}")
+        address_path = os.path.join(upload_dir, address_filename)
+        address_file.save(address_path)
+
+        inv_request = CarInvestmentRequest(
+            user_id=current_user.id,
+            car_id=car_id,
+            shares_requested=shares_count,
+            full_name=form.full_name.data,
+            phone=form.phone.data,
+            national_id=form.national_id.data,
+            address=form.address.data,
+            date_of_birth=form.date_of_birth.data,
+            nationality=form.nationality.data,
+            occupation=form.occupation.data,
+            id_document_front=front_filename,
+            id_document_back=back_filename,
+            proof_of_address=address_filename,
+            status='pending',
+            referred_by_user_id=referrer_tree.user_id if referrer_tree else None
+        )
+
+        db.session.add(inv_request)
+        db.session.commit()
+
+        session.pop('referral_code', None)
+        session.pop('referral_car', None)
+
+        flash('تم إرسال طلبك بنجاح! سنتواصل معك قريباً', 'success')
+        return redirect(url_for('user_views.request_confirmation_car', request_id=inv_request.id))
+
+    if form.errors:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'error')
+
+    return render_template('user/investment_request.html',
+                         form=form,
+                         car=car,
+                         shares_count=shares_count,
+                         total_amount=total_amount,
+                         referral_code=referral_code,
+                         referrer=User.query.get(referrer_tree.user_id) if referrer_tree else None)
+
+
+@bp.route('/car-request-confirmation/<int:request_id>')
+@login_required
+def request_confirmation_car(request_id):
+    inv_request = CarInvestmentRequest.query.get_or_404(request_id)
+    if inv_request.user_id != current_user.id:
+        flash('غير مصرح لك بعرض هذا الطلب', 'error')
+        return redirect(url_for('user_views.dashboard'))
+    return render_template('user/request_confirmation.html', request_id=request_id)
+
+
 @bp.route('/request-confirmation/<int:request_id>')
 @login_required
 def request_confirmation(request_id):
@@ -422,30 +607,26 @@ def my_investment_requests():
 @bp.route('/my-referrals')
 @login_required
 def my_referrals():
-    """Show user's referral trees for all apartments they invested in"""
+    """Show user's referral trees for all apartments and cars they invested in"""
     from app.models import ReferralTree
-    
-    # Get all apartments where user has approved investments
+
+    # Apartments where user has approved investments
     approved_requests = InvestmentRequest.query.filter_by(
         user_id=current_user.id,
         status='approved'
     ).all()
-    
+
     trees = []
     for req in approved_requests:
-        # Get or create referral code for this apartment
         referral_code = current_user.get_or_create_referral_code(req.apartment_id)
-        
-        # Get referral tree node
         tree_node = ReferralTree.query.filter_by(
             user_id=current_user.id,
             apartment_id=req.apartment_id
         ).first()
-        
+
         if tree_node:
             upline = tree_node.get_upline()
             downline = tree_node.get_downline()
-            
             trees.append({
                 'apartment': req.apartment,
                 'referral_code': referral_code,
@@ -454,8 +635,40 @@ def my_referrals():
                 'total_referrals': len(downline),
                 'total_rewards': tree_node.total_rewards_earned
             })
-    
-    return render_template('user/my_referrals.html', trees=trees)
+
+    # Cars where user has approved investments
+    car_approved_requests = CarInvestmentRequest.query.filter_by(
+        user_id=current_user.id,
+        status='approved'
+    ).all()
+
+    car_trees = []
+    for req in car_approved_requests:
+        node = CarReferralTree.query.filter_by(user_id=current_user.id, car_id=req.car_id).first()
+        if not node:
+            import secrets
+            node = CarReferralTree(
+                user_id=current_user.id,
+                car_id=req.car_id,
+                level=0,
+                referral_code=f"REF{current_user.id}CAR{req.car_id}{secrets.token_hex(4).upper()}"
+            )
+            db.session.add(node)
+            db.session.commit()
+
+        if node:
+            upline = node.get_upline()
+            downline = node.get_downline()
+            car_trees.append({
+                'car': req.car,
+                'referral_code': node.referral_code,
+                'upline': upline,
+                'downline': downline,
+                'total_referrals': len(downline),
+                'total_rewards': node.total_rewards_earned
+            })
+
+    return render_template('user/my_referrals.html', trees=trees, car_trees=car_trees)
 
 
 @bp.route('/refer/<int:apartment_id>')
@@ -486,5 +699,44 @@ def get_referral_link(apartment_id):
     
     return render_template('user/referral_link.html',
                          apartment=apartment,
+                         referral_code=referral_code,
+                         referral_link=referral_link)
+
+
+@bp.route('/refer-car/<int:car_id>')
+@login_required
+def get_referral_link_car(car_id):
+    """Generate and display referral link for a car"""
+    car = Car.query.get_or_404(car_id)
+
+    approved_request = CarInvestmentRequest.query.filter_by(
+        user_id=current_user.id,
+        car_id=car_id,
+        status='approved'
+    ).first()
+
+    if not approved_request:
+        flash('يجب أن يتم قبول استثمارك أولاً للحصول على رابط إحالة', 'error')
+        return redirect(url_for('user_views.my_investments'))
+
+    # Get or create referral code for car
+    node = CarReferralTree.query.filter_by(user_id=current_user.id, car_id=car_id).first()
+    if not node:
+        # Create a root node with a new referral code
+        import secrets
+        node = CarReferralTree(
+            user_id=current_user.id,
+            car_id=car_id,
+            level=0,
+            referral_code=f"REF{current_user.id}CAR{car_id}{secrets.token_hex(4).upper()}"
+        )
+        db.session.add(node)
+        db.session.commit()
+
+    referral_code = node.referral_code
+    referral_link = url_for('main.referred_investment_car', car_id=car_id, ref=referral_code, _external=True)
+
+    return render_template('user/referral_link_car.html',
+                         car=car,
                          referral_code=referral_code,
                          referral_link=referral_link)

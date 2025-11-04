@@ -107,7 +107,8 @@
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>العقار</th>
+                                <th>الأصل</th>
+                                <th>النوع</th>
                                 <th>حصصي</th>
                                 <th>المستثمرين</th>
                                 <th>الحصص المباعة</th>
@@ -120,17 +121,22 @@
                             {% for investment in investments %}
                             <tr>
                                 <td>
-                                    <strong>{{ investment.apartment.title }}</strong><br>
-                                    <small class="text-muted">{{ investment.apartment.location }}</small>
+                                    <strong>{{ investment.title }}</strong><br>
+                                    <small class="text-muted">{{ investment.location }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{{ 'primary' if investment.type == 'unit' else 'info' }}">
+                                        {{ 'وحدة' if investment.type == 'unit' else 'سيارة' }}
+                                    </span>
                                 </td>
                                 <td>{{ investment.shares_count }} حصة</td>
                                 <td><span class="badge badge-info">{{ investment.investors_count }} مستثمر</span></td>
-                                <td>{{ investment.shares_sold }} / {{ investment.apartment.total_shares }}</td>
+                                <td>{{ investment.shares_sold }} / {{ investment.total_shares }}</td>
                                 <td>{{ "{:,.0f}".format(investment.total_invested) }} جنيه</td>
                                 <td class="text-success">{{ "{:,.0f}".format(investment.monthly_income) }} جنيه</td>
-                                <td><span class="badge badge-{{ 'success' if investment.apartment.is_closed else 'warning' }}">
-                                    {{ investment.apartment.status }}
-                                </span></td>
+                                <td>
+                                    <span class="badge badge-{{ 'success' if investment.is_closed else 'warning' }}">{{ investment.status }}</span>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>

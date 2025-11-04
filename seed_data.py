@@ -9,7 +9,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app
-from app.models import db, User, Apartment
+from app.models import db, User, Apartment, Car
 from datetime import datetime
 
 def seed_database():
@@ -55,7 +55,7 @@ def seed_database():
         for user in users:
             db.session.add(user)
         
-        # Create sample apartments
+    # Create sample apartments
         print("🏢 Creating sample apartments...")
         apartments = [
             {
@@ -148,6 +148,54 @@ def seed_database():
             apartment.images = apt_data.get('images', [])
             db.session.add(apartment)
         
+        # Seed sample cars if none exist
+        if Car.query.count() == 0:
+            print("🚗 Creating sample cars...")
+            cars = [
+                {
+                    'title': 'تويوتا كورولا 2022',
+                    'description': 'سيارة اقتصادية مثالية للتأجير الشهري، صيانة منخفضة واستهلاك وقود ممتاز.',
+                    'total_price': 800000.0,
+                    'total_shares': 40,
+                    'monthly_rent': 12000.0,
+                    'location': 'القاهرة',
+                    'brand': 'Toyota', 'model': 'Corolla', 'year': '2022'
+                },
+                {
+                    'title': 'هيونداي إلنترا 2021',
+                    'description': 'سيارة مريحة وموثوقة لعقود الإيجار، مناسبة للعائلات والشركات.',
+                    'total_price': 700000.0,
+                    'total_shares': 35,
+                    'monthly_rent': 11000.0,
+                    'location': 'الجيزة',
+                    'brand': 'Hyundai', 'model': 'Elantra', 'year': '2021'
+                },
+                {
+                    'title': 'كيا سبورتاج 2020',
+                    'description': 'SUV مدمجة مطلوبة للغاية لمرونة الاستخدام وتأجير طويل الأجل.',
+                    'total_price': 950000.0,
+                    'total_shares': 50,
+                    'monthly_rent': 15000.0,
+                    'location': 'القاهرة الجديدة',
+                    'brand': 'Kia', 'model': 'Sportage', 'year': '2020'
+                }
+            ]
+            for car_data in cars:
+                car = Car(
+                    title=car_data['title'],
+                    description=car_data['description'],
+                    total_price=car_data['total_price'],
+                    total_shares=car_data['total_shares'],
+                    shares_available=car_data['total_shares'],
+                    monthly_rent=car_data['monthly_rent'],
+                    location=car_data['location'],
+                    brand=car_data.get('brand'),
+                    model=car_data.get('model'),
+                    year=car_data.get('year'),
+                    image='default_car.jpg'
+                )
+                db.session.add(car)
+
         # Commit all data
         db.session.commit()
         print("✅ Database seeded successfully!")

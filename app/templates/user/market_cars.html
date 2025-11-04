@@ -1,40 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}السوق - الفرص الاستثمارية{% endblock %}
+{% block title %}السوق - السيارات{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
 <style>
-    /* Make apartment cards wider on the market page */
-    .apartments-grid {
-        grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
-    }
-
-    /* Slightly taller image to match wider cards */
-    .apartment-image,
-    .apartment-image-placeholder {
-        height: 260px;
-    }
-
-    /* Responsive fallback for small screens */
-    @media (max-width: 540px) {
-        .apartments-grid {
-            grid-template-columns: 1fr;
-        }
-    }
+    .cars-grid { grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); }
+    .car-image, .car-image-placeholder { height: 260px; }
+    @media (max-width: 540px) { .cars-grid { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
 
 {% block content %}
 <section style="padding: 3rem 0; background: var(--secondary-navy);">
     <div class="container">
-        <h1 class="text-center" style="margin-bottom: 2rem;">الفرص الاستثمارية المتاحة</h1>
-        
+        <h1 class="text-center" style="margin-bottom: 1rem;">سوق السيارات</h1>
+
         <!-- Market Tabs -->
         <div class="card" style="margin-bottom: 1rem;">
             <div class="card-body" style="display:flex; gap:1rem;">
-                <a href="{{ url_for('main.market') }}" class="btn btn-primary">الوحدات</a>
-                <a href="{{ url_for('main.market_cars') }}" class="btn btn-secondary">السيارات</a>
+                <a href="{{ url_for('main.market') }}" class="btn btn-secondary">الوحدات</a>
+                <a href="{{ url_for('main.market_cars') }}" class="btn btn-primary">السيارات</a>
             </div>
         </div>
 
@@ -51,7 +37,6 @@
                             <option value="closed" {% if current_status == 'closed' %}selected{% endif %}>مغلق</option>
                         </select>
                     </div>
-                    
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="location_filter" class="form-label">الموقع</label>
                         <select id="location_filter" class="form-control">
@@ -63,7 +48,6 @@
                             {% endfor %}
                         </select>
                     </div>
-                    
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="sort_filter" class="form-label">ترتيب حسب</label>
                         <select id="sort_filter" class="form-control">
@@ -76,64 +60,58 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Apartments Grid -->
-        {% if apartments %}
-            <div class="apartments-grid">
-                {% for apartment in apartments %}
+
+        {% if cars %}
+            <div class="apartments-grid cars-grid">
+                {% for car in cars %}
                 <div class="apartment-card">
                     <div class="apartment-image-wrapper" style="position: relative;">
-                        {% if apartment.image and apartment.image != 'default_apartment.jpg' %}
-                            <img src="{{ url_for('static', filename='images/apartments/' + apartment.image) }}" 
-                                 alt="{{ apartment.title }}" 
-                                 class="apartment-image">
+                        {% if car.image and car.image != 'default_car.jpg' %}
+                            <img src="{{ url_for('static', filename='images/cars/' + car.image) }}" 
+                                 alt="{{ car.title }}" 
+                                 class="car-image apartment-image">
                         {% else %}
-                            <div class="apartment-image-placeholder">
-                                <i class="fas fa-building"></i>
+                            <div class="car-image-placeholder apartment-image-placeholder">
+                                <i class="fas fa-car"></i>
                             </div>
                         {% endif %}
-                        <span class="apartment-status badge-{{ 'success' if apartment.status == 'جديد' else 'warning' if apartment.status == 'متاح' else 'danger' }}">
-                            {{ apartment.status }}
+                        <span class="apartment-status badge-{{ 'success' if car.status == 'جديد' else 'warning' if car.status == 'متاح' else 'danger' }}">
+                            {{ car.status }}
                         </span>
                     </div>
-                    
                     <div class="apartment-content">
-                        <h3 class="apartment-title">{{ apartment.title }}</h3>
+                        <h3 class="apartment-title">{{ car.title }}</h3>
                         <div class="apartment-location">
                             <i class="fas fa-map-marker-alt"></i>
-                            {{ apartment.location }}
+                            {{ car.location }}
                         </div>
-                        
                         <div class="apartment-price">
-                            {{ "{:,.0f}".format(apartment.total_price) }} جنيه
+                            {{ "{:,.0f}".format(car.total_price) }} جنيه
                         </div>
-                        
                         <div class="apartment-details">
                             <div class="detail-item">
                                 <span class="detail-label">سعر الحصة</span>
-                                <span class="detail-value">{{ "{:,.0f}".format(apartment.share_price) }}</span>
+                                <span class="detail-value">{{ "{:,.0f}".format(car.share_price) }}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">الحصص المتاحة</span>
-                                <span class="detail-value">{{ apartment.shares_available }} / {{ apartment.total_shares }}</span>
+                                <span class="detail-value">{{ car.shares_available }} / {{ car.total_shares }}</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">المستثمرين</span>
-                                <span class="detail-value">{{ apartment.investors_count }}</span>
+                                <span class="detail-value">{{ car.investors_count }}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">الإيجار الشهري</span>
-                                <span class="detail-value">{{ "{:,.0f}".format(apartment.monthly_rent) }}</span>
+                                <span class="detail-label">العائد الشهري</span>
+                                <span class="detail-value">{{ "{:,.0f}".format(car.monthly_rent) }}</span>
                             </div>
                         </div>
-                        
                         <div class="progress-bar-container">
-                            <div class="progress-bar" data-percentage="{{ apartment.completion_percentage }}" style="width: 0%"></div>
+                            <div class="progress-bar" data-percentage="{{ car.completion_percentage }}" style="width: 0%"></div>
                         </div>
-                        <p class="progress-text">تم بيع {{ apartment.completion_percentage|round(1) }}% من الحصص</p>
-                        
+                        <p class="progress-text">تم بيع {{ car.completion_percentage|round(1) }}% من الحصص</p>
                         <div style="margin-top: 1rem;">
-                            <a href="{{ url_for('main.apartment_detail', apartment_id=apartment.id) }}" 
+                            <a href="{{ url_for('main.car_detail', car_id=car.id) }}" 
                                class="btn btn-primary" style="width: 100%;">
                                 <i class="fas fa-eye"></i> عرض التفاصيل
                             </a>
@@ -145,7 +123,7 @@
         {% else %}
             <div class="card text-center" style="padding: 3rem;">
                 <i class="fas fa-inbox" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
-                <h3>لا توجد فرص استثمارية متاحة حالياً</h3>
+                <h3>لا توجد سيارات متاحة حالياً</h3>
                 <p class="text-muted">تحقق مرة أخرى قريباً للحصول على فرص جديدة</p>
             </div>
         {% endif %}

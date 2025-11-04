@@ -4,6 +4,10 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+<!-- Premium display font for brand -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -11,19 +15,25 @@
 <section class="hero">
     <div class="container">
         <div class="hero-content">
-            <h1 class="hero-title">استثمر في العقارات بذكاء</h1>
-            <p class="hero-subtitle">شارك في امتلاك عقارات عالية الجودة واحصل على دخل شهري ثابت من الإيجار</p>
+            <div class="brand-premium" aria-label="i pillars i">
+                <span class="brand-text">i pillars i</span>
+            </div>
+            <h1 class="hero-title">استثمر في <span id="flip-target" class="flip-word">العقارات</span> بذكاء</h1>
+            <p class="hero-subtitle">شارك في امتلاك <span class="emphasis">العقارات</span> و<span class="emphasis">السيارات</span> عالية الجودة واحصل على دخل شهري من الإيجار والتشغيل</p>
             <div class="hero-cta">
                 {% if not current_user.is_authenticated %}
                     <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">ابدأ الاستثمار الآن</a>
-                    <a href="{{ url_for('main.market') }}" class="btn btn-secondary btn-lg">تصفح الفرص</a>
+                    <a href="{{ url_for('main.market') }}" class="btn btn-secondary btn-lg">تصفح الوحدات</a>
+                    <a href="{{ url_for('main.market_cars') }}" class="btn btn-secondary btn-lg"><i class="fas fa-car"></i> تصفح السيارات</a>
                 {% else %}
-                    <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg">تصفح الفرص المتاحة</a>
+                    <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg">تصفح الوحدات</a>
+                    <a href="{{ url_for('main.market_cars') }}" class="btn btn-secondary btn-lg"><i class="fas fa-car"></i> تصفح السيارات</a>
                     <a href="{{ url_for('user_views.dashboard') }}" class="btn btn-secondary btn-lg">لوحة التحكم</a>
                 {% endif %}
             </div>
         </div>
     </div>
+    
 </section>
 
 <!-- Stats Section -->
@@ -123,14 +133,22 @@
     </div>
 </section>
 
-<!-- Featured Apartments Section -->
-{% if featured_apartments %}
-<section class="apartments-showcase">
+<!-- Featured Items Section -->
+{% if featured_apartments or featured_cars %}
+<section class="apartments-showcase" id="featured">
     <div class="container">
         <h2 class="section-title">الفرص الاستثمارية المتاحة</h2>
-        <p class="section-subtitle">اختر العقار المناسب وابدأ رحلتك الاستثمارية اليوم</p>
+        <p class="section-subtitle">اختر الأصل المناسب (وحدة أو سيارة) وابدأ رحلتك الاستثمارية اليوم</p>
+        <!-- Tabs -->
+        <div class="card" style="margin-bottom: 1rem;">
+            <div class="card-body" style="display:flex; gap:1rem; justify-content:center;">
+                <button id="tab-units" class="btn btn-primary"><i class="fas fa-building"></i> الوحدات</button>
+                <button id="tab-cars" class="btn btn-secondary"><i class="fas fa-car"></i> السيارات</button>
+            </div>
+        </div>
         
-        <div class="apartments-grid">
+        <!-- Units Grid -->
+        <div id="featured-units" class="apartments-grid">
             {% for apartment in featured_apartments %}
             <div class="apartment-card slide-in-up">
                 <div class="apartment-image-wrapper" style="position: relative;">
@@ -193,10 +211,73 @@
             </div>
             {% endfor %}
         </div>
+
+        <!-- Cars Grid -->
+        <div id="featured-cars" class="apartments-grid" style="display:none;">
+            {% for car in featured_cars %}
+            <div class="apartment-card slide-in-up">
+                <div class="apartment-image-wrapper" style="position: relative;">
+                    {% if car.image and car.image != 'default_car.jpg' %}
+                        <img src="{{ url_for('static', filename='images/cars/' + car.image) }}" 
+                             alt="{{ car.title }}" 
+                             class="apartment-image">
+                    {% else %}
+                        <div class="apartment-image-placeholder">
+                            <i class="fas fa-car"></i>
+                        </div>
+                    {% endif %}
+                    <span class="apartment-status badge-{{ 'success' if car.status == 'جديد' else 'warning' if car.status == 'متاح' else 'danger' }}">
+                        {{ car.status }}
+                    </span>
+                </div>
+                <div class="apartment-content">
+                    <h3 class="apartment-title">{{ car.title }}</h3>
+                    <div class="apartment-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ car.location }}
+                    </div>
+                    <div class="apartment-price">
+                        {{ "{:,.0f}".format(car.total_price) }} جنيه
+                    </div>
+                    <div class="apartment-details">
+                        <div class="detail-item">
+                            <span class="detail-label">سعر الحصة</span>
+                            <span class="detail-value">{{ "{:,.0f}".format(car.share_price) }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">الحصص المتاحة</span>
+                            <span class="detail-value">{{ car.shares_available }} / {{ car.total_shares }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">المستثمرين</span>
+                            <span class="detail-value">{{ car.investors_count }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">العائد الشهري</span>
+                            <span class="detail-value">{{ "{:,.0f}".format(car.monthly_rent) }}</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" data-percentage="{{ car.completion_percentage }}" style="width: 0%"></div>
+                    </div>
+                    <p class="progress-text">تم بيع {{ car.completion_percentage|round(1) }}% من الحصص</p>
+                    <div style="margin-top: 1rem;">
+                        <a href="{{ url_for('main.car_detail', car_id=car.id) }}" 
+                           class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-eye"></i> عرض التفاصيل
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
         
         <div class="text-center" style="margin-top: 2rem;">
-            <a href="{{ url_for('main.market') }}" class="btn btn-secondary btn-lg">
-                عرض جميع الفرص <i class="fas fa-arrow-left"></i>
+            <a href="{{ url_for('main.market') }}" class="btn btn-secondary btn-lg"><i class="fas fa-building"></i>
+                جميع الوحدات
+            </a>
+            <a href="{{ url_for('main.market_cars') }}" class="btn btn-secondary btn-lg"><i class="fas fa-car"></i>
+                جميع السيارات
             </a>
         </div>
     </div>
@@ -218,8 +299,8 @@
             
             <div class="step-card fade-in">
                 <div class="step-number">2</div>
-                <h3 class="step-title">اختر العقار</h3>
-                <p class="step-description">تصفح العقارات المتاحة واختر ما يناسبك</p>
+                <h3 class="step-title">اختر الأصل</h3>
+                <p class="step-description">تصفح الوحدات والسيارات المتاحة واختر ما يناسب ميزانيتك</p>
             </div>
             
             <div class="step-card fade-in">
@@ -231,7 +312,7 @@
             <div class="step-card fade-in">
                 <div class="step-number">4</div>
                 <h3 class="step-title">احصل على الأرباح</h3>
-                <p class="step-description">استلم حصتك من الإيجار شهرياً</p>
+                <p class="step-description">استلم حصتك من الإيجار (الوحدات) أو التشغيل (السيارات) شهرياً</p>
             </div>
         </div>
     </div>
@@ -255,4 +336,50 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Flip between العقارات and السيارات in hero title
+(function() {
+    const words = ['العقارات', 'السيارات'];
+    const target = document.getElementById('flip-target');
+    let idx = 0;
+    if (!target) return;
+    setInterval(() => {
+        idx = (idx + 1) % words.length;
+        target.classList.add('flip-out');
+        setTimeout(() => {
+            target.textContent = words[idx];
+            target.classList.remove('flip-out');
+            target.classList.add('flip-in');
+            setTimeout(() => target.classList.remove('flip-in'), 300);
+        }, 200);
+    }, 2200);
+})();
+
+// Tabs toggle for featured grids
+(function() {
+    const tabUnits = document.getElementById('tab-units');
+    const tabCars = document.getElementById('tab-cars');
+    const gridUnits = document.getElementById('featured-units');
+    const gridCars = document.getElementById('featured-cars');
+    if (!tabUnits || !tabCars || !gridUnits || !gridCars) return;
+    function activate(unitsActive) {
+        if (unitsActive) {
+            tabUnits.classList.replace('btn-secondary', 'btn-primary');
+            tabCars.classList.replace('btn-primary', 'btn-secondary');
+            gridUnits.style.display = '';
+            gridCars.style.display = 'none';
+        } else {
+            tabCars.classList.replace('btn-secondary', 'btn-primary');
+            tabUnits.classList.replace('btn-primary', 'btn-secondary');
+            gridCars.style.display = '';
+            gridUnits.style.display = 'none';
+        }
+    }
+    tabUnits.addEventListener('click', () => activate(true));
+    tabCars.addEventListener('click', () => activate(false));
+})();
+</script>
 {% endblock %}

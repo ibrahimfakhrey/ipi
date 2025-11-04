@@ -31,13 +31,17 @@
             <ul class="navbar-menu">
                 <li><a href="{{ url_for('main.index') }}" {% if request.endpoint == 'main.index' %}class="active"{% endif %}>الرئيسية</a></li>
                 <li><a href="{{ url_for('main.market') }}" {% if request.endpoint == 'main.market' %}class="active"{% endif %}>السوق</a></li>
+                <li><a href="{{ url_for('main.market_cars') }}" {% if request.endpoint == 'main.market_cars' %}class="active"{% endif %}>سوق السيارات</a></li>
                 <li><a href="{{ url_for('main.about') }}" {% if request.endpoint == 'main.about' %}class="active"{% endif %}>من نحن</a></li>
                 <li><a href="{{ url_for('main.faq') }}" {% if request.endpoint == 'main.faq' %}class="active"{% endif %}>الأسئلة الشائعة</a></li>
                 
                 {% if current_user.is_authenticated %}
                     {% if current_user.is_admin %}
                         <li><a href="{{ url_for('admin.dashboard') }}"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
+                        <li><a href="{{ url_for('admin.apartments') }}"><i class="fas fa-building"></i> الشقق</a></li>
+                        <li><a href="{{ url_for('admin.cars_list') }}"><i class="fas fa-car"></i> السيارات</a></li>
                         <li><a href="{{ url_for('admin.investment_requests') }}"><i class="fas fa-file-contract"></i> طلبات الاستثمار</a></li>
+                        <li><a href="{{ url_for('admin.car_investment_requests') }}"><i class="fas fa-file-contract"></i> طلبات سيارات</a></li>
                     {% else %}
                         <li><a href="{{ url_for('user_views.dashboard') }}"><i class="fas fa-chart-line"></i> لوحتي</a></li>
                         <li><a href="{{ url_for('user_views.my_investment_requests') }}"><i class="fas fa-file-contract"></i> طلباتي</a></li>
