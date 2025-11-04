@@ -44,50 +44,38 @@ Hero Section, Animations, and Features
     display: inline-block;
     margin-bottom: 1rem;
 }
-.brand-premium .brand-text {
+/* Handwriting signature animation using SVG text */
+.brand-signature {
+    display: block;
+    width: min(92vw, 1000px);
+    height: auto;
+}
+.brand-signature text {
     font-family: 'Cinzel', serif;
     font-weight: 900;
-    font-size: clamp(2.5rem, 8vw, 6rem);
+    font-size: 120px;
     letter-spacing: 0.14em;
     text-transform: lowercase;
-    color: transparent;
-    -webkit-text-stroke: 2px var(--primary-gold);
-    text-shadow: 0 0 12px rgba(212, 175, 55, 0.25);
-    -webkit-text-fill-color: transparent;
-    position: relative;
-    display: inline-block;
-    opacity: 0;
-    animation: brandFade 0.8s ease forwards, brandGlow 4s ease-in-out 1s infinite;
-}
-/* Subtle moving shine that sweeps across the letters */
-.brand-premium .brand-text::after {
-    content: attr(data-text);
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(120deg,
-        rgba(194,161,77,0) 0%,
-        rgba(194,161,77,0) 35%,
-        rgba(255,255,255,0.6) 50%,
-        rgba(194,161,77,0) 65%,
-        rgba(194,161,77,0) 100%);
-    background-size: 200% 100%;
-    background-position: -100% 0;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    pointer-events: none;
-    animation: brandShine 5.5s ease-in-out 1.2s infinite;
+    fill: transparent;                 /* hollow */
+    stroke: var(--primary-gold);       /* outline color */
+    stroke-width: 2.5px;
+    paint-order: stroke fill;          /* ensure stroke on top */
+    vector-effect: non-scaling-stroke; /* keep stroke width stable */
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    /* handwriting draw */
+    stroke-dasharray: 1600;
+    stroke-dashoffset: 1600;
+    animation: brandWrite 2.8s ease forwards, brandGlow 6s ease-in-out 2.8s infinite;
+    filter: drop-shadow(0 12px 28px rgba(194,161,77,0.18));
 }
 @keyframes brandFade {
   from { opacity: 0; letter-spacing: 0.2em; }
   to { opacity: 1; letter-spacing: 0.14em; }
 }
 
-@keyframes brandShine {
-    0%, 35% { background-position: -120% 0; opacity: 0.75; }
-    45% { background-position: 0% 0; opacity: 1; }
-    60% { background-position: 120% 0; opacity: 0.85; }
-    100% { background-position: 120% 0; opacity: 0.75; }
+@keyframes brandWrite {
+    to { stroke-dashoffset: 0; }
 }
 
 @keyframes brandGlow {
@@ -97,8 +85,7 @@ Hero Section, Animations, and Features
 
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
-    .brand-premium .brand-text { animation: brandFade 0.8s ease forwards; }
-    .brand-premium .brand-text::after { animation: none; }
+    .brand-signature text { animation: none; }
 }
 
 .hero-title {
