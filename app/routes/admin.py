@@ -300,8 +300,17 @@ def transactions():
 @admin_required
 def payouts():
     """Payout management page"""
+    # Closed apartments (fully sold)
     closed_apartments = Apartment.query.filter_by(is_closed=True).all()
-    return render_template('admin/payouts.html', apartments=closed_apartments)
+    # Eligible active apartments (partially sold but with investors)
+    eligible_apartments = Apartment.query.filter(
+        Apartment.is_closed == False,
+        Apartment.shares_available < Apartment.total_shares
+    ).all()
+
+    return render_template('admin/payouts.html', 
+                         closed_apartments=closed_apartments,
+                         eligible_apartments=eligible_apartments)
 
 
 @bp.route('/payouts/distribute/<int:apartment_id>', methods=['POST'])
@@ -309,11 +318,11 @@ def payouts():
 def distribute_payout(apartment_id):
     """Manually trigger payout for specific apartment"""
     apartment = Apartment.query.get_or_404(apartment_id)
-    
-    if not apartment.is_closed:
-        flash('يمكن توزيع الإيجار فقط على الشقق المغلقة', 'error')
+    # Allow payouts for any apartment with investors (shares sold)
+    if apartment.shares.count() == 0:
+        flash('لا يمكن توزيع الإيجار على شقة بدون مستثمرين', 'error')
         return redirect(url_for('admin.payouts'))
-    
+
     payouts = apartment.distribute_monthly_rent()
     db.session.commit()
     
@@ -325,12 +334,16 @@ def distribute_payout(apartment_id):
 @admin_required
 def distribute_all_payouts():
     """Distribute payouts to all closed apartments"""
-    apartments = Apartment.query.filter_by(is_closed=True).all()
+    # Distribute to all apartments that have investors (shares sold), whether closed or active
+    apartments = Apartment.query.filter(
+        Apartment.shares_available < Apartment.total_shares
+    ).all()
     total_payouts = 0
     
     for apartment in apartments:
-        payouts = apartment.distribute_monthly_rent()
-        total_payouts += payouts
+        if apartment.shares.count() > 0:
+            payouts = apartment.distribute_monthly_rent()
+            total_payouts += payouts
     
     db.session.commit()
     

@@ -152,6 +152,22 @@ a:hover {
     align-items: center;
 }
 
+/* Mobile menu toggle button (hidden on desktop) */
+.mobile-menu-toggle {
+    display: none;
+    background: transparent;
+    border: 2px solid rgba(212, 175, 55, 0.4);
+    color: var(--primary-gold);
+    padding: 0.4rem 0.6rem;
+    border-radius: var(--radius-md);
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.mobile-menu-toggle:hover {
+    border-color: var(--primary-gold);
+}
+
 .navbar-menu a {
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: var(--radius-md);
@@ -571,10 +587,31 @@ select.form-control {
     html {
         font-size: 14px;
     }
-    
+    /* Show hamburger and collapse the nav */
+    .mobile-menu-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Hide menu by default on mobile */
     .navbar-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
         flex-direction: column;
         gap: var(--spacing-xs);
+        padding: var(--spacing-sm);
+        background: linear-gradient(135deg, var(--background-navy) 0%, var(--secondary-navy) 100%);
+        border-top: 1px solid rgba(212, 175, 55, 0.2);
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Show when toggled */
+    .navbar-menu.active {
+        display: flex;
     }
     
     h1 { font-size: 2rem; }

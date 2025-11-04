@@ -4,6 +4,25 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+<style>
+    /* Make apartment cards wider on the market page */
+    .apartments-grid {
+        grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+    }
+
+    /* Slightly taller image to match wider cards */
+    .apartment-image,
+    .apartment-image-placeholder {
+        height: 260px;
+    }
+
+    /* Responsive fallback for small screens */
+    @media (max-width: 540px) {
+        .apartments-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
