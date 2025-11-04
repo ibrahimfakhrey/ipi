@@ -12,7 +12,7 @@ Hero Section, Animations, and Features
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #000000 0%, #1A1A1A 50%, #000000 100%);
+    background: linear-gradient(135deg, var(--background-navy) 0%, var(--secondary-navy) 50%, var(--background-navy) 100%);
     overflow: hidden;
     padding: var(--spacing-xxl) 0;
 }
@@ -185,7 +185,7 @@ Hero Section, Animations, and Features
 
 .feature-card {
     padding: var(--spacing-lg);
-    background: linear-gradient(135deg, var(--secondary-navy) 0%, #0F1A28 100%);
+    background: linear-gradient(135deg, var(--secondary-navy) 0%, var(--background-navy) 100%);
     border-radius: var(--radius-lg);
     border: 2px solid rgba(212, 175, 55, 0.1);
     transition: all var(--transition-normal);
