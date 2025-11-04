@@ -7,13 +7,13 @@ Arabic RTL Design with Logo Color Palette
 
 /* ============= CSS Variables (Logo Colors) ============= */
 :root {
-    /* Primary Colors from Logo */
-    --primary-gold: #D4AF37;
-    --accent-beige: #F5E6D3;
-    --background-navy: #0A1929;
-    --secondary-navy: #1A2332;
-    --text-light: #E8E8E8;
-    --text-muted: #A0A0A0;
+    /* Primary Colors - Black & Gold Theme */
+    --primary-gold: #FFD700;
+    --accent-gold: #FDB931;
+    --background-black: #000000;
+    --secondary-black: #1A1A1A;
+    --text-light: #FFFFFF;
+    --text-muted: #999999;
     
     /* Additional Colors */
     --success: #10B981;
@@ -63,7 +63,7 @@ body {
     font-family: 'Cairo', 'Tajawal', 'Amiri', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     direction: rtl;
     text-align: right;
-    background-color: var(--background-navy);
+    background-color: var(--background-black);
     color: var(--text-light);
     line-height: 1.6;
     overflow-x: hidden;
@@ -100,7 +100,7 @@ a {
 }
 
 a:hover {
-    color: var(--accent-beige);
+    color: var(--accent-gold);
 }
 
 /* ============= Container & Layout ============= */
@@ -117,13 +117,14 @@ a:hover {
 
 /* ============= Navigation Bar ============= */
 .navbar {
-    background: linear-gradient(135deg, var(--background-navy) 0%, var(--secondary-navy) 100%);
+    background: linear-gradient(135deg, var(--background-black) 0%, var(--secondary-black) 100%);
     padding: var(--spacing-sm) 0;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 4px 6px rgba(255, 215, 0, 0.1);
     position: sticky;
     top: 0;
     z-index: 1000;
     backdrop-filter: blur(10px);
+    border-bottom: 2px solid var(--primary-gold);
 }
 
 .navbar .container {
@@ -142,7 +143,7 @@ a:hover {
 }
 
 .navbar-brand:hover {
-    color: var(--accent-beige);
+    color: var(--accent-gold);
 }
 
 .navbar-menu {
@@ -183,7 +184,7 @@ a:hover {
 
 .navbar-menu a.active {
     background-color: var(--primary-gold);
-    color: var(--background-navy);
+    color: var(--background-black);
 }
 
 /* ============= Buttons ============= */
@@ -201,26 +202,27 @@ a:hover {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary-gold) 0%, #C19B2E 100%);
-    color: var(--background-navy);
-    box-shadow: var(--shadow-md);
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--accent-gold) 100%);
+    color: var(--background-black);
+    box-shadow: 0 4px 6px rgba(255, 215, 0, 0.3);
+    font-weight: 700;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-    background: linear-gradient(135deg, #E0BE4D 0%, var(--primary-gold) 100%);
+    box-shadow: 0 8px 12px rgba(255, 215, 0, 0.4);
+    background: linear-gradient(135deg, var(--accent-gold) 0%, var(--primary-gold) 100%);
 }
 
 .btn-secondary {
-    background-color: var(--secondary-navy);
+    background-color: var(--secondary-black);
     color: var(--primary-gold);
     border: 2px solid var(--primary-gold);
 }
 
 .btn-secondary:hover {
     background-color: var(--primary-gold);
-    color: var(--background-navy);
+    color: var(--background-black);
 }
 
 .btn-success {
@@ -250,23 +252,23 @@ a:hover {
 
 /* ============= Cards ============= */
 .card {
-    background: linear-gradient(135deg, var(--secondary-navy) 0%, #0F1A28 100%);
+    background: linear-gradient(135deg, var(--secondary-black) 0%, #0A0A0A 100%);
     border-radius: var(--radius-lg);
     padding: var(--spacing-md);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 4px 6px rgba(255, 215, 0, 0.1);
     transition: all var(--transition-normal);
-    border: 1px solid rgba(212, 175, 55, 0.1);
+    border: 1px solid rgba(255, 215, 0, 0.2);
 }
 
 .card:hover {
     transform: translateY(-5px);
-    box-shadow: var(--shadow-xl);
-    border-color: rgba(212, 175, 55, 0.3);
+    box-shadow: 0 8px 12px rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.4);
 }
 
 .card-header {
     padding-bottom: var(--spacing-sm);
-    border-bottom: 2px solid rgba(212, 175, 55, 0.2);
+    border-bottom: 2px solid rgba(255, 215, 0, 0.3);
     margin-bottom: var(--spacing-md);
 }
 
@@ -282,7 +284,7 @@ a:hover {
 
 .card-footer {
     padding-top: var(--spacing-sm);
-    border-top: 1px solid rgba(212, 175, 55, 0.1);
+    border-top: 1px solid rgba(255, 215, 0, 0.2);
     margin-top: var(--spacing-md);
 }
 
@@ -301,9 +303,9 @@ a:hover {
 .form-control {
     width: 100%;
     padding: var(--spacing-sm);
-    border: 2px solid rgba(212, 175, 55, 0.3);
+    border: 2px solid rgba(255, 215, 0, 0.3);
     border-radius: var(--radius-md);
-    background-color: var(--secondary-navy);
+    background-color: var(--secondary-black);
     color: var(--text-light);
     font-family: 'Cairo', sans-serif;
     transition: all var(--transition-fast);
@@ -312,7 +314,7 @@ a:hover {
 .form-control:focus {
     outline: none;
     border-color: var(--primary-gold);
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
 }
 
 .form-control::placeholder {
@@ -374,12 +376,12 @@ select.form-control {
 .table {
     width: 100%;
     border-collapse: collapse;
-    background-color: var(--secondary-navy);
+    background-color: var(--secondary-black);
 }
 
 .table th {
-    background: linear-gradient(135deg, var(--primary-gold) 0%, #C19B2E 100%);
-    color: var(--background-navy);
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--accent-gold) 100%);
+    color: var(--background-black);
     padding: var(--spacing-sm);
     text-align: right;
     font-weight: 700;
@@ -387,11 +389,11 @@ select.form-control {
 
 .table td {
     padding: var(--spacing-sm);
-    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.2);
 }
 
 .table tr:hover {
-    background-color: rgba(212, 175, 55, 0.05);
+    background-color: rgba(255, 215, 0, 0.05);
 }
 
 /* ============= Badge ============= */

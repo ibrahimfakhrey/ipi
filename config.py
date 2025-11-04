@@ -35,12 +35,12 @@ class Config:
     # Application settings
     ITEMS_PER_PAGE = 12  # For pagination
     
-    # Color palette (extracted from logo - adjust these hex codes based on actual logo)
-    PRIMARY_GOLD = "#D4AF37"  # Gold color for primary elements
-    ACCENT_BEIGE = "#F5E6D3"  # Beige for accents
-    BACKGROUND_NAVY = "#0A1929"  # Deep navy background
-    SECONDARY_NAVY = "#1A2332"  # Slightly lighter navy
-    TEXT_LIGHT = "#E8E8E8"  # Light text color
+    # Color palette (Black & Gold Theme)
+    PRIMARY_GOLD = "#FFD700"  # Bright Gold
+    ACCENT_GOLD = "#FDB931"  # Lighter Gold
+    BACKGROUND_BLACK = "#000000"  # Pure Black
+    SECONDARY_BLACK = "#1A1A1A"  # Dark Gray
+    TEXT_LIGHT = "#FFFFFF"  # White text
     
     # Admin credentials (in production, use environment variables)
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL') or 'admin@apartmentshare.com'
