@@ -45,9 +45,16 @@ instance/
 # Logs
 *.log
 
-# Uploads
-app/static/images/apartments/*
-!app/static/images/apartments/.gitkeep
+# Uploads - Allow images to be pushed to GitHub
+# Apartment images
+!app/static/images/apartments/*.jpg
+!app/static/images/apartments/*.png
+!app/static/images/apartments/*.jpeg
+
+# Car images (allow default and specific images)
+!app/static/images/cars/default_car.jpg
+!app/static/images/cars/*.png
+!app/static/images/cars/*.jpg
 
 # User uploaded documents
 app/static/uploads/documents/*
