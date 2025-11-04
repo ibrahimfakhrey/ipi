@@ -197,6 +197,29 @@ Hero Section, Animations, and Features
 /* ============= Features Section ============= */
 .features-section {
     padding: var(--spacing-xxl) 0;
+    position: relative;
+}
+
+/* Optional background image for features section */
+.features-section.features-section--with-bg {
+    background: var(--features-bg-image) center center / cover no-repeat;
+}
+
+.features-section.features-section--with-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(10,10,10,0.88) 0%, rgba(5,9,20,0.92) 50%, rgba(10,10,10,0.90) 100%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.features-section .container {
+    position: relative;
+    z-index: 1;
 }
 
 .section-title {
@@ -447,6 +470,11 @@ Hero Section, Animations, and Features
     overflow: hidden;
 }
 
+/* Optional background image for CTA section */
+.cta-section.cta-section--with-bg {
+    background: var(--cta-bg-image) center center / cover no-repeat;
+}
+
 .cta-section::before {
     content: '';
     position: absolute;
@@ -457,6 +485,20 @@ Hero Section, Animations, and Features
     height: 600px;
     background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
     border-radius: 50%;
+}
+
+.cta-section.cta-section--with-bg::before {
+    /* Stronger overlay for background image variant */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: auto;
+    transform: none;
+    background: linear-gradient(135deg, rgba(10,10,10,0.75) 0%, rgba(5,9,20,0.82) 50%, rgba(10,10,10,0.78) 100%);
+    border-radius: 0;
+    z-index: 0;
 }
 
 .cta-content {
