@@ -41,9 +41,42 @@ Hero Section, Animations, and Features
     background: linear-gradient(135deg, rgba(10,10,10,0.35) 0%, rgba(5,9,20,0.45) 50%, rgba(10,10,10,0.5) 100%);
 }
 
+/* Hero video background variant */
+.hero.hero--with-video {
+    background: var(--background-navy);
+}
+
+.hero-video-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.hero-video-iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100vw;
+    height: 56.25vw; /* 16:9 aspect ratio */
+    min-height: 100vh;
+    min-width: 177.77vh; /* 16:9 aspect ratio */
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.hero.hero--with-video::before {
+    /* Dark overlay for video background to ensure text readability */
+    background: linear-gradient(135deg, rgba(10,10,10,0.45) 0%, rgba(5,9,20,0.55) 50%, rgba(10,10,10,0.50) 100%);
+    z-index: 1;
+}
+
 .hero-content {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     text-align: center;
     max-width: 900px;
     margin: 0 auto;
