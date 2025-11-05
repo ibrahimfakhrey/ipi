@@ -15,13 +15,11 @@
 {% block content %}
 <!-- Hero Section -->
 <section class="hero hero--with-video">
-    <!-- Vimeo Video Background -->
+    <!-- Local Video Background -->
     <div class="hero-video-wrapper">
-        <iframe src="https://player.vimeo.com/video/1133941217?background=1&autoplay=1&loop=1&autopause=0&muted=1&controls=0&title=0&byline=0&portrait=0" 
-                frameborder="0" 
-                allow="autoplay; fullscreen" 
-                class="hero-video-iframe"
-                title="Hero Background Video"></iframe>
+        <video class="hero-video" autoplay muted loop playsinline>
+            <source src="{{ url_for('static', filename='videos/hero-bg.mov') }}" type="video/mp4">
+        </video>
     </div>
     <div class="container">
         <div class="hero-content">
