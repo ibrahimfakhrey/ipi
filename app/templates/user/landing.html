@@ -17,8 +17,10 @@
 <section class="hero hero--with-video">
     <!-- Local Video Background -->
     <div class="hero-video-wrapper">
-        <video class="hero-video" autoplay muted loop playsinline>
-            <source src="{{ url_for('static', filename='videos/hero-bg.mov') }}" type="video/mp4">
+        <video class="hero-video" autoplay muted loop playsinline poster="{{ url_for('static', filename='images/hero-poster.jpg') }}">
+            <source src="{{ url_for('static', filename='videos/1105(1).mp4') }}" type="video/mp4">
+            <source src="{{ url_for('static', filename='videos/hero-bg.mov') }}" type="video/quicktime">
+            Your browser does not support the video tag.
         </video>
     </div>
     <div class="container">
