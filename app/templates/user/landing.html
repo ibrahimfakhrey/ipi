@@ -23,8 +23,12 @@
             Your browser does not support the video tag.
         </video>
     </div>
+    
+    <!-- Floating Particles -->
+    <div class="particles-container" id="particles"></div>
+    
     <div class="container">
-        <div class="hero-content">
+        <div class="hero-content" data-parallax="true">
             <div class="brand-premium" aria-label="i pillars i">
                 <svg class="brand-signature" viewBox="0 0 1200 220" role="img" aria-label="i pillars i" preserveAspectRatio="xMidYMid meet">
                     <title>i pillars i</title>
@@ -35,11 +39,11 @@
             <p class="hero-subtitle">شارك في امتلاك <span class="emphasis">العقارات</span> و<span class="emphasis">السيارات</span> عالية الجودة واحصل على دخل شهري من الإيجار والتشغيل</p>
             <div class="hero-cta">
                 {% if not current_user.is_authenticated %}
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">ابدأ الاستثمار الآن</a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg btn-glow">ابدأ الاستثمار الآن</a>
                     <a href="{{ url_for('main.market') }}" class="btn btn-secondary btn-lg">تصفح الوحدات</a>
                     <a href="{{ url_for('main.market_cars') }}" class="btn btn-secondary btn-lg"><i class="fas fa-car"></i> تصفح السيارات</a>
                 {% else %}
-                    <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg">تصفح الوحدات</a>
+                    <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg btn-glow">تصفح الوحدات</a>
                     <a href="{{ url_for('main.market_cars') }}" class="btn btn-secondary btn-lg"><i class="fas fa-car"></i> تصفح السيارات</a>
                     <a href="{{ url_for('user_views.dashboard') }}" class="btn btn-secondary btn-lg">لوحة التحكم</a>
                 {% endif %}
@@ -50,10 +54,10 @@
 </section>
 
 <!-- Stats Section -->
-<section class="stats-section">
+<section class="stats-section" data-parallax-section="true">
     <div class="container">
         <div class="stats-container">
-            <div class="stat-card reveal reveal-up">
+            <div class="stat-card reveal reveal-up card-3d">
                 <div class="stat-icon">
                     <i class="fas fa-users"></i>
                 </div>
@@ -61,7 +65,7 @@
                 <div class="stat-label">مستثمر</div>
             </div>
             
-            <div class="stat-card reveal reveal-up">
+            <div class="stat-card reveal reveal-up card-3d">
                 <div class="stat-icon">
                     <i class="fas fa-building"></i>
                 </div>
@@ -69,7 +73,7 @@
                 <div class="stat-label">عقار متاح</div>
             </div>
             
-            <div class="stat-card reveal reveal-up">
+            <div class="stat-card reveal reveal-up card-3d">
                 <div class="stat-icon">
                     <i class="fas fa-coins"></i>
                 </div>
@@ -77,7 +81,7 @@
                 <div class="stat-label">جنيه مستثمر</div>
             </div>
             
-            <div class="stat-card reveal reveal-up">
+            <div class="stat-card reveal reveal-up card-3d">
                 <div class="stat-icon">
                     <i class="fas fa-chart-line"></i>
                 </div>
@@ -353,6 +357,90 @@
 
 {% block extra_js %}
 <script>
+// ============= Floating Particles Generator =============
+(function() {
+    const particlesContainer = document.getElementById('particles');
+    if (!particlesContainer) return;
+    
+    // Reduce particles on mobile for performance
+    const isMobile = window.innerWidth <= 768;
+    const particleCount = isMobile ? 15 : 30;
+    
+    function createParticle() {
+        const particle = document.createElement('div');
+        const size = Math.random() * 8 + 2; // 2-10px
+        const duration = Math.random() * 15 + 10; // 10-25s
+        const delay = Math.random() * 5; // 0-5s
+        const xStart = Math.random() * 100 - 50; // -50vw to 50vw
+        const xEnd = Math.random() * 100 - 50;
+        
+        const shapes = ['circle', 'square', 'triangle'];
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        
+        particle.className = `particle ${shape}`;
+        particle.style.cssText = `
+            --size: ${size}px;
+            --duration: ${duration}s;
+            --x-start: ${xStart}vw;
+            --x-end: ${xEnd}vw;
+            width: ${size}px;
+            height: ${size}px;
+            left: ${Math.random() * 100}%;
+            animation-delay: ${delay}s;
+        `;
+        
+        particlesContainer.appendChild(particle);
+    }
+    
+    // Create particles
+    for (let i = 0; i < particleCount; i++) {
+        createParticle();
+    }
+})();
+
+// ============= Parallax Scroll Effect =============
+(function() {
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
+    
+    const parallaxElements = document.querySelectorAll('[data-parallax="true"]');
+    const parallaxSections = document.querySelectorAll('[data-parallax-section="true"]');
+    
+    let ticking = false;
+    
+    function updateParallax() {
+        const scrollY = window.pageYOffset;
+        
+        // Hero content parallax
+        parallaxElements.forEach(el => {
+            const speed = 0.5;
+            const yPos = -(scrollY * speed);
+            el.style.transform = `translateY(${yPos}px)`;
+        });
+        
+        // Section parallax
+        parallaxSections.forEach(section => {
+            const rect = section.getBoundingClientRect();
+            const scrollPercent = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
+            if (scrollPercent >= 0 && scrollPercent <= 1) {
+                const yPos = (scrollPercent - 0.5) * 50;
+                section.style.transform = `translateY(${yPos}px)`;
+            }
+        });
+        
+        ticking = false;
+    }
+    
+    function requestTick() {
+        if (!ticking) {
+            window.requestAnimationFrame(updateParallax);
+            ticking = true;
+        }
+    }
+    
+    window.addEventListener('scroll', requestTick, { passive: true });
+})();
+
 // Flip between العقارات and السيارات in hero title
 (function() {
     const words = ['العقارات', 'السيارات'];

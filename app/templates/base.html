@@ -24,9 +24,17 @@
                 <span>الاستثمار العقاري</span>
             </a>
             
-            <button id="mobile-menu-toggle" class="mobile-menu-toggle">
-                <i class="fas fa-bars"></i>
-            </button>
+            <div class="navbar-controls">
+                <!-- Theme Toggle Button -->
+                <button id="theme-toggle" class="theme-toggle" aria-label="تبديل الوضع">
+                    <i class="fas fa-sun"></i>
+                    <i class="fas fa-moon"></i>
+                </button>
+                
+                <button id="mobile-menu-toggle" class="mobile-menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
             
             <ul class="navbar-menu">
                 <li><a href="{{ url_for('main.index') }}" {% if request.endpoint == 'main.index' %}class="active"{% endif %}>الرئيسية</a></li>

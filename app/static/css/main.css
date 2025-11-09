@@ -2,10 +2,11 @@
 ========================================
 Apartment Sharing Platform - Main Styles
 Arabic RTL Design with Logo Color Palette
+Dark Mode (Default) & Light Mode Support
 ========================================
 */
 
-/* ============= CSS Variables (Logo Colors) ============= */
+/* ============= CSS Variables (Logo Colors) - DARK MODE (DEFAULT) ============= */
 :root {
     /* Primary Colors - Navy & Gold Theme */
     /* Gold for text/logo */
@@ -25,6 +26,9 @@ Arabic RTL Design with Logo Color Palette
     --warning: #F59E0B;
     --error: #EF4444;
     --info: #3B82F6;
+    
+    /* Accent Beige */
+    --accent-beige: #E8D5B7;
     
     /* Spacing */
     --spacing-xs: 0.5rem;
@@ -50,6 +54,84 @@ Arabic RTL Design with Logo Color Palette
     --transition-fast: 150ms ease;
     --transition-normal: 300ms ease;
     --transition-slow: 500ms ease;
+}
+
+/* ============= LIGHT MODE THEME ============= */
+[data-theme="light"] {
+    /* Light backgrounds */
+    --background-black: #F5F5F5;
+    --secondary-black: #FFFFFF;
+    --background-navy: #F5F5F5;
+    --secondary-navy: #FFFFFF;
+    
+    /* Dark text for light mode */
+    --text-light: #1F2937;
+    --text-muted: #6B7280;
+    
+    /* Adjusted gold for better contrast on light bg */
+    --primary-gold: #B8860B;
+    --accent-gold: #DAA520;
+    
+    /* Light mode shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* ============= Light Mode Specific Adjustments ============= */
+[data-theme="light"] .navbar {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-bottom: 2px solid var(--primary-gold);
+}
+
+[data-theme="light"] .card {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .form-control {
+    background-color: #FFFFFF;
+    border-color: #D1D5DB;
+    color: #1F2937;
+}
+
+[data-theme="light"] .form-control:focus {
+    border-color: var(--primary-gold);
+    background-color: #FFFFFF;
+}
+
+[data-theme="light"] .btn-secondary {
+    background-color: #FFFFFF;
+    border-color: var(--primary-gold);
+}
+
+[data-theme="light"] .btn-secondary:hover {
+    background-color: var(--primary-gold);
+    color: #FFFFFF;
+}
+
+[data-theme="light"] .footer {
+    background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+    color: #F9FAFB;
+}
+
+[data-theme="light"] .footer h4 {
+    color: var(--accent-gold);
+}
+
+[data-theme="light"] .footer a {
+    color: #D1D5DB;
+}
+
+[data-theme="light"] .footer a:hover {
+    color: var(--accent-gold);
 }
 
 /* ============= Base Styles ============= */
@@ -136,6 +218,61 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.navbar-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    background: rgba(212, 175, 55, 0.1);
+    border: 2px solid rgba(212, 175, 55, 0.3);
+    color: var(--primary-gold);
+    padding: 0.5rem;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    font-size: 1.1rem;
+}
+
+.theme-toggle:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: var(--primary-gold);
+    transform: rotate(20deg) scale(1.1);
+}
+
+.theme-toggle:active {
+    transform: rotate(20deg) scale(0.95);
+}
+
+/* Icon change based on theme */
+[data-theme="light"] .theme-toggle i.fa-sun {
+    display: none;
+}
+
+[data-theme="light"] .theme-toggle i.fa-moon {
+    display: inline-block;
+}
+
+[data-theme="dark"] .theme-toggle i.fa-moon {
+    display: none;
+}
+
+[data-theme="dark"] .theme-toggle i.fa-sun {
+    display: inline-block;
+}
+
+/* Add moon icon (hidden by default in dark mode) */
+.theme-toggle i.fa-moon {
+    display: none;
 }
 
 .navbar-brand {

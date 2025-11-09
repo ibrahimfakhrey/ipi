@@ -1,7 +1,49 @@
 /**
  * Main JavaScript for Apartment Sharing Platform
- * Handles animations, interactions, and dynamic content
+ * Handles animations, interactions, dynamic content, and theme switching
  */
+
+// ============= Theme Switcher (Light/Dark Mode) =============
+(function() {
+    // Get theme from localStorage or default to 'dark'
+    const getTheme = () => localStorage.getItem('theme') || 'dark';
+    
+    // Set theme on document
+    const setTheme = (theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    };
+    
+    // Initialize theme on page load
+    const initTheme = () => {
+        const theme = getTheme();
+        setTheme(theme);
+    };
+    
+    // Toggle theme
+    const toggleTheme = () => {
+        const currentTheme = getTheme();
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+        
+        // Add animation effect
+        document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+        setTimeout(() => {
+            document.body.style.transition = '';
+        }, 300);
+    };
+    
+    // Initialize on load
+    initTheme();
+    
+    // Add event listener when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', toggleTheme);
+        }
+    });
+})();
 
 // ============= Counter Animation =============
 function animateCounters() {
