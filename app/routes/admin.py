@@ -331,6 +331,9 @@ def edit_apartment(apartment_id):
                         except Exception:
                             pass
                         db.session.delete(img)
+                except Exception:
+                    # Ignore invalid ids or database issues for individual deletions
+                    pass
 
         # Handle additional images upload
         if 'images' in request.files:

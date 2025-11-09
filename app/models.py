@@ -176,7 +176,7 @@ class Apartment(db.Model):
     @property
     def images(self):
         """Return ordered list of image filenames for this apartment."""
-        return [img.filename for img in self.images_rel.order_by('ApartmentImage.sort_order').all()]
+        return [img.filename for img in self.images_rel.order_by(ApartmentImage.sort_order).all()]
     
     @property
     def share_price(self):
