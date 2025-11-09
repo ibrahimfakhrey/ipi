@@ -639,8 +639,15 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     font-size: 0.875rem;
 }
 
+.apartment-image-wrapper {
+    position: relative;
+    z-index: 0;
+}
+
 .apartment-content {
     padding: var(--spacing-md);
+    position: relative;
+    z-index: 1;
 }
 
 .apartment-title {
@@ -1032,12 +1039,12 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 [data-theme="light"] .stats-section {
-    background: #FFFFFF;
+    background: linear-gradient(135deg, #FFF9F0 0%, #FFF5E8 50%, #FFF9F0 100%);
 }
 
 [data-theme="light"] .stat-card {
-    background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
-    border-color: #E5E7EB;
+    background: linear-gradient(135deg, #FFFFFF 0%, #FFFBF5 100%);
+    border-color: #F4E4D0;
 }
 
 [data-theme="light"] .stat-card:hover {
@@ -1060,11 +1067,11 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 [data-theme="light"] .features-section {
-    background: #F9FAFB;
+    background: linear-gradient(135deg, #F8FAFB 0%, #F0F4F8 50%, #F8FAFB 100%);
 }
 
 [data-theme="light"] .features-section.features-section--with-bg::before {
-    background: linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(249,250,251,0.95) 50%, rgba(255,255,255,0.93) 100%);
+    background: linear-gradient(135deg, rgba(248,250,251,0.92) 0%, rgba(240,244,248,0.95) 50%, rgba(248,250,251,0.93) 100%);
 }
 
 [data-theme="light"] .section-title {
@@ -1077,14 +1084,14 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 
 [data-theme="light"] .feature-card {
     background: #FFFFFF;
-    border-color: #E5E7EB;
+    border-color: #E1E8EF;
 }
 
 [data-theme="light"] .feature-card:hover {
     border-color: var(--primary-gold);
     box-shadow: 
-        0 12px 24px rgba(184, 134, 11, 0.1),
-        0 0 40px rgba(184, 134, 11, 0.05);
+        0 12px 24px rgba(184, 134, 11, 0.12),
+        0 0 40px rgba(184, 134, 11, 0.08);
 }
 
 [data-theme="light"] .feature-card::before {
@@ -1108,18 +1115,18 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 [data-theme="light"] .apartments-showcase {
-    background: #FFFFFF;
+    background: linear-gradient(135deg, #FFF7F0 0%, #FFF0E5 50%, #FFF7F0 100%);
 }
 
 [data-theme="light"] .apartment-card {
     background: #FFFFFF;
-    border-color: #E5E7EB;
+    border-color: #F5DCC8;
 }
 
 [data-theme="light"] .apartment-card:hover {
     box-shadow: 
-        0 15px 35px rgba(184, 134, 11, 0.1),
-        0 0 50px rgba(184, 134, 11, 0.05);
+        0 15px 35px rgba(184, 134, 11, 0.12),
+        0 0 50px rgba(245, 220, 200, 0.5);
 }
 
 [data-theme="light"] .apartment-title {
@@ -1147,7 +1154,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 [data-theme="light"] .how-it-works {
-    background: #F9FAFB;
+    background: linear-gradient(135deg, #F5F8FA 0%, #EDF2F7 50%, #F5F8FA 100%);
 }
 
 [data-theme="light"] .step-title {
