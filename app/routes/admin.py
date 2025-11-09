@@ -9,7 +9,7 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, SelectField
 from wtforms.validators import Optional
 from werkzeug.utils import secure_filename
-from app.models import db, Apartment, User, Share, Transaction, InvestmentRequest, Car, CarShare, CarInvestmentRequest, CarReferralTree
+from app.models import db, Apartment, ApartmentImage, User, Share, Transaction, InvestmentRequest, Car, CarShare, CarInvestmentRequest, CarReferralTree
 from datetime import datetime
 import os
 
@@ -248,7 +248,7 @@ def add_apartment():
         monthly_rent = float(request.form.get('monthly_rent'))
         location = request.form.get('location')
         
-        # Handle image upload
+        # Handle main image upload (single)
         image_filename = 'default_apartment.jpg'
         if 'image' in request.files:
             file = request.files['image']
@@ -257,7 +257,7 @@ def add_apartment():
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                 image_filename = f"{timestamp}_{filename}"
                 file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], image_filename))
-        
+
         apartment = Apartment(
             title=title,
             description=description,
@@ -270,6 +270,22 @@ def add_apartment():
         )
         
         db.session.add(apartment)
+        db.session.flush()  # get apartment.id
+
+        # Handle additional images (multiple)
+        if 'images' in request.files:
+            files = request.files.getlist('images')
+            order = 0
+            for f in files:
+                if f and f.filename:
+                    filename = secure_filename(f.filename)
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    image_filename = f"{timestamp}_{filename}"
+                    f.save(os.path.join(current_app.config['UPLOAD_FOLDER'], image_filename))
+                    img = ApartmentImage(apartment_id=apartment.id, filename=image_filename, sort_order=order)
+                    db.session.add(img)
+                    order += 1
+
         db.session.commit()
         
         flash('تم إضافة الشقة بنجاح', 'success')
@@ -292,7 +308,7 @@ def edit_apartment(apartment_id):
         apartment.monthly_rent = float(request.form.get('monthly_rent'))
         apartment.location = request.form.get('location')
         
-        # Handle image upload
+        # Handle main image upload
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename:
@@ -301,6 +317,36 @@ def edit_apartment(apartment_id):
                 image_filename = f"{timestamp}_{filename}"
                 file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], image_filename))
                 apartment.image = image_filename
+
+        # Handle deletion of selected additional images
+        delete_ids = request.form.getlist('delete_images')
+        if delete_ids:
+            for img_id in delete_ids:
+                try:
+                    img = ApartmentImage.query.get(int(img_id))
+                    if img and img.apartment_id == apartment.id:
+                        # remove file from disk if exists
+                        try:
+                            os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], img.filename))
+                        except Exception:
+                            pass
+                        db.session.delete(img)
+
+        # Handle additional images upload
+        if 'images' in request.files:
+            files = request.files.getlist('images')
+            # determine current max order
+            max_order = db.session.query(db.func.coalesce(db.func.max(ApartmentImage.sort_order), 0)).filter(ApartmentImage.apartment_id == apartment.id).scalar() or 0
+            order = max_order + 1
+            for f in files:
+                if f and f.filename:
+                    filename = secure_filename(f.filename)
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    image_filename = f"{timestamp}_{filename}"
+                    f.save(os.path.join(current_app.config['UPLOAD_FOLDER'], image_filename))
+                    img = ApartmentImage(apartment_id=apartment.id, filename=image_filename, sort_order=order)
+                    db.session.add(img)
+                    order += 1
         
         db.session.commit()
         flash('تم تحديث الشقة بنجاح', 'success')

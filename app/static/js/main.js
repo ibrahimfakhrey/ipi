@@ -246,6 +246,50 @@ function initImagePreview() {
     }
 }
 
+// ============= Gallery Lightbox =============
+function initGallery() {
+    const thumbs = document.querySelectorAll('.gallery-thumb');
+    if (!thumbs || thumbs.length === 0) return;
+
+    const modal = document.getElementById('gallery-modal');
+    const currentImg = document.getElementById('gallery-current');
+    const closeBtn = document.getElementById('gallery-close');
+    const prevBtn = document.getElementById('gallery-prev');
+    const nextBtn = document.getElementById('gallery-next');
+
+    const sources = Array.from(thumbs).map(t => t.getAttribute('data-src'));
+    let index = 0;
+
+    function openAt(i) {
+        index = (i + sources.length) % sources.length;
+        currentImg.src = sources[index];
+        modal.style.display = 'flex';
+    }
+
+    function close() {
+        modal.style.display = 'none';
+        currentImg.src = '';
+    }
+
+    thumbs.forEach((thumb, i) => thumb.addEventListener('click', () => openAt(i)));
+    closeBtn && closeBtn.addEventListener('click', close);
+    prevBtn && prevBtn.addEventListener('click', () => openAt(index - 1));
+    nextBtn && nextBtn.addEventListener('click', () => openAt(index + 1));
+
+    // keyboard
+    document.addEventListener('keydown', (e) => {
+        if (!modal || modal.style.display !== 'flex') return;
+        if (e.key === 'Escape') close();
+        if (e.key === 'ArrowLeft') openAt(index - 1);
+        if (e.key === 'ArrowRight') openAt(index + 1);
+    });
+
+    // click outside to close
+    modal && modal.addEventListener('click', (e) => {
+        if (e.target === modal) close();
+    });
+}
+
 // ============= Tooltip =============
 function initTooltips() {
     const tooltips = document.querySelectorAll('[data-tooltip]');
@@ -295,6 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initMobileMenu();
     initImagePreview();
     initTooltips();
+    initGallery();
     
     // Add floating animation to hero section
     const heroElements = document.querySelectorAll('.hero .floating');

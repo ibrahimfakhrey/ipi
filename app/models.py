@@ -135,6 +135,20 @@ class User(UserMixin, db.Model):
         return f'<User {self.email}>'
 
 
+class ApartmentImage(db.Model):
+    """Stores additional images for apartments."""
+    __tablename__ = 'apartment_images'
+
+    id = db.Column(db.Integer, primary_key=True)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartments.id'), nullable=False, index=True)
+    filename = db.Column(db.String(300), nullable=False)
+    alt = db.Column(db.String(300))
+    sort_order = db.Column(db.Integer, default=0)
+
+    def __repr__(self):
+        return f'<ApartmentImage {self.filename} for Apt:{self.apartment_id}>'
+
+
 class Apartment(db.Model):
     """
     Apartment model representing investment properties
@@ -157,6 +171,12 @@ class Apartment(db.Model):
     
     # Relationships
     shares = db.relationship('Share', backref='apartment', lazy='dynamic', cascade='all, delete-orphan')
+    images_rel = db.relationship('ApartmentImage', backref='apartment', lazy='dynamic', cascade='all, delete-orphan')
+
+    @property
+    def images(self):
+        """Return ordered list of image filenames for this apartment."""
+        return [img.filename for img in self.images_rel.order_by('ApartmentImage.sort_order').all()]
     
     @property
     def share_price(self):
