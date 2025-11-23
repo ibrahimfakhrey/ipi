@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}دعوة استثمار{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Referral Header -->
+    <div class="text-center mb-5">
+        <div class="mb-3">
+            <i class="fas fa-gift fa-4x text-gold"></i>
+        </div>
+        <h1 class="display-4 text-navy">دعوة خاصة للاستثمار</h1>
+        <p class="lead text-muted">
+            تمت دعوتك من قبل <strong class="text-gold">{{ referrer.full_name }}</strong> للاستثمار في وحدة مميزة
+        </p>
+    </div>
+
+    <!-- Apartment Card -->
+    <div class="card mb-4 border-gold shadow">
+        <div class="row g-0">
+            <div class="col-md-4">
+                {% if apartment.images %}
+                    <img src="{{ url_for('static', filename='uploads/apartments/' + apartment.images[0]) }}" 
+                         class="img-fluid rounded-start h-100 object-fit-cover" 
+                         alt="{{ apartment.title }}">
+                {% else %}
+                    <div class="bg-light h-100 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-building fa-4x text-muted"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-md-8">
+                <div class="card-body">
+                    <h3 class="card-title text-navy">{{ apartment.title }}</h3>
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-map-marker-alt"></i> {{ apartment.location }}
+                    </p>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="mb-2">
+                                <small class="text-muted">سعر السهم</small>
+                                <h4 class="text-gold mb-0">{{ '{:,.0f}'.format(apartment.share_price) }} جنيه</h4>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mb-2">
+                                <small class="text-muted">الأسهم المتاحة</small>
+                                <h4 class="text-success mb-0">{{ apartment.shares_available }} / {{ apartment.total_shares }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">العائد الشهري المتوقع</small>
+                        <h5 class="text-navy mb-0">{{ apartment.expected_monthly_return }}%</h5>
+                    </div>
+
+                    <p class="card-text">{{ apartment.description[:150] }}...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benefits Card -->
+    <div class="card mb-4 bg-light">
+        <div class="card-body">
+            <h5 class="text-navy mb-3">
+                <i class="fas fa-star"></i> مزايا الاستثمار عبر الإحالة:
+            </h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-check-circle text-success fa-2x me-3"></i>
+                        <div>
+                            <h6 class="mb-1">إحالة موثوقة</h6>
+                            <small class="text-muted">دعوة من مستثمر حقيقي يثق بالمنصة</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-shield-alt text-primary fa-2x me-3"></i>
+                        <div>
+                            <h6 class="mb-1">استثمار آمن</h6>
+                            <small class="text-muted">عقارات محققة بعوائد شهرية مضمونة</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-users text-gold fa-2x me-3"></i>
+                        <div>
+                            <h6 class="mb-1">انضم للمجتمع</h6>
+                            <small class="text-muted">كن جزءاً من شبكة المستثمرين الناجحين</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Buttons -->
+    <div class="text-center">
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('user_views.investment_request', apartment_id=apartment.id) }}" 
+               class="btn btn-gold btn-lg px-5">
+                <i class="fas fa-file-contract"></i> ابدأ طلب الاستثمار
+            </a>
+        {% else %}
+            <h4 class="text-navy mb-4">للمتابعة، يرجى:</h4>
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('auth.register', next=url_for('main.referred_investment', apartment_id=apartment.id, ref=ref_code)) }}" 
+                   class="btn btn-gold btn-lg">
+                    <i class="fas fa-user-plus"></i> إنشاء حساب جديد
+                </a>
+                <a href="{{ url_for('auth.login', next=url_for('main.referred_investment', apartment_id=apartment.id, ref=ref_code)) }}" 
+                   class="btn btn-outline-navy btn-lg">
+                    <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
+                </a>
+            </div>
+            <p class="text-muted mt-3">
+                <small>رمز الإحالة: <code>{{ ref_code }}</code></small>
+            </p>
+        {% endif %}
+    </div>
+
+    <!-- Back to Market -->
+    <div class="text-center mt-4">
+        <a href="{{ url_for('main.market') }}" class="btn btn-link text-muted">
+            <i class="fas fa-arrow-right"></i> تصفح جميع الوحدات
+        </a>
+    </div>
+</div>
+{% endblock %}

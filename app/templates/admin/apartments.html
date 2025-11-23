@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة العقارات{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1><i class="fas fa-building"></i> إدارة العقارات</h1>
+        <a href="{{ url_for('admin.add_apartment') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> إضافة عقار جديد
+        </a>
+    </div>
+    
+    {% if apartments %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>العنوان</th>
+                        <th>الموقع</th>
+                        <th>السعر الإجمالي</th>
+                        <th>الحصص المتاحة/الإجمالي</th>
+                        <th>الإيجار الشهري</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for apartment in apartments %}
+                    <tr>
+                        <td><strong>{{ apartment.title }}</strong></td>
+                        <td>{{ apartment.location }}</td>
+                        <td>{{ "{:,.0f}".format(apartment.total_price) }} جنيه</td>
+                        <td>{{ apartment.shares_available }} / {{ apartment.total_shares }}</td>
+                        <td>{{ "{:,.0f}".format(apartment.monthly_rent) }} جنيه</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if apartment.status == 'جديد' else 'warning' if apartment.status == 'متاح' else 'danger' }}">
+                                {{ apartment.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="{{ url_for('admin.edit_apartment', apartment_id=apartment.id) }}" 
+                                   class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                
+                                {% if apartment.is_closed %}
+                                    <form method="POST" action="{{ url_for('admin.reopen_apartment', apartment_id=apartment.id) }}" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-unlock"></i>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('admin.close_apartment', apartment_id=apartment.id) }}" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-lock"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                
+                                <form method="POST" action="{{ url_for('admin.delete_apartment', apartment_id=apartment.id) }}" 
+                                      onsubmit="return confirm('هل أنت متأكد من حذف هذا العقار؟')" style="display: inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="card text-center" style="padding: 3rem;">
+            <i class="fas fa-inbox" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+            <h3>لا توجد عقارات حالياً</h3>
+            <p class="text-muted">ابدأ بإضافة عقار جديد</p>
+            <a href="{{ url_for('admin.add_apartment') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> إضافة عقار جديد
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}رابط الإحالة - سيارة{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-gold shadow">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4"><i class="fas fa-share-alt fa-5x text-gold"></i></div>
+                    <h1 class="display-5 text-navy mb-3">رابط الإحالة الخاص بك</h1>
+                    <p class="lead text-muted mb-4">للسيارة: <strong>{{ car.title }}</strong></p>
+                    <div class="mb-4">
+                        <label class="form-label text-navy fw-bold">الرابط:</label>
+                        <div class="input-group input-group-lg">
+                            <input type="text" class="form-control text-center" id="referral-link" value="{{ referral_link }}" readonly>
+                            <button class="btn btn-gold" onclick="copyLink()"><i class="fas fa-copy"></i> نسخ</button>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-navy fw-bold">رمز الإحالة:</label>
+                        <h3 class="text-gold font-monospace">{{ referral_code }}</h3>
+                    </div>
+                    <div class="mb-4">
+                        <h5 class="text-navy mb-3">شارك الآن:</h5>
+                        <div class="btn-group" role="group">
+                            <a href="https://wa.me/?text={{ referral_link | urlencode }}" target="_blank" class="btn btn-success btn-lg"><i class="fab fa-whatsapp"></i> واتساب</a>
+                            <a href="https://t.me/share/url?url={{ referral_link | urlencode }}" target="_blank" class="btn btn-info btn-lg"><i class="fab fa-telegram"></i> تيليجرام</a>
+                            <a href="https://www.facebook.com/sharer/sharer.php?u={{ referral_link | urlencode }}" target="_blank" class="btn btn-primary btn-lg"><i class="fab fa-facebook"></i> فيسبوك</a>
+                            <a href="mailto:?subject=دعوة للاستثمار في {{ car.title }}&body={{ referral_link | urlencode }}" class="btn btn-secondary btn-lg"><i class="fas fa-envelope"></i> بريد</a>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading"><i class="fas fa-coins"></i> احصل على مكافآت:</h6>
+                        <ul class="text-start mb-0">
+                            <li><strong>0.05%</strong> من استثمارات المستوى الأول</li>
+                            <li><strong>0.005%</strong> من استثمارات المستوى الثاني</li>
+                            <li><strong>0.0005%</strong> من استثمارات المستوى الثالث... وهكذا</li>
+                        </ul>
+                    </div>
+                    <div class="mt-4">
+                        <a href="{{ url_for('user_views.my_referrals') }}" class="btn btn-navy btn-lg me-2"><i class="fas fa-tree"></i> شجرة الإحالات</a>
+                        <a href="{{ url_for('user_views.my_investments') }}" class="btn btn-outline-navy btn-lg"><i class="fas fa-chart-line"></i> استثماراتي</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-4 bg-light">
+                <div class="card-body">
+                    <h5 class="text-navy mb-3"><i class="fas fa-lightbulb"></i> نصائح لزيادة إحالاتك:</h5>
+                    <ul class="mb-0">
+                        <li>شارك تجربتك مع الاستثمار في السيارات على المنصة</li>
+                        <li>اشرح العوائد الشهرية وكيفية التوزيع</li>
+                        <li>استخدم وسائل التواصل الاجتماعي لنشر الرابط</li>
+                        <li>تواصل مع الأصدقاء والعائلة المهتمين بالاستثمارات البديلة</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyLink() {
+    const input = document.getElementById('referral-link');
+    input.select();
+    document.execCommand('copy');
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check"></i> تم النسخ!';
+    button.classList.add('btn-success');
+    button.classList.remove('btn-gold');
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.classList.remove('btn-success');
+        button.classList.add('btn-gold');
+    }, 2000);
+}
+</script>
+{% endblock %}

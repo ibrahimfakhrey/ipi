@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}مراجعة طلب الاستثمار - سيارة{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0; max-width: 1100px;">
+    <h1 style="margin-bottom: 1.5rem;"><i class="fas fa-file-contract"></i> مراجعة طلب الاستثمار - سيارة #{{ request.id }}</h1>
+
+    <div class="grid grid-2" style="gap: 1.5rem;">
+        <div>
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">بيانات المستخدم</h3></div>
+                <div class="card-body">
+                    <p><strong>الاسم:</strong> {{ request.user.name }}</p>
+                    <p><strong>الهاتف:</strong> {{ request.phone }}</p>
+                    <p><strong>الرقم القومي:</strong> {{ request.national_id }}</p>
+                    <p><strong>العنوان:</strong> {{ request.address }}</p>
+                </div>
+            </div>
+            <div class="card" style="margin-top: 1rem;">
+                <div class="card-header"><h3 class="card-title">تفاصيل السيارة</h3></div>
+                <div class="card-body">
+                    <p><strong>العنوان:</strong> {{ request.car.title }}</p>
+                    <p><strong>الموقع:</strong> {{ request.car.location }}</p>
+                    <p><strong>الحصص المطلوبة:</strong> {{ request.shares_requested }}</p>
+                    <p><strong>المبلغ:</strong> {{ "{:,.0f}".format(request.total_amount) }} جنيه</p>
+                </div>
+            </div>
+        </div>
+        <div>
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">تحديث الحالة</h3></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.update_car_investment_request_status', request_id=request.id) }}">
+                        {{ status_form.hidden_tag() }}
+                        <div class="form-group">
+                            <label class="form-label">الحالة</label>
+                            {{ status_form.status(class='form-control') }}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ملاحظات الإدارة</label>
+                            {{ status_form.admin_notes(class='form-control') }}
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">المستندات الناقصة</label>
+                            {{ status_form.missing_documents(class='form-control') }}
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-secondary">تحديث الحالة</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card" style="margin-top: 1rem;">
+                <div class="card-header"><h3 class="card-title">رفع العقد</h3></div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" action="{{ url_for('admin.upload_car_contract', request_id=request.id) }}">
+                        {{ contract_form.hidden_tag() }}
+                        <div class="form-group">
+                            <label class="form-label">ملف العقد (PDF)</label>
+                            {{ contract_form.contract_file(class='form-control') }}
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-secondary">رفع</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card" style="margin-top: 1rem;">
+                <div class="card-body" style="display: flex; gap: 0.5rem;">
+                    <form method="POST" action="{{ url_for('admin.approve_car_investment_request', request_id=request.id) }}" onsubmit="return confirm('تأكيد الموافقة؟')">
+                        <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> موافقة سريعة</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin.reject_car_investment_request', request_id=request.id) }}" onsubmit="return confirm('تأكيد الرفض؟')">
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-times"></i> رفض سريع</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

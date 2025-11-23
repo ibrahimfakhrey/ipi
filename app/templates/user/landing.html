@@ -1,0 +1,574 @@
+{% extends "base.html" %}
+
+{% block title %}الرئيسية - منصة الاستثمار العقاري{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+<!-- Premium display font for brand -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+<!-- Crisp Chat -->
+<script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="a11f38c0-2155-4baa-8d64-0f0dcdd75001";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero hero--with-video">
+    <!-- Local Video Background -->
+    <div class="hero-video-wrapper">
+        <video class="hero-video" autoplay muted loop playsinline preload="metadata" poster="{{ url_for('static', filename='images/hero-poster.jpg') }}">
+            <source src="{{ url_for('static', filename='videos/1105(1).mp4') }}" type="video/mp4">
+            <source src="{{ url_for('static', filename='videos/hero-bg.mov') }}" type="video/quicktime">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    
+    <!-- Floating Particles -->
+    <div class="particles-container" id="particles"></div>
+    
+    <div class="container">
+        <div class="hero-content" data-parallax="true">
+            <div class="brand-premium" aria-label="i pillars i">
+                <svg class="brand-signature" viewBox="0 0 1200 220" role="img" aria-label="i pillars i" preserveAspectRatio="xMidYMid meet">
+                    <title>i pillars i</title>
+                    <text x="50%" y="62%" text-anchor="middle" dominant-baseline="middle">i pillars i</text>
+                </svg>
+            </div>
+            <h1 class="hero-title">استثمر في <span id="flip-target" class="flip-word">العقارات</span> بذكاء</h1>
+            <p class="hero-subtitle">شارك في امتلاك <span class="emphasis">العقارات</span> و<span class="emphasis">السيارات</span> عالية الجودة واحصل على دخل شهري من الإيجار والتشغيل</p>
+            <div class="hero-cta">
+                {% if not current_user.is_authenticated %}
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg btn-glow">ابدأ الاستثمار الآن</a>
+                    <a href="{{ url_for('main.market') }}" class="btn btn-secondary btn-lg">تصفح الوحدات</a>
+                    <a href="{{ url_for('main.market_cars') }}" class="btn btn-secondary btn-lg"><i class="fas fa-car"></i> تصفح السيارات</a>
+                {% else %}
+                    <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg btn-glow">تصفح الوحدات</a>
+                    <a href="{{ url_for('main.market_cars') }}" class="btn btn-secondary btn-lg"><i class="fas fa-car"></i> تصفح السيارات</a>
+                    <a href="{{ url_for('user_views.dashboard') }}" class="btn btn-secondary btn-lg">لوحة التحكم</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section" data-parallax-section="true">
+    <div class="container">
+        <div class="stats-container">
+            <div class="stat-card reveal reveal-up card-3d">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-number counter" data-target="{{ stats.users }}">0</div>
+                <div class="stat-label">مستثمر</div>
+            </div>
+            
+            <div class="stat-card reveal reveal-up card-3d">
+                <div class="stat-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="stat-number counter" data-target="{{ stats.apartments }}">0</div>
+                <div class="stat-label">عقار متاح</div>
+            </div>
+            
+            <div class="stat-card reveal reveal-up card-3d">
+                <div class="stat-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="stat-number counter" data-target="{{ stats.invested|int }}">0</div>
+                <div class="stat-label">جنيه مستثمر</div>
+            </div>
+            
+            <div class="stat-card reveal reveal-up card-3d">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-number">12%</div>
+                <div class="stat-label">عائد سنوي متوسط</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section features-section--with-bg" style="--features-bg-image: url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&h=900&fit=crop&q=80');">
+    <div class="container">
+        <h2 class="section-title reveal reveal-fade">لماذا تختار منصتنا؟</h2>
+        <p class="section-subtitle reveal reveal-fade">نوفر لك فرصة استثمارية فريدة بأعلى معايير الأمان والشفافية</p>
+        
+        <div class="features-grid">
+            <div class="feature-card reveal reveal-up">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3 class="feature-title">استثمار آمن</h3>
+                <p class="feature-description">جميع العقارات مفحوصة ومضمونة بعقود قانونية موثقة</p>
+            </div>
+            
+            <div class="feature-card reveal reveal-up">
+                <div class="feature-icon">
+                    <i class="fas fa-hand-holding-usd"></i>
+                </div>
+                <h3 class="feature-title">دخل شهري ثابت</h3>
+                <p class="feature-description">احصل على حصتك من الإيجار الشهري بشكل تلقائي</p>
+            </div>
+            
+            <div class="feature-card reveal reveal-up">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <h3 class="feature-title">تنويع الاستثمار</h3>
+                <p class="feature-description">استثمر في عقارات متعددة بمبالغ صغيرة لتقليل المخاطر</p>
+            </div>
+            
+            <div class="feature-card reveal reveal-up">
+                <div class="feature-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h3 class="feature-title">إدارة سهلة</h3>
+                <p class="feature-description">تابع استثماراتك وأرباحك من خلال لوحة تحكم بسيطة</p>
+            </div>
+            
+            <div class="feature-card reveal reveal-up">
+                <div class="feature-icon">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <h3 class="feature-title">فريق محترف</h3>
+                <p class="feature-description">فريق متخصص في إدارة العقارات وخدمة المستثمرين</p>
+            </div>
+            
+            <div class="feature-card reveal reveal-up">
+                <div class="feature-icon">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <h3 class="feature-title">بداية سريعة</h3>
+                <p class="feature-description">ابدأ الاستثمار بمبالغ صغيرة تناسب ميزانيتك</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Items Section -->
+{% if featured_apartments or featured_cars %}
+<section class="apartments-showcase" id="featured">
+    <div class="container">
+    <h2 class="section-title reveal reveal-fade">الفرص الاستثمارية المتاحة</h2>
+    <p class="section-subtitle reveal reveal-fade">اختر الأصل المناسب (وحدة أو سيارة) وابدأ رحلتك الاستثمارية اليوم</p>
+        <!-- Tabs -->
+        <div class="card" style="margin-bottom: 1rem;">
+            <div class="card-body" style="display:flex; gap:1rem; justify-content:center;">
+                <button id="tab-units" class="btn btn-primary"><i class="fas fa-building"></i> الوحدات</button>
+                <button id="tab-cars" class="btn btn-secondary"><i class="fas fa-car"></i> السيارات</button>
+            </div>
+        </div>
+        
+        <!-- Units Grid -->
+        <div id="featured-units" class="apartments-grid">
+            {% for apartment in featured_apartments %}
+            <div class="apartment-card reveal reveal-up">
+                <div class="apartment-image-wrapper" style="position: relative;">
+                    {% if apartment.image and apartment.image != 'default_apartment.jpg' %}
+                        <img src="{{ url_for('static', filename='images/apartments/' + apartment.image) }}" 
+                             alt="{{ apartment.title }}" 
+                             class="apartment-image">
+                    {% else %}
+                        <div class="apartment-image-placeholder">
+                            <i class="fas fa-building"></i>
+                        </div>
+                    {% endif %}
+                    <span class="apartment-status badge-{{ 'success' if apartment.status == 'جديد' else 'warning' if apartment.status == 'متاح' else 'danger' }}">
+                        {{ apartment.status }}
+                    </span>
+                </div>
+                
+                <div class="apartment-content">
+                    <h3 class="apartment-title">{{ apartment.title }}</h3>
+                    <div class="apartment-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ apartment.location }}
+                    </div>
+                    
+                    <div class="apartment-price">
+                        {{ "{:,.0f}".format(apartment.total_price) }} جنيه
+                    </div>
+                    
+                    <div class="apartment-details">
+                        <div class="detail-item">
+                            <span class="detail-label">سعر الحصة</span>
+                            <span class="detail-value">{{ "{:,.0f}".format(apartment.share_price) }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">الحصص المتاحة</span>
+                            <span class="detail-value">{{ apartment.shares_available }} / {{ apartment.total_shares }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">المستثمرين</span>
+                            <span class="detail-value">{{ apartment.investors_count }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">الإيجار الشهري</span>
+                            <span class="detail-value">{{ "{:,.0f}".format(apartment.monthly_rent) }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" data-percentage="{{ apartment.completion_percentage }}" style="width: 0%"></div>
+                    </div>
+                    <p class="progress-text">تم بيع {{ apartment.completion_percentage|round(1) }}% من الحصص</p>
+                    
+                    <div style="margin-top: 1rem;">
+                        <a href="{{ url_for('main.apartment_detail', apartment_id=apartment.id) }}" 
+                           class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-eye"></i> عرض التفاصيل
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Cars Grid -->
+        <div id="featured-cars" class="apartments-grid" style="display:none;">
+            {% for car in featured_cars %}
+            <div class="apartment-card reveal reveal-up">
+                <div class="apartment-image-wrapper" style="position: relative;">
+                    {% if car.image and car.image != 'default_car.jpg' %}
+                        <img src="{{ url_for('static', filename='images/cars/' + car.image) }}" 
+                             alt="{{ car.title }}" 
+                             class="apartment-image">
+                    {% else %}
+                        <div class="apartment-image-placeholder">
+                            <i class="fas fa-car"></i>
+                        </div>
+                    {% endif %}
+                    <span class="apartment-status badge-{{ 'success' if car.status == 'جديد' else 'warning' if car.status == 'متاح' else 'danger' }}">
+                        {{ car.status }}
+                    </span>
+                </div>
+                <div class="apartment-content">
+                    <h3 class="apartment-title">{{ car.title }}</h3>
+                    <div class="apartment-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ car.location }}
+                    </div>
+                    <div class="apartment-price">
+                        {{ "{:,.0f}".format(car.total_price) }} جنيه
+                    </div>
+                    <div class="apartment-details">
+                        <div class="detail-item">
+                            <span class="detail-label">سعر الحصة</span>
+                            <span class="detail-value">{{ "{:,.0f}".format(car.share_price) }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">الحصص المتاحة</span>
+                            <span class="detail-value">{{ car.shares_available }} / {{ car.total_shares }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">المستثمرين</span>
+                            <span class="detail-value">{{ car.investors_count }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">العائد الشهري</span>
+                            <span class="detail-value">{{ "{:,.0f}".format(car.monthly_rent) }}</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" data-percentage="{{ car.completion_percentage }}" style="width: 0%"></div>
+                    </div>
+                    <p class="progress-text">تم بيع {{ car.completion_percentage|round(1) }}% من الحصص</p>
+                    <div style="margin-top: 1rem;">
+                        <a href="{{ url_for('main.car_detail', car_id=car.id) }}" 
+                           class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-eye"></i> عرض التفاصيل
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center" style="margin-top: 2rem;">
+            <a href="{{ url_for('main.market') }}" class="btn btn-secondary btn-lg"><i class="fas fa-building"></i>
+                جميع الوحدات
+            </a>
+            <a href="{{ url_for('main.market_cars') }}" class="btn btn-secondary btn-lg"><i class="fas fa-car"></i>
+                جميع السيارات
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- How It Works Section -->
+<section class="how-it-works">
+    <div class="container">
+        <h2 class="section-title reveal reveal-fade">كيف تبدأ الاستثمار؟</h2>
+        <p class="section-subtitle reveal reveal-fade">خطوات بسيطة للبدء في رحلتك الاستثمارية</p>
+        
+        <div class="steps-container">
+            <div class="step-card reveal reveal-up">
+                <div class="step-number">1</div>
+                <h3 class="step-title">إنشاء حساب</h3>
+                <p class="step-description">سجل حسابك مجاناً في دقائق معدودة</p>
+            </div>
+            
+            <div class="step-card reveal reveal-up">
+                <div class="step-number">2</div>
+                <h3 class="step-title">اختر الأصل</h3>
+                <p class="step-description">تصفح الوحدات والسيارات المتاحة واختر ما يناسب ميزانيتك</p>
+            </div>
+            
+            <div class="step-card reveal reveal-up">
+                <div class="step-number">3</div>
+                <h3 class="step-title">اشترِ الحصص</h3>
+                <p class="step-description">حدد عدد الحصص التي تريد شراءها</p>
+            </div>
+            
+            <div class="step-card reveal reveal-up">
+                <div class="step-number">4</div>
+                <h3 class="step-title">احصل على الأرباح</h3>
+                <p class="step-description">استلم حصتك من الإيجار (الوحدات) أو التشغيل (السيارات) شهرياً</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section cta-section--with-bg" style="--cta-bg-image: url('https://images.unsplash.com/photo-1758518731027-78a22c8852ec?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1331');">
+    <div class="container">
+        <div class="cta-content reveal reveal-scale">
+            <h2 class="cta-title">ابدأ رحلتك الاستثمارية اليوم</h2>
+            <p class="cta-description">انضم إلى آلاف المستثمرين الذين يحققون دخلاً شهرياً ثابتاً من العقارات</p>
+            {% if not current_user.is_authenticated %}
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-user-plus"></i> إنشاء حساب مجاني
+                </a>
+            {% else %}
+                <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-search"></i> استكشف الفرص المتاحة
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============= Floating Particles Generator =============
+(function() {
+    const particlesContainer = document.getElementById('particles');
+    if (!particlesContainer) return;
+    
+    // Reduce particles on mobile for performance
+    const isMobile = window.innerWidth <= 768;
+    const particleCount = isMobile ? 15 : 30;
+    
+    function createParticle() {
+        const particle = document.createElement('div');
+        const size = Math.random() * 8 + 2; // 2-10px
+        const duration = Math.random() * 15 + 10; // 10-25s
+        const delay = Math.random() * 5; // 0-5s
+        const xStart = Math.random() * 100 - 50; // -50vw to 50vw
+        const xEnd = Math.random() * 100 - 50;
+        
+        const shapes = ['circle', 'square', 'triangle'];
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        
+        particle.className = `particle ${shape}`;
+        particle.style.cssText = `
+            --size: ${size}px;
+            --duration: ${duration}s;
+            --x-start: ${xStart}vw;
+            --x-end: ${xEnd}vw;
+            width: ${size}px;
+            height: ${size}px;
+            left: ${Math.random() * 100}%;
+            animation-delay: ${delay}s;
+        `;
+        
+        particlesContainer.appendChild(particle);
+    }
+    
+    // Create particles
+    for (let i = 0; i < particleCount; i++) {
+        createParticle();
+    }
+})();
+
+// ============= Parallax Scroll Effect =============
+(function() {
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
+    
+    const parallaxElements = document.querySelectorAll('[data-parallax="true"]');
+    const parallaxSections = document.querySelectorAll('[data-parallax-section="true"]');
+    
+    let ticking = false;
+    
+    function updateParallax() {
+        const scrollY = window.pageYOffset;
+        
+        // Hero content parallax
+        parallaxElements.forEach(el => {
+            const speed = 0.5;
+            const yPos = -(scrollY * speed);
+            el.style.transform = `translateY(${yPos}px)`;
+        });
+        
+        // Section parallax
+        parallaxSections.forEach(section => {
+            const rect = section.getBoundingClientRect();
+            const scrollPercent = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
+            if (scrollPercent >= 0 && scrollPercent <= 1) {
+                const yPos = (scrollPercent - 0.5) * 50;
+                section.style.transform = `translateY(${yPos}px)`;
+            }
+        });
+        
+        ticking = false;
+    }
+    
+    function requestTick() {
+        if (!ticking) {
+            window.requestAnimationFrame(updateParallax);
+            ticking = true;
+        }
+    }
+    
+    window.addEventListener('scroll', requestTick, { passive: true });
+})();
+
+// Flip between العقارات and السيارات in hero title
+(function() {
+    const words = ['العقارات', 'السيارات'];
+    const target = document.getElementById('flip-target');
+    let idx = 0;
+    if (!target) return;
+    setInterval(() => {
+        idx = (idx + 1) % words.length;
+        target.classList.add('flip-out');
+        setTimeout(() => {
+            target.textContent = words[idx];
+            target.classList.remove('flip-out');
+            target.classList.add('flip-in');
+            setTimeout(() => target.classList.remove('flip-in'), 300);
+        }, 200);
+    }, 2200);
+})();
+
+// Tabs toggle for featured grids
+(function() {
+    const tabUnits = document.getElementById('tab-units');
+    const tabCars = document.getElementById('tab-cars');
+    const gridUnits = document.getElementById('featured-units');
+    const gridCars = document.getElementById('featured-cars');
+    if (!tabUnits || !tabCars || !gridUnits || !gridCars) return;
+    function activate(unitsActive) {
+        if (unitsActive) {
+            tabUnits.classList.replace('btn-secondary', 'btn-primary');
+            tabCars.classList.replace('btn-primary', 'btn-secondary');
+            gridUnits.style.display = '';
+            gridCars.style.display = 'none';
+            // trigger reveal for units on show
+            requestAnimationFrame(() => {
+                gridUnits.querySelectorAll('.apartment-card.reveal').forEach((el, i) => {
+                    el.style.transitionDelay = (i * 80) + 'ms';
+                    el.classList.add('in-view');
+                });
+            });
+        } else {
+            tabCars.classList.replace('btn-secondary', 'btn-primary');
+            tabUnits.classList.replace('btn-primary', 'btn-secondary');
+            gridCars.style.display = '';
+            gridUnits.style.display = 'none';
+            // trigger reveal for cars on show
+            requestAnimationFrame(() => {
+                gridCars.querySelectorAll('.apartment-card.reveal').forEach((el, i) => {
+                    el.style.transitionDelay = (i * 80) + 'ms';
+                    el.classList.add('in-view');
+                });
+            });
+        }
+    }
+    tabUnits.addEventListener('click', () => activate(true));
+    tabCars.addEventListener('click', () => activate(false));
+})();
+
+// Section reveal on scroll + counters + progress bars
+(function() {
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const revealEls = Array.from(document.querySelectorAll('.reveal'));
+    if (prefersReduced) {
+        revealEls.forEach(el => el.classList.add('in-view'));
+        // set progress bars immediately
+        document.querySelectorAll('.progress-bar').forEach(bar => {
+            const pct = bar.getAttribute('data-percentage');
+            if (pct) bar.style.width = pct + '%';
+        });
+        // counters instantly
+        document.querySelectorAll('.counter').forEach(c => {
+            const t = parseInt(c.getAttribute('data-target') || '0', 10);
+            c.textContent = t.toLocaleString('en-US');
+        });
+        return;
+    }
+
+    const revealObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                el.classList.add('in-view');
+                // counters inside stat cards
+                if (el.classList.contains('stat-card')) {
+                    const counter = el.querySelector('.counter');
+                    if (counter && !counter.dataset.animated) {
+                        animateCounter(counter);
+                        counter.dataset.animated = '1';
+                    }
+                }
+                // progress bars inside apartment cards
+                if (el.classList.contains('apartment-card')) {
+                    el.querySelectorAll('.progress-bar').forEach(bar => {
+                        const pct = bar.getAttribute('data-percentage');
+                        if (pct) bar.style.width = pct + '%';
+                    });
+                }
+                obs.unobserve(el);
+            }
+        });
+    }, { threshold: 0.15, rootMargin: '0px 0px -10% 0px' });
+
+    // Stagger per section containers
+    function applyStagger(selector, baseDelay = 80) {
+        document.querySelectorAll(selector).forEach((el, i) => {
+            el.style.transitionDelay = (i * baseDelay) + 'ms';
+        });
+    }
+
+    applyStagger('.stats-container .stat-card.reveal', 100);
+    applyStagger('.features-grid .feature-card.reveal', 80);
+    applyStagger('#featured-units .apartment-card.reveal', 60);
+    applyStagger('#featured-cars .apartment-card.reveal', 60);
+    applyStagger('.steps-container .step-card.reveal', 80);
+
+    revealEls.forEach(el => revealObserver.observe(el));
+
+    function animateCounter(el) {
+        const target = parseInt(el.getAttribute('data-target') || '0', 10);
+        const duration = 1200;
+        const startTime = performance.now();
+        function tick(now) {
+            const p = Math.min(1, (now - startTime) / duration);
+            const eased = 1 - Math.pow(1 - p, 2); // easeOutQuad
+            const val = Math.floor(target * eased);
+            el.textContent = val.toLocaleString('en-US');
+            if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+    }
+})();
+</script>
+{% endblock %}

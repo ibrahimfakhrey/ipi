@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}استثماراتي{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0;">
+    <h1 style="margin-bottom: 2rem;">
+        <i class="fas fa-chart-pie"></i> استثماراتي التفصيلية
+    </h1>
+    
+    {% if investments %}
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            {% for investment in investments %}
+            <div class="card">
+                <div class="card-body">
+                    <div class="grid grid-2" style="gap: 2rem; align-items: start;">
+                        <!-- Apartment Info -->
+                        <div>
+                            <h2 class="text-gold" style="margin-bottom: 1rem;">{{ investment.apartment.title }}</h2>
+                            <p class="text-muted" style="margin-bottom: 1.5rem;">
+                                <i class="fas fa-map-marker-alt"></i> {{ investment.apartment.location }}
+                            </p>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: rgba(212, 175, 55, 0.05); border-radius: 0.5rem;">
+                                    <span>عدد الحصص:</span>
+                                    <strong>{{ investment.shares_count }} حصة</strong>
+                                </div>
+                                
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: rgba(212, 175, 55, 0.05); border-radius: 0.5rem;">
+                                    <span>المبلغ المستثمر:</span>
+                                    <strong class="text-gold">{{ "{:,.0f}".format(investment.total_invested) }} جنيه</strong>
+                                </div>
+                                
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border-radius: 0.5rem;">
+                                    <span>الدخل الشهري:</span>
+                                    <strong class="text-success">{{ "{:,.0f}".format(investment.monthly_income) }} جنيه</strong>
+                                </div>
+                                
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: rgba(212, 175, 55, 0.05); border-radius: 0.5rem;">
+                                    <span>العائد السنوي:</span>
+                                    <strong class="text-gold">{{ "%.1f"|format(investment.roi_percentage) }}%</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Stats -->
+                        <div>
+                            <div style="background: var(--secondary-navy); padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 1rem;">
+                                <h4 style="color: var(--primary-gold); margin-bottom: 1rem;">نسبة ملكيتك</h4>
+                                <div style="font-size: 3rem; font-weight: 900; color: var(--primary-gold); text-align: center;">
+                                    {{ "%.1f"|format((investment.shares_count / investment.apartment.total_shares) * 100) }}%
+                                </div>
+                                <p style="text-align: center; color: var(--text-muted); margin-top: 0.5rem;">
+                                    {{ investment.shares_count }} من {{ investment.apartment.total_shares }} حصة
+                                </p>
+                            </div>
+                            
+                            <div style="background: var(--secondary-navy); padding: 1.5rem; border-radius: 0.75rem;">
+                                <h4 style="color: var(--primary-gold); margin-bottom: 1rem;">تواريخ الشراء</h4>
+                                <div style="max-height: 150px; overflow-y: auto;">
+                                    {% for share in investment.shares %}
+                                    <div style="padding: 0.5rem; border-bottom: 1px solid rgba(212, 175, 55, 0.1);">
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span>حصة #{{ loop.index }}</span>
+                                            <span class="text-muted">{{ share.date_purchased.strftime('%Y-%m-%d') }}</span>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid rgba(212, 175, 55, 0.2);">
+                        <div class="grid grid-4">
+                            <a href="{{ url_for('main.apartment_detail', apartment_id=investment.apartment.id) }}" 
+                               class="btn btn-secondary">
+                                <i class="fas fa-eye"></i> عرض العقار
+                            </a>
+                            
+                            <a href="{{ url_for('user_views.get_referral_link', apartment_id=investment.apartment.id) }}" 
+                               class="btn" style="background: #D4AF37; color: white;">
+                                <i class="fas fa-share-alt"></i> رابط الإحالة
+                            </a>
+                            
+                            <div style="text-align: center;">
+                                <span class="badge badge-{{ 'success' if investment.apartment.is_closed else 'warning' }}" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
+                                    {{ investment.apartment.status }}
+                                </span>
+                            </div>
+                            
+                            <div style="text-align: left;">
+                                <div style="font-size: 0.875rem; color: var(--text-muted);">العائد الكلي المتوقع</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: var(--success);">
+                                    {{ "{:,.0f}".format(investment.monthly_income * 12) }} جنيه/سنة
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if car_investments and car_investments|length > 0 %}
+        <h2 class="mt-4" style="margin-top:2rem;">
+            <i class="fas fa-car"></i> استثمارات السيارات
+        </h2>
+        <div style="display: flex; flex-direction: column; gap: 2rem; margin-top:1rem;">
+            {% for investment in car_investments %}
+            <div class="card">
+                <div class="card-body">
+                    <div class="grid grid-2" style="gap: 2rem; align-items: start;">
+                        <!-- Car Info -->
+                        <div>
+                            <h2 class="text-gold" style="margin-bottom: 1rem;">{{ investment.car.title }}</h2>
+                            <p class="text-muted" style="margin-bottom: 1.5rem;">
+                                <i class="fas fa-map-marker-alt"></i> {{ investment.car.location }}
+                            </p>
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: rgba(212, 175, 55, 0.05); border-radius: 0.5rem;">
+                                    <span>عدد الحصص:</span>
+                                    <strong>{{ investment.shares_count }} حصة</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: rgba(212, 175, 55, 0.05); border-radius: 0.5rem;">
+                                    <span>المبلغ المستثمر:</span>
+                                    <strong class="text-gold">{{ "{:,.0f}".format(investment.total_invested) }} جنيه</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border-radius: 0.5rem;">
+                                    <span>الدخل الشهري:</span>
+                                    <strong class="text-success">{{ "{:,.0f}".format(investment.monthly_income) }} جنيه</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: rgba(212, 175, 55, 0.05); border-radius: 0.5rem;">
+                                    <span>العائد السنوي:</span>
+                                    <strong class="text-gold">{{ "%.1f"|format(investment.roi_percentage) }}%</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Stats -->
+                        <div>
+                            <div style="background: var(--secondary-navy); padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 1rem;">
+                                <h4 style="color: var(--primary-gold); margin-bottom: 1rem;">نسبة ملكيتك</h4>
+                                <div style="font-size: 3rem; font-weight: 900; color: var(--primary-gold); text-align: center;">
+                                    {{ "%.1f"|format((investment.shares_count / investment.car.total_shares) * 100) }}%
+                                </div>
+                                <p style="text-align: center; color: var(--text-muted); margin-top: 0.5rem;">
+                                    {{ investment.shares_count }} من {{ investment.car.total_shares }} حصة
+                                </p>
+                            </div>
+                            <div style="background: var(--secondary-navy); padding: 1.5rem; border-radius: 0.75rem;">
+                                <h4 style="color: var(--primary-gold); margin-bottom: 1rem;">تواريخ الشراء</h4>
+                                <div style="max-height: 150px; overflow-y: auto;">
+                                    {% for share in investment.shares %}
+                                    <div style="padding: 0.5rem; border-bottom: 1px solid rgba(212, 175, 55, 0.1);">
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span>حصة #{{ loop.index }}</span>
+                                            <span class="text-muted">{{ share.date_purchased.strftime('%Y-%m-%d') }}</span>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid rgba(212, 175, 55, 0.2);">
+                        <div class="grid grid-4">
+                            <a href="{{ url_for('main.car_detail', car_id=investment.car.id) }}" 
+                               class="btn btn-secondary">
+                                <i class="fas fa-eye"></i> عرض السيارة
+                            </a>
+                            <a href="{{ url_for('user_views.get_referral_link_car', car_id=investment.car.id) }}" 
+                               class="btn" style="background: #D4AF37; color: white;">
+                                <i class="fas fa-share-alt"></i> رابط الإحالة
+                            </a>
+                            <div style="text-align: center;">
+                                <span class="badge badge-{{ 'success' if investment.car.is_closed else 'warning' }}" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
+                                    {{ investment.car.status }}
+                                </span>
+                            </div>
+                            <div style="text-align: left;">
+                                <div style="font-size: 0.875rem; color: var(--text-muted);">العائد الكلي المتوقع</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: var(--success);">
+                                    {{ "{:,.0f}".format(investment.monthly_income * 12) }} جنيه/سنة
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Summary -->
+        <div class="card" style="margin-top: 2rem; background: linear-gradient(135deg, var(--primary-gold) 0%, #C19B2E 100%);">
+            <div class="card-body">
+                <div class="grid grid-4" style="text-align: center; color: var(--background-navy);">
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 900;">{{ investments|length }}</div>
+                        <div style="font-size: 0.875rem;">إجمالي الاستثمارات</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 900;">
+                            {{ investments|sum(attribute='shares_count') }}
+                        </div>
+                        <div style="font-size: 0.875rem;">إجمالي الحصص</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 900;">
+                            {{ "{:,.0f}".format(investments|sum(attribute='total_invested')) }}
+                        </div>
+                        <div style="font-size: 0.875rem;">إجمالي المبلغ (جنيه)</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 900;">
+                            {{ "{:,.0f}".format(investments|sum(attribute='monthly_income')) }}
+                        </div>
+                        <div style="font-size: 0.875rem;">الدخل الشهري (جنيه)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="card text-center" style="padding: 3rem;">
+            <i class="fas fa-chart-pie" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+            <h3>لا توجد استثمارات حالياً</h3>
+            <p class="text-muted">ابدأ رحلتك الاستثمارية الآن</p>
+            <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg" style="margin-top: 1rem;">
+                <i class="fas fa-search"></i> تصفح الفرص المتاحة
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

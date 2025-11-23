@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}المعاملات المالية{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0;">
+    <h1 style="margin-bottom: 2rem;">
+        <i class="fas fa-exchange-alt"></i> المعاملات المالية
+    </h1>
+    
+    {% if transactions.items %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>المستخدم</th>
+                        <th>النوع</th>
+                        <th>المبلغ</th>
+                        <th>التاريخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions.items %}
+                    <tr>
+                        <td>
+                            <strong>{{ transaction.user.name }}</strong><br>
+                            <small class="text-muted">{{ transaction.user.email }}</small>
+                        </td>
+                        <td>
+                            <span class="badge badge-{% if transaction.transaction_type == 'rental_income' %}success{% elif transaction.transaction_type == 'deposit' %}info{% elif transaction.transaction_type == 'withdrawal' %}warning{% else %}gold{% endif %}">
+                                {{ transaction.type_arabic }}
+                            </span>
+                        </td>
+                        <td class="{{ 'text-success' if transaction.amount > 0 else 'text-error' }}">
+                            {{ "{:+,.0f}".format(transaction.amount) }} جنيه
+                        </td>
+                        <td>{{ transaction.date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if transactions.has_prev or transactions.has_next %}
+        <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 2rem;">
+            {% if transactions.has_prev %}
+                <a href="{{ url_for('admin.transactions', page=transactions.prev_num) }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-right"></i> السابق
+                </a>
+            {% endif %}
+            
+            <span style="display: flex; align-items: center; padding: 0 1rem;">
+                صفحة {{ transactions.page }} من {{ transactions.pages }}
+            </span>
+            
+            {% if transactions.has_next %}
+                <a href="{{ url_for('admin.transactions', page=transactions.next_num) }}" class="btn btn-secondary">
+                    التالي <i class="fas fa-arrow-left"></i>
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="card text-center" style="padding: 3rem;">
+            <i class="fas fa-exchange-alt" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+            <h3>لا توجد معاملات حالياً</h3>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

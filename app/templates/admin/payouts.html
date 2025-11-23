@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}توزيع الأرباح{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1><i class="fas fa-money-bill-wave"></i> توزيع الأرباح</h1>
+        
+        <form method="POST" action="{{ url_for('admin.distribute_all_payouts') }}"
+              onsubmit="return confirm('هل أنت متأكد من توزيع الأرباح على جميع العقارات المؤهلة؟')">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-gift"></i> توزيع الأرباح للكل
+            </button>
+        </form>
+    </div>
+    
+    <div class="card" style="margin-bottom: 2rem; background: rgba(245, 158, 11, 0.1); border-color: var(--warning);">
+        <div class="card-body">
+            <h3 style="color: var(--warning); margin-bottom: 1rem;">
+                <i class="fas fa-info-circle"></i> معلومات مهمة
+            </h3>
+            <ul style="line-height: 2;">
+                <li>يتم توزيع الإيجار الشهري تلقائياً في أول كل شهر</li>
+                <li>يمكنك أيضاً التوزيع يدوياً من هذه الصفحة</li>
+                <li>يمكن توزيع الإيجار على العقارات المغلقة أو العقارات النشطة التي لديها مستثمرون</li>
+                <li>كل مستثمر يحصل على حصته من الإيجار حسب عدد الحصص التي يملكها</li>
+            </ul>
+        </div>
+    </div>
+    
+    {% if closed_apartments %}
+        <h2 class="mb-2">العقارات المغلقة</h2>
+        <div class="table-container mb-4">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>العقار</th>
+                        <th>الإيجار الشهري</th>
+                        <th>عدد المستثمرين</th>
+                        <th>آخر توزيع</th>
+                        <th>الإجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for apartment in closed_apartments %}
+                    <tr>
+                        <td>
+                            <strong>{{ apartment.title }}</strong><br>
+                            <small class="text-muted">{{ apartment.location }}</small>
+                        </td>
+                        <td class="text-success">{{ "{:,.0f}".format(apartment.monthly_rent) }} جنيه</td>
+                        <td>{{ apartment.investors_count }} مستثمر</td>
+                        <td>
+                            {% if apartment.last_payout_date %}
+                                {{ apartment.last_payout_date.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                <span class="text-muted">لم يتم التوزيع بعد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" 
+                                  action="{{ url_for('admin.distribute_payout', apartment_id=apartment.id) }}"
+                                  style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-money-bill-wave"></i> توزيع الآن
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <h2 class="mb-2">العقارات النشطة (قابلة للتوزيع)</h2>
+    {% if eligible_apartments %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>العقار</th>
+                        <th>الإيجار الشهري</th>
+                        <th>عدد المستثمرين</th>
+                        <th>آخر توزيع</th>
+                        <th>الإجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for apartment in eligible_apartments %}
+                    <tr>
+                        <td>
+                            <strong>{{ apartment.title }}</strong><br>
+                            <small class="text-muted">{{ apartment.location }}</small>
+                        </td>
+                        <td class="text-success">{{ "{:,.0f}".format(apartment.monthly_rent) }} جنيه</td>
+                        <td>{{ apartment.investors_count }} مستثمر</td>
+                        <td>
+                            {% if apartment.last_payout_date %}
+                                {{ apartment.last_payout_date.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                <span class="text-muted">لم يتم التوزيع بعد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" 
+                                  action="{{ url_for('admin.distribute_payout', apartment_id=apartment.id) }}"
+                                  style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-money-bill-wave"></i> توزيع الآن
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="card text-center" style="padding: 2rem;">
+            <p class="text-muted">لا توجد عقارات نشطة لديها مستثمرون حالياً</p>
+        </div>
+    {% endif %}
+
+    {% if closed_cars %}
+        <h2 class="mb-2" style="margin-top:2rem;">السيارات المغلقة</h2>
+        <div class="table-container mb-4">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>السيارة</th>
+                        <th>العائد الشهري</th>
+                        <th>عدد المستثمرين</th>
+                        <th>آخر توزيع</th>
+                        <th>الإجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for car in closed_cars %}
+                    <tr>
+                        <td>
+                            <strong>{{ car.title }}</strong><br>
+                            <small class="text-muted">{{ car.location }}</small>
+                        </td>
+                        <td class="text-success">{{ "{:,.0f}".format(car.monthly_rent) }} جنيه</td>
+                        <td>{{ car.investors_count }} مستثمر</td>
+                        <td>
+                            {% if car.last_payout_date %}
+                                {{ car.last_payout_date.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                <span class="text-muted">لم يتم التوزيع بعد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" 
+                                  action="{{ url_for('admin.distribute_car_payout', car_id=car.id) }}"
+                                  style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-money-bill-wave"></i> توزيع الآن
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <h2 class="mb-2">السيارات النشطة (قابلة للتوزيع)</h2>
+    {% if eligible_cars %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>السيارة</th>
+                        <th>العائد الشهري</th>
+                        <th>عدد المستثمرين</th>
+                        <th>آخر توزيع</th>
+                        <th>الإجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for car in eligible_cars %}
+                    <tr>
+                        <td>
+                            <strong>{{ car.title }}</strong><br>
+                            <small class="text-muted">{{ car.location }}</small>
+                        </td>
+                        <td class="text-success">{{ "{:,.0f}".format(car.monthly_rent) }} جنيه</td>
+                        <td>{{ car.investors_count }} مستثمر</td>
+                        <td>
+                            {% if car.last_payout_date %}
+                                {{ car.last_payout_date.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                <span class="text-muted">لم يتم التوزيع بعد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" 
+                                  action="{{ url_for('admin.distribute_car_payout', car_id=car.id) }}"
+                                  style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-money-bill-wave"></i> توزيع الآن
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="card text-center" style="padding: 2rem;">
+            <p class="text-muted">لا توجد سيارات نشطة لديها مستثمرون حالياً</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

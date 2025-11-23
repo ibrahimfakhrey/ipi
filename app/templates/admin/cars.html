@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة السيارات{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1><i class="fas fa-car"></i> السيارات</h1>
+        <a href="{{ url_for('admin.add_car') }}" class="btn btn-primary"><i class="fas fa-plus"></i> إضافة سيارة</a>
+    </div>
+
+    {% if cars %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>السيارة</th>
+                        <th>السعر الإجمالي</th>
+                        <th>الحصص</th>
+                        <th>العائد الشهري</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for car in cars %}
+                    <tr>
+                        <td>
+                            <strong>{{ car.title }}</strong><br>
+                            <small class="text-muted">{{ car.location }}</small>
+                        </td>
+                        <td>{{ "{:,.0f}".format(car.total_price) }} جنيه</td>
+                        <td>{{ car.shares_available }} / {{ car.total_shares }}</td>
+                        <td>{{ "{:,.0f}".format(car.monthly_rent) }} جنيه</td>
+                        <td><span class="badge badge-{{ 'success' if car.is_closed else 'warning' }}">{{ car.status }}</span></td>
+                        <td>
+                            <a href="{{ url_for('admin.edit_car', car_id=car.id) }}" class="btn btn-sm btn-secondary"><i class="fas fa-edit"></i> تعديل</a>
+                            {% if not car.is_closed %}
+                                <form method="POST" action="{{ url_for('admin.close_car', car_id=car.id) }}" style="display:inline" onsubmit="return confirm('إغلاق السيارة؟')">
+                                    <button type="submit" class="btn btn-sm btn-warning"><i class="fas fa-lock"></i> إغلاق</button>
+                                </form>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('admin.reopen_car', car_id=car.id) }}" style="display:inline" onsubmit="return confirm('إعادة فتح السيارة؟')">
+                                    <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-unlock"></i> إعادة فتح</button>
+                                </form>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('admin.delete_car', car_id=car.id) }}" style="display:inline" onsubmit="return confirm('حذف السيارة؟ لا يمكن التراجع.')">
+                                <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> حذف</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="card text-center" style="padding: 2rem;">
+            <p class="text-muted">لا توجد سيارات بعد</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

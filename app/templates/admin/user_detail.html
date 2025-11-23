@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل المستخدم - {{ user.name }}{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0;">
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة
+        </a>
+    </div>
+    
+    <div class="grid grid-3" style="margin-bottom: 3rem;">
+        <div class="card text-center">
+            <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <div class="stat-number" style="font-size: 2rem;">{{ "{:,.0f}".format(user.wallet_balance) }}</div>
+            <div class="stat-label">رصيد المحفظة (جنيه)</div>
+        </div>
+        
+        <div class="card text-center">
+            <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="stat-number" style="font-size: 2rem;">{{ user.shares.count() }}</div>
+            <div class="stat-label">إجمالي الحصص</div>
+        </div>
+        
+        <div class="card text-center">
+            <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="stat-number" style="font-size: 2rem;">{{ investments|length }}</div>
+            <div class="stat-label">عدد الاستثمارات</div>
+        </div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header">
+            <h2 class="card-title">معلومات المستخدم</h2>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-2">
+                <div>
+                    <p><strong>الاسم:</strong> {{ user.name }}</p>
+                    <p><strong>البريد الإلكتروني:</strong> {{ user.email }}</p>
+                </div>
+                <div>
+                    <p><strong>تاريخ التسجيل:</strong> {{ user.date_joined.strftime('%Y-%m-%d') }}</p>
+                    <p><strong>إجمالي الاستثمار:</strong> {{ "{:,.0f}".format(user.get_total_invested()) }} جنيه</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header">
+            <h2 class="card-title">الاستثمارات</h2>
+        </div>
+        <div class="card-body">
+            {% if investments %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>العقار</th>
+                                <th>عدد الحصص</th>
+                                <th>المبلغ المستثمر</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for investment in investments %}
+                            <tr>
+                                <td>
+                                    <strong>{{ investment['apartment'].title }}</strong><br>
+                                    <small class="text-muted">{{ investment['apartment'].location }}</small>
+                                </td>
+                                <td>{{ investment['shares_count'] }} حصة</td>
+                                <td class="text-gold">{{ "{:,.0f}".format(investment['total_invested']) }} جنيه</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-center text-muted">لا توجد استثمارات</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">المعاملات</h2>
+        </div>
+        <div class="card-body">
+            {% if transactions %}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>النوع</th>
+                                <th>المبلغ</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr>
+                                <td>{{ transaction.type_arabic }}</td>
+                                <td class="{{ 'text-success' if transaction.amount > 0 else 'text-error' }}">
+                                    {{ "{:+,.0f}".format(transaction.amount) }} جنيه
+                                </td>
+                                <td>{{ transaction.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-center text-muted">لا توجد معاملات</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

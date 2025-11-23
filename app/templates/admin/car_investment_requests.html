@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}طلبات الاستثمار - سيارات{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0;">
+    <h1 style="margin-bottom: 1.5rem;"><i class="fas fa-file-contract"></i> طلبات الاستثمار - سيارات</h1>
+
+    <div class="card" style="margin-bottom: 1rem;">
+        <div class="card-body">
+            <form method="GET" class="grid grid-3">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">الحالة</label>
+                    <select name="status" class="form-control" onchange="this.form.submit()">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>الكل</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>قيد الانتظار</option>
+                        <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>قيد المراجعة</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>تمت الموافقة</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>مرفوض</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if requests %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>المستخدم</th>
+                        <th>السيارة</th>
+                        <th>الحصص المطلوبة</th>
+                        <th>المبلغ</th>
+                        <th>الحالة</th>
+                        <th>التاريخ</th>
+                        <th>الإجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td>{{ req.id }}</td>
+                        <td>{{ req.user.name }}</td>
+                        <td>{{ req.car.title }}</td>
+                        <td>{{ req.shares_requested }}</td>
+                        <td>{{ "{:,.0f}".format(req.total_amount) }} جنيه</td>
+                        <td><span class="badge">{{ req.status_arabic }}</span></td>
+                        <td>{{ req.date_submitted.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.review_car_investment_request', request_id=req.id) }}" class="btn btn-sm btn-primary">مراجعة</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="card text-center" style="padding: 2rem;">
+            <p class="text-muted">لا توجد طلبات حالياً</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

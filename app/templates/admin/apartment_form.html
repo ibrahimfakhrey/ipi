@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'تعديل' if apartment else 'إضافة' }} عقار{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; padding: 3rem 0;">
+    <h1 style="margin-bottom: 2rem;">
+        <i class="fas fa-{{ 'edit' if apartment else 'plus' }}"></i>
+        {{ 'تعديل' if apartment else 'إضافة' }} عقار
+    </h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data" 
+                  action="{{ url_for('admin.edit_apartment', apartment_id=apartment.id) if apartment else url_for('admin.add_apartment') }}">
+                
+                <div class="form-group">
+                    <label for="title" class="form-label">عنوان العقار *</label>
+                    <input type="text" 
+                           id="title" 
+                           name="title" 
+                           class="form-control" 
+                           value="{{ apartment.title if apartment else '' }}"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description" class="form-label">الوصف *</label>
+                    <textarea id="description" 
+                              name="description" 
+                              class="form-control" 
+                              rows="5"
+                              required>{{ apartment.description if apartment else '' }}</textarea>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="location" class="form-label">الموقع *</label>
+                        <input type="text" 
+                               id="location" 
+                               name="location" 
+                               class="form-control" 
+                               value="{{ apartment.location if apartment else '' }}"
+                               placeholder="مثال: الزمالك، القاهرة"
+                               required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="image" class="form-label">الصورة الرئيسية للعقار (اختياري)</label>
+                        <input type="file" 
+                               id="image" 
+                               name="image" 
+                               class="form-control"
+                               accept="image/*">
+                        <small class="text-muted">صيغ مدعومة: JPG, PNG, WEBP</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="images" class="form-label">صور إضافية للعقار (يمكن رفع عدة صور)</label>
+                        <input type="file" 
+                               id="images" 
+                               name="images" 
+                               class="form-control"
+                               accept="image/*" multiple>
+                        <small class="text-muted">يمكنك تحديد أكثر من صورة بالضغط مع الاستمرار على Ctrl / Cmd</small>
+                    </div>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label for="total_price" class="form-label">السعر الإجمالي (جنيه) *</label>
+                        <input type="number" 
+                               id="total_price" 
+                               name="total_price" 
+                               class="form-control" 
+                               value="{{ apartment.total_price if apartment else '' }}"
+                               min="0"
+                               step="1000"
+                               required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="total_shares" class="form-label">عدد الحصص الإجمالي *</label>
+                        <input type="number" 
+                               id="total_shares" 
+                               name="total_shares" 
+                               class="form-control" 
+                               value="{{ apartment.total_shares if apartment else '' }}"
+                               min="1"
+                               required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="monthly_rent" class="form-label">الإيجار الشهري (جنيه) *</label>
+                    <input type="number" 
+                           id="monthly_rent" 
+                           name="monthly_rent" 
+                           class="form-control" 
+                           value="{{ apartment.monthly_rent if apartment else '' }}"
+                           min="0"
+                           step="100"
+                           required>
+                </div>
+                
+                {% if apartment %}
+                <div class="form-group">
+                    <label class="form-label">الصورة الرئيسية الحالية:</label>
+                    <div>
+                        {% if apartment.image and apartment.image != 'default_apartment.jpg' %}
+                        <img src="{{ url_for('static', filename='images/apartments/' + apartment.image) }}" 
+                             alt="{{ apartment.title }}"
+                             style="max-width: 300px; border-radius: 8px;">
+                        {% else %}
+                        <small class="text-muted">لا توجد صورة رئيسية بعد</small>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if apartment.images_rel and apartment.images_rel.count() > 0 %}
+                <div class="form-group">
+                    <label class="form-label">الصور الإضافية الحالية:</label>
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        {% for img in apartment.images_rel.order_by('ApartmentImage.sort_order') %}
+                        <div style="position:relative;">
+                            <img src="{{ url_for('static', filename='images/apartments/' + img.filename) }}" alt="{{ apartment.title }}" style="width:120px; height:80px; object-fit:cover; border-radius:6px; box-shadow:var(--shadow-sm);">
+                            <div style="position:absolute; top:4px; right:4px;">
+                                <label style="background:rgba(0,0,0,0.6); color:#fff; padding:2px 6px; border-radius:4px; font-size:12px;">
+                                    <input type="checkbox" name="delete_images" value="{{ img.id }}" style="margin-right:4px;"> حذف
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted">علم على الصور التي تريد حذفها ثم اضغط حفظ</small>
+                </div>
+                {% endif %}
+                {% endif %}
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <a href="{{ url_for('admin.apartments') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> حفظ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

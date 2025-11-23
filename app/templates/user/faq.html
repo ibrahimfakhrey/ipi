@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}الأسئلة الشائعة{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0; max-width: 900px;">
+    <h1 class="text-center" style="margin-bottom: 3rem;">
+        <i class="fas fa-question-circle"></i> الأسئلة الشائعة
+    </h1>
+    
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        {% for faq in faqs %}
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title" style="margin-bottom: 0; font-size: 1.25rem;">
+                    <i class="fas fa-question-circle text-gold"></i> {{ faq.question }}
+                </h3>
+            </div>
+            <div class="card-body">
+                <p style="margin-bottom: 0; line-height: 1.8;">{{ faq.answer }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="card" style="margin-top: 3rem; text-align: center;">
+        <div class="card-body">
+            <h3 style="margin-bottom: 1rem;">لديك سؤال آخر؟</h3>
+            <p>تواصل معنا وسنكون سعداء بالإجابة على استفساراتك</p>
+            <a href="mailto:info@apartmentshare.com" class="btn btn-primary">
+                <i class="fas fa-envelope"></i> تواصل معنا
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

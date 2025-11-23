@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}من نحن{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+{% endblock %}
+
+{% block content %}
+<div style="padding: 3rem 0;">
+    <div class="container" style="max-width: 900px;">
+        <h1 class="text-center" style="margin-bottom: 2rem;">
+            <i class="fas fa-building"></i> من نحن
+        </h1>
+        
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-body">
+                <h2 class="text-gold">رؤيتنا</h2>
+                <p style="font-size: 1.125rem; line-height: 1.8;">
+                    نسعى لتكون المنصة الرائدة في مجال الاستثمار العقاري المشترك في الشرق الأوسط، حيث نوفر فرصاً استثمارية عقارية متاحة للجميع بغض النظر عن حجم رأس المال.
+                </p>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-body">
+                <h2 class="text-gold">مهمتنا</h2>
+                <p style="font-size: 1.125rem; line-height: 1.8;">
+                    نهدف إلى تمكين المستثمرين من الحصول على دخل شهري ثابت من خلال الاستثمار في عقارات عالية الجودة، مع توفير أعلى مستويات الشفافية والأمان في جميع المعاملات.
+                </p>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-body">
+                <h2 class="text-gold">قيمنا</h2>
+                <div class="grid grid-2" style="margin-top: 1.5rem;">
+                    <div>
+                        <h4><i class="fas fa-shield-alt text-gold"></i> الأمان والثقة</h4>
+                        <p>نضمن سلامة استثماراتك من خلال عقود قانونية موثقة</p>
+                    </div>
+                    <div>
+                        <h4><i class="fas fa-eye text-gold"></i> الشفافية</h4>
+                        <p>معلومات واضحة وصريحة عن جميع الفرص الاستثمارية</p>
+                    </div>
+                    <div>
+                        <h4><i class="fas fa-hands-helping text-gold"></i> خدمة العملاء</h4>
+                        <p>فريق متخصص لمساعدتك في كل خطوة</p>
+                    </div>
+                    <div>
+                        <h4><i class="fas fa-chart-line text-gold"></i> النمو المستدام</h4>
+                        <p>استراتيجيات استثمارية تحقق عوائد طويلة الأجل</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body text-center">
+                <h2 class="text-gold">ابدأ معنا اليوم</h2>
+                <p style="font-size: 1.125rem;">انضم إلى آلاف المستثمرين الناجحين</p>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-user-plus"></i> إنشاء حساب مجاني
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'تعديل سيارة' if car else 'إضافة سيارة' }}{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 3rem 0; max-width: 900px;">
+    <h1 style="margin-bottom: 1.5rem;">
+        <i class="fas fa-car"></i> {{ 'تعديل سيارة' if car else 'إضافة سيارة' }}
+    </h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="card">
+            <div class="card-body">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">العنوان</label>
+                        <input type="text" name="title" class="form-control" value="{{ car.title if car else '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">الموقع</label>
+                        <input type="text" name="location" class="form-control" value="{{ car.location if car else '' }}" required>
+                    </div>
+                </div>
+
+                <div class="grid grid-3">
+                    <div class="form-group">
+                        <label class="form-label">الماركة</label>
+                        <input type="text" name="brand" class="form-control" value="{{ car.brand if car else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">الموديل</label>
+                        <input type="text" name="model" class="form-control" value="{{ car.model if car else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">السنة</label>
+                        <input type="text" name="year" class="form-control" value="{{ car.year if car else '' }}">
+                    </div>
+                </div>
+
+                <div class="grid grid-3">
+                    <div class="form-group">
+                        <label class="form-label">السعر الإجمالي</label>
+                        <input type="number" name="total_price" step="0.01" class="form-control" value="{{ car.total_price if car else '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">إجمالي الحصص</label>
+                        <input type="number" name="total_shares" class="form-control" value="{{ car.total_shares if car else '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">العائد الشهري</label>
+                        <input type="number" name="monthly_rent" step="0.01" class="form-control" value="{{ car.monthly_rent if car else '' }}" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">الوصف</label>
+                    <textarea name="description" class="form-control" rows="5" required>{{ car.description if car else '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">صورة</label>
+                    <input type="file" name="image" class="form-control">
+                    {% if car and car.image %}
+                        <small class="text-muted">الصورة الحالية: {{ car.image }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="text-end">
+                    <a href="{{ url_for('admin.cars_list') }}" class="btn btn-secondary">إلغاء</a>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
