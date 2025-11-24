@@ -11,7 +11,9 @@ from flask_jwt_extended import (
 )
 from app.models import db, User, Apartment, Share, Transaction, ApartmentImage, Car, CarShare, InvestmentRequest, ReferralTree
 from datetime import datetime, timedelta
+from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
+import os
 
 # Create API blueprint
 api_bp = Blueprint('api', __name__, url_prefix='/api/v1')
@@ -1166,7 +1168,13 @@ def create_investment_request():
     try:
         user_id = get_jwt_identity()
         user = User.query.get(int(user_id))
-        data = request.get_json()
+        
+        # Check if request is multipart/form-data
+        if not request.files and not request.form:
+             return error_response(message='يجب إرسال البيانات بصيغة multipart/form-data', code='INVALID_CONTENT_TYPE')
+
+        data = request.form
+        files = request.files
         
         required_fields = ['apartment_id', 'shares_requested', 'full_name', 'phone', 
                           'national_id', 'address', 'date_of_birth', 'nationality', 'occupation']
@@ -1175,11 +1183,18 @@ def create_investment_request():
             if not data.get(field):
                 return error_response(message=f'الحقل {field} مطلوب', code='MISSING_FIELDS')
         
+        # Validate files
+        required_files = ['id_document_front', 'id_document_back', 'proof_of_address']
+        for file_field in required_files:
+            if file_field not in files or files[file_field].filename == '':
+                 return error_response(message=f'الملف {file_field} مطلوب', code='MISSING_FILES')
+
         apartment = Apartment.query.get(data['apartment_id'])
         if not apartment:
             return error_response(message='الشقة غير موجودة', status=404)
         
-        if apartment.shares_available < data['shares_requested']:
+        shares_requested = int(data['shares_requested'])
+        if apartment.shares_available < shares_requested:
             return error_response(message='عدد الحصص المطلوبة غير متاح', code='INSUFFICIENT_SHARES')
         
         referred_by_user_id = None
@@ -1191,10 +1206,29 @@ def create_investment_request():
             if referral:
                 referred_by_user_id = referral.user_id
         
+        # Save files
+        from flask import current_app
+        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'documents')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        front_file = files['id_document_front']
+        front_filename = secure_filename(f"{timestamp}_front_{user.id}_{front_file.filename}")
+        front_file.save(os.path.join(upload_dir, front_filename))
+        
+        back_file = files['id_document_back']
+        back_filename = secure_filename(f"{timestamp}_back_{user.id}_{back_file.filename}")
+        back_file.save(os.path.join(upload_dir, back_filename))
+        
+        address_file = files['proof_of_address']
+        address_filename = secure_filename(f"{timestamp}_address_{user.id}_{address_file.filename}")
+        address_file.save(os.path.join(upload_dir, address_filename))
+
         inv_request = InvestmentRequest(
             user_id=user.id,
             apartment_id=apartment.id,
-            shares_requested=data['shares_requested'],
+            shares_requested=shares_requested,
             referred_by_user_id=referred_by_user_id,
             full_name=data['full_name'],
             phone=data['phone'],
@@ -1203,6 +1237,9 @@ def create_investment_request():
             date_of_birth=data['date_of_birth'],
             nationality=data['nationality'],
             occupation=data['occupation'],
+            id_document_front=front_filename,
+            id_document_back=back_filename,
+            proof_of_address=address_filename,
             status='pending'
         )
         
