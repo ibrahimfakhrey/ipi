@@ -838,6 +838,7 @@ def approve_investment_request(request_id):
     investment_amount = apartment.share_price * inv_request.shares_requested
     
     # Create Share records for the approved investment
+    created_shares = 0
     for _ in range(inv_request.shares_requested):
         share = Share(
             user_id=inv_request.user_id,
@@ -845,6 +846,9 @@ def approve_investment_request(request_id):
             share_price=apartment.share_price
         )
         db.session.add(share)
+        created_shares += 1
+    
+    print(f"✅ Created {created_shares} shares for user {inv_request.user.email}")
     
     # Update available shares
     apartment.shares_available -= inv_request.shares_requested

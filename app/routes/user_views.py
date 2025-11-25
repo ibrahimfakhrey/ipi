@@ -13,6 +13,35 @@ from app.models import db, Apartment, Share, Transaction, InvestmentRequest, Use
 from sqlalchemy import desc
 import os
 from datetime import datetime
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
+
+def optimize_uploaded_file(file_path):
+    """Optimize uploaded image files for faster processing"""
+    if not PIL_AVAILABLE:
+        return
+    
+    try:
+        # Check if it's an image file
+        if file_path.lower().endswith(('.png', '.jpg', '.jpeg')):
+            with Image.open(file_path) as img:
+                # Convert to RGB if necessary
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                
+                # Resize if too large (max 1024x1024)
+                if img.width > 1024 or img.height > 1024:
+                    img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+                
+                # Save with optimization
+                img.save(file_path, optimize=True, quality=85)
+    except Exception:
+        # If optimization fails, keep original file
+        pass
 
 bp = Blueprint('user_views', __name__, url_prefix='/user')
 
@@ -405,23 +434,40 @@ def investment_request(apartment_id):
         upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'documents')
         os.makedirs(upload_dir, exist_ok=True)
         
-        # Save uploaded files
+        # Save uploaded files with optimization
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        front_file = form.id_document_front.data
-        front_filename = secure_filename(f"{timestamp}_front_{current_user.id}_{front_file.filename}")
-        front_path = os.path.join(upload_dir, front_filename)
-        front_file.save(front_path)
-        
-        back_file = form.id_document_back.data
-        back_filename = secure_filename(f"{timestamp}_back_{current_user.id}_{back_file.filename}")
-        back_path = os.path.join(upload_dir, back_filename)
-        back_file.save(back_path)
-        
-        address_file = form.proof_of_address.data
-        address_filename = secure_filename(f"{timestamp}_address_{current_user.id}_{address_file.filename}")
-        address_path = os.path.join(upload_dir, address_filename)
-        address_file.save(address_path)
+        try:
+            # Process front document
+            front_file = form.id_document_front.data
+            front_filename = secure_filename(f"{timestamp}_front_{current_user.id}_{front_file.filename}")
+            front_path = os.path.join(upload_dir, front_filename)
+            front_file.save(front_path)
+            optimize_uploaded_file(front_path)
+            
+            # Process back document
+            back_file = form.id_document_back.data
+            back_filename = secure_filename(f"{timestamp}_back_{current_user.id}_{back_file.filename}")
+            back_path = os.path.join(upload_dir, back_filename)
+            back_file.save(back_path)
+            optimize_uploaded_file(back_path)
+            
+            # Process address proof
+            address_file = form.proof_of_address.data
+            address_filename = secure_filename(f"{timestamp}_address_{current_user.id}_{address_file.filename}")
+            address_path = os.path.join(upload_dir, address_filename)
+            address_file.save(address_path)
+            optimize_uploaded_file(address_path)
+            
+        except Exception as e:
+            flash('حدث خطأ أثناء رفع الملفات. يرجى المحاولة مرة أخرى.', 'error')
+            return render_template('user/investment_request.html',
+                                 form=form,
+                                 apartment=apartment,
+                                 shares_count=shares_count,
+                                 total_amount=total_amount,
+                                 referral_code=referral_code,
+                                 referrer=User.query.get(referrer_tree.user_id) if referrer_tree else None)
         
         # Create investment request
         inv_request = InvestmentRequest(

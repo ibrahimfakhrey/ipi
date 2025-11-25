@@ -2,6 +2,126 @@
 
 {% block title %}طلب استثمار - {{ apartment.title }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Beautiful Arabic Loading Animation */
+    .upload-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        backdrop-filter: blur(10px);
+    }
+
+    .upload-container {
+        text-align: center;
+        color: var(--text-light);
+        max-width: 400px;
+        padding: 3rem;
+        background: var(--secondary-navy);
+        border-radius: 1rem;
+        border: 2px solid var(--gold);
+        box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+    }
+
+    .upload-icon {
+        font-size: 4rem;
+        color: var(--gold);
+        margin-bottom: 2rem;
+        animation: uploadPulse 2s ease-in-out infinite;
+    }
+
+    .upload-text {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        color: var(--gold);
+    }
+
+    .upload-subtext {
+        font-size: 1rem;
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+    }
+
+    .upload-progress {
+        width: 100%;
+        height: 8px;
+        background: var(--background-black);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .upload-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--gold), var(--accent-gold));
+        border-radius: 4px;
+        width: 0%;
+        animation: progressAnimation 3s ease-in-out infinite;
+    }
+
+    .upload-dots {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .upload-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--gold);
+        animation: dotPulse 1.5s ease-in-out infinite;
+    }
+
+    .upload-dot:nth-child(1) { animation-delay: 0s; }
+    .upload-dot:nth-child(2) { animation-delay: 0.3s; }
+    .upload-dot:nth-child(3) { animation-delay: 0.6s; }
+
+    @keyframes uploadPulse {
+        0%, 100% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    @keyframes progressAnimation {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+    }
+
+    @keyframes dotPulse {
+        0%, 100% { opacity: 0.3; transform: scale(0.8); }
+        50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    .form-uploading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+    }
+
+    .file-preview {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background: var(--secondary-navy);
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        color: var(--gold);
+        display: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div style="padding: 3rem 0;">
     <div class="container" style="max-width: 800px;">
@@ -181,7 +301,7 @@
                 </div>
                 
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                    <button type="submit" class="btn btn-primary" id="submitBtn" style="flex: 1;">
                         <i class="fas fa-paper-plane"></i> إرسال الطلب
                     </button>
                     <a href="{{ url_for('main.apartment_detail', apartment_id=apartment.id) }}" class="btn btn-secondary">
@@ -192,4 +312,126 @@
         </div>
     </div>
 </div>
+
+<!-- Beautiful Loading Overlay -->
+<div class="upload-overlay" id="uploadOverlay">
+    <div class="upload-container">
+        <div class="upload-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+        </div>
+        <div class="upload-text">جاري معالجة الملفات</div>
+        <div class="upload-subtext">يرجى الانتظار... لا تغلق النافذة</div>
+        <div class="upload-progress">
+            <div class="upload-progress-bar"></div>
+        </div>
+        <div class="upload-dots">
+            <div class="upload-dot"></div>
+            <div class="upload-dot"></div>
+            <div class="upload-dot"></div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submitBtn');
+    const uploadOverlay = document.getElementById('uploadOverlay');
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    
+    // File preview functionality
+    fileInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const wrapper = this.closest('.file-input-wrapper');
+            let preview = wrapper.querySelector('.file-preview');
+            
+            if (!preview) {
+                preview = document.createElement('div');
+                preview.className = 'file-preview';
+                wrapper.appendChild(preview);
+            }
+            
+            if (this.files[0]) {
+                const file = this.files[0];
+                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                preview.innerHTML = `
+                    <i class="fas fa-file-check"></i>
+                    تم اختيار: ${file.name} (${sizeInMB} ميجا)
+                `;
+                preview.style.display = 'block';
+                
+                // Check file size
+                if (file.size > 5 * 1024 * 1024) {
+                    preview.innerHTML = `
+                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                        حجم الملف كبير جداً (${sizeInMB} ميجا). الحد الأقصى 5 ميجا
+                    `;
+                    preview.style.color = 'var(--danger)';
+                    this.value = '';
+                } else {
+                    preview.style.color = 'var(--gold)';
+                }
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+    });
+    
+    // Form submission with loading animation
+    form.addEventListener('submit', function(e) {
+        // Validate files are selected
+        let allFilesSelected = true;
+        const requiredFileInputs = document.querySelectorAll('input[type="file"][required]');
+        
+        requiredFileInputs.forEach(input => {
+            if (!input.files[0]) {
+                allFilesSelected = false;
+            }
+        });
+        
+        if (!allFilesSelected) {
+            alert('يرجى اختيار جميع الملفات المطلوبة');
+            e.preventDefault();
+            return;
+        }
+        
+        // Check file sizes
+        let validSizes = true;
+        fileInputs.forEach(input => {
+            if (input.files[0] && input.files[0].size > 5 * 1024 * 1024) {
+                validSizes = false;
+            }
+        });
+        
+        if (!validSizes) {
+            alert('حجم بعض الملفات كبير جداً. يرجى اختيار ملفات أصغر من 5 ميجا');
+            e.preventDefault();
+            return;
+        }
+        
+        // Show loading animation
+        uploadOverlay.style.display = 'flex';
+        form.classList.add('form-uploading');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+        
+        // Prevent multiple submissions
+        setTimeout(() => {
+            const newSubmitBtn = submitBtn.cloneNode(true);
+            newSubmitBtn.disabled = true;
+            submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+        }, 100);
+    });
+    
+    // Handle form validation errors (hide loading if form doesn't submit)
+    window.addEventListener('beforeunload', function() {
+        if (uploadOverlay.style.display === 'flex') {
+            return 'يتم حالياً رفع الملفات. هل أنت متأكد من إغلاق الصفحة؟';
+        }
+    });
+});
+</script>
 {% endblock %}
