@@ -123,9 +123,49 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     pointer-events: none;
 }
 
+/* Vimeo Background Video Styles */
+.vimeo-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.vimeo-background iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100vw;
+    height: 56.25vw; /* 16:9 aspect ratio */
+    min-height: 100vh;
+    min-width: 177.78vh; /* 16:9 aspect ratio */
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    border: none;
+}
+
+/* Video overlay for better text readability */
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, 
+        rgba(10,10,10,0.4) 0%, 
+        rgba(5,9,20,0.5) 50%, 
+        rgba(10,10,10,0.45) 100%);
+    z-index: 1;
+    pointer-events: none;
+}
+
 /* Disable video on slow connections or mobile data saver mode */
 @media (prefers-reduced-data: reduce) {
-    .hero-video {
+    .hero-video,
+    .vimeo-background {
         display: none;
     }
 }
@@ -135,11 +175,25 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     .hero-video {
         opacity: 0.85;
     }
+    
+    .vimeo-background iframe {
+        width: 100%;
+        height: 100%;
+        min-width: auto;
+        min-height: auto;
+    }
+    
+    .video-overlay {
+        background: linear-gradient(135deg, 
+            rgba(10,10,10,0.6) 0%, 
+            rgba(5,9,20,0.7) 50%, 
+            rgba(10,10,10,0.65) 100%);
+    }
 }
 
 .hero.hero--with-video::before {
-    /* Dark overlay for video background to ensure text readability */
-    background: linear-gradient(135deg, rgba(10,10,10,0.45) 0%, rgba(5,9,20,0.55) 50%, rgba(10,10,10,0.50) 100%);
+    /* Reduced overlay since we have the video-overlay div */
+    background: radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
     z-index: 1;
 }
 
