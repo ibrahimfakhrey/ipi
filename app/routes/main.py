@@ -249,3 +249,9 @@ def referred_investment(apartment_id):
 
 # Import db and Share for apartment_detail route
 from app.models import db, Share, CarReferralTree
+
+
+@bp.route('/privacy')
+def privacy_policy():
+    """Privacy policy page in Arabic"""
+    return render_template('user/privacy.html')

@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}سياسة الخصوصية - منصة الاستثمار العقاري{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+<style>
+    .privacy-section {
+        padding: 4rem 0;
+        background: var(--background-navy);
+        color: var(--text-light);
+        min-height: 100vh;
+    }
+
+    .privacy-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding-bottom: 2rem;
+        border-bottom: 2px solid var(--primary-gold);
+    }
+
+    .privacy-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-gold);
+        margin-bottom: 1rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .privacy-subtitle {
+        font-size: 1.1rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .privacy-content {
+        max-width: 900px;
+        margin: 0 auto;
+        background: rgba(26, 26, 26, 0.8);
+        border-radius: 15px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255, 215, 0, 0.2);
+    }
+
+    .privacy-section-item {
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+    }
+
+    .privacy-section-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .section-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: var(--primary-gold);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        font-size: 1.2rem;
+    }
+
+    .section-content {
+        color: var(--text-light);
+        line-height: 1.8;
+        font-size: 1rem;
+    }
+
+    .section-content p {
+        margin-bottom: 1rem;
+    }
+
+    .section-content ul {
+        margin: 1rem 0;
+        padding-right: 1.5rem;
+    }
+
+    .section-content li {
+        margin-bottom: 0.5rem;
+        color: var(--text-muted);
+    }
+
+    .highlight-text {
+        color: var(--primary-gold);
+        font-weight: 600;
+    }
+
+    .contact-info {
+        background: rgba(255, 215, 0, 0.1);
+        border: 1px solid var(--primary-gold);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .contact-info h4 {
+        color: var(--primary-gold);
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+
+    .contact-info p {
+        margin-bottom: 0.5rem;
+        color: var(--text-light);
+    }
+
+    .back-btn {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--primary-gold);
+        color: var(--background-navy);
+        border: none;
+        border-radius: 50px;
+        padding: 12px 20px;
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        transition: all 0.3s ease;
+        z-index: 1000;
+    }
+
+    .back-btn:hover {
+        background: var(--accent-gold);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        color: var(--background-navy);
+        text-decoration: none;
+    }
+
+    @media (max-width: 768px) {
+        .privacy-section {
+            padding: 2rem 0;
+        }
+
+        .privacy-content {
+            margin: 0 1rem;
+            padding: 1.5rem;
+        }
+
+        .privacy-title {
+            font-size: 2rem;
+        }
+
+        .back-btn {
+            position: static;
+            margin: 1rem auto;
+            display: block;
+            text-align: center;
+            width: fit-content;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('main.index') }}" class="back-btn">
+    <i class="fas fa-arrow-right"></i> العودة للرئيسية
+</a>
+
+<section class="privacy-section">
+    <div class="container">
+        <div class="privacy-header">
+            <h1 class="privacy-title">سياسة الخصوصية</h1>
+            <p class="privacy-subtitle">
+                تساعد إضافة سياسة خصوصية لطاقة بيانات المتجر الخاصة بك على توفير الشفافية بشأن التعامل مع بيانات المستخدم والأجهزة الحساسة. 
+                يجب إضافة سياسة خصوصية إذا كان جمهورك المستهدف يشمل الأطفال دون 13 عاماً لتجنب المخالفات الشائعة.
+            </p>
+        </div>
+
+        <div class="privacy-content">
+            <div class="privacy-section-item">
+                <h2 class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    المعلومات التي نجمعها
+                </h2>
+                <div class="section-content">
+                    <p>نحن في <span class="highlight-text">منصة الاستثمار العقاري</span> نجمع المعلومات التالية:</p>
+                    <ul>
+                        <li><strong>المعلومات الشخصية:</strong> الاسم، البريد الإلكتروني، رقم الهاتف، العنوان</li>
+                        <li><strong>معلومات الهوية:</strong> صور الهوية الشخصية وإثبات العنوان للتحقق من الهوية (KYC)</li>
+                        <li><strong>المعلومات المالية:</strong> تفاصيل المعاملات المالية والاستثمارات</li>
+                        <li><strong>معلومات الجهاز:</strong> عنوان IP، نوع المتصفح، وبيانات الاستخدام</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="privacy-section-item">
+                <h2 class="section-title">
+                    <i class="fas fa-shield-alt"></i>
+                    كيف نستخدم معلوماتك
+                </h2>
+                <div class="section-content">
+                    <p>نستخدم المعلومات المجمعة للأغراض التالية:</p>
+                    <ul>
+                        <li>تقديم وتحسين خدمات الاستثمار العقاري</li>
+                        <li>التحقق من هوية المستخدمين (عملية KYC)</li>
+                        <li>معالجة المعاملات المالية والاستثمارية</li>
+                        <li>إرسال التحديثات والإشعارات المهمة</li>
+                        <li>ضمان الأمان ومنع الاحتيال</li>
+                        <li>الامتثال للمتطلبات القانونية والتنظيمية</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="privacy-section-item">
+                <h2 class="section-title">
+                    <i class="fas fa-lock"></i>
+                    حماية البيانات والأمان
+                </h2>
+                <div class="section-content">
+                    <p>نتخذ إجراءات أمنية صارمة لحماية معلوماتك:</p>
+                    <ul>
+                        <li>تشفير جميع البيانات الحساسة</li>
+                        <li>استخدام خوادم آمنة ومحمية</li>
+                        <li>مراقبة مستمرة للأنشطة المشبوهة</li>
+                        <li>الوصول المحدود للموظفين المخولين فقط</li>
+                        <li>النسخ الاحتياطي المنتظم للبيانات</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="privacy-section-item">
+                <h2 class="section-title">
+                    <i class="fas fa-share-alt"></i>
+                    مشاركة المعلومات
+                </h2>
+                <div class="section-content">
+                    <p>نحن <span class="highlight-text">لا نبيع أو نؤجر</span> معلوماتك الشخصية لأطراف ثالثة. قد نشارك المعلومات في الحالات التالية:</p>
+                    <ul>
+                        <li>مع مقدمي الخدمات المالية المعتمدين</li>
+                        <li>للامتثال للقوانين والأنظمة</li>
+                        <li>في حالة الطوارئ أو التهديدات الأمنية</li>
+                        <li>مع موافقتك الصريحة</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="privacy-section-item">
+                <h2 class="section-title">
+                    <i class="fas fa-cookie-bite"></i>
+                    ملفات تعريف الارتباط (Cookies)
+                </h2>
+                <div class="section-content">
+                    <p>نستخدم ملفات تعريف الارتباط لتحسين تجربتك على موقعنا:</p>
+                    <ul>
+                        <li><strong>ملفات أساسية:</strong> ضرورية لعمل الموقع</li>
+                        <li><strong>ملفات الأداء:</strong> لتحليل استخدام الموقع</li>
+                        <li><strong>ملفات التفضيلات:</strong> لحفظ إعداداتك</li>
+                    </ul>
+                    <p>يمكنك إدارة ملفات تعريف الارتباط من خلال إعدادات المتصفح.</p>
+                </div>
+            </div>
+
+            <div class="privacy-section-item">
+                <h2 class="section-title">
+                    <i class="fas fa-user-check"></i>
+                    حقوقك
+                </h2>
+                <div class="section-content">
+                    <p>لديك الحق في:</p>
+                    <ul>
+                        <li><strong>الوصول:</strong> طلب نسخة من بياناتك الشخصية</li>
+                        <li><strong>التصحيح:</strong> تحديث أو تصحيح معلوماتك</li>
+                        <li><strong>الحذف:</strong> طلب حذف بياناتك (مع مراعاة المتطلبات القانونية)</li>
+                        <li><strong>التحكم:</strong> إيقاف معالجة بياناتك لأغراض معينة</li>
+                        <li><strong>النقل:</strong> الحصول على بياناتك بتنسيق قابل للقراءة</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="privacy-section-item">
+                <h2 class="section-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    الاحتفاظ بالبيانات
+                </h2>
+                <div class="section-content">
+                    <p>نحتفظ ببياناتك طالما كان حسابك نشطاً أو حسب الحاجة لتقديم الخدمات. 
+                    قد نحتفظ ببعض المعلومات لفترات أطول للامتثال للالتزامات القانونية أو لحل النزاعات.</p>
+                </div>
+            </div>
+
+            <div class="privacy-section-item">
+                <h2 class="section-title">
+                    <i class="fas fa-baby"></i>
+                    خصوصية الأطفال
+                </h2>
+                <div class="section-content">
+                    <p>خدماتنا <span class="highlight-text">غير مخصصة للأطفال دون سن 18 عاماً</span>. 
+                    نحن لا نجمع عن قصد معلومات شخصية من الأطفال. إذا علمنا أننا جمعنا معلومات من طفل، 
+                    فسنحذفها فوراً.</p>
+                </div>
+            </div>
+
+            <div class="privacy-section-item">
+                <h2 class="section-title">
+                    <i class="fas fa-edit"></i>
+                    التحديثات على هذه السياسة
+                </h2>
+                <div class="section-content">
+                    <p>قد نحدث هذه السياسة من وقت لآخر. سنخطرك بأي تغييرات مهمة عبر البريد الإلكتروني أو 
+                    إشعار بارز على موقعنا. ننصحك بمراجعة هذه الصفحة بانتظام للاطلاع على أحدث المعلومات.</p>
+                    <p><strong>تاريخ آخر تحديث:</strong> <span class="highlight-text">25 نوفمبر 2025</span></p>
+                </div>
+            </div>
+
+            <div class="privacy-section-item">
+                <div class="contact-info">
+                    <h4><i class="fas fa-envelope"></i> تواصل معنا</h4>
+                    <p>إذا كان لديك أي أسئلة حول سياسة الخصوصية هذه، يرجى التواصل معنا:</p>
+                    <p><strong>البريد الإلكتروني:</strong> privacy@ipi-investment.com</p>
+                    <p><strong>الهاتف:</strong> +20 100 123 4567</p>
+                    <p><strong>العنوان:</strong> القاهرة، مصر</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Smooth scroll for internal links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // Add fade-in animation for sections
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.privacy-section-item').forEach(section => {
+        section.style.opacity = '0';
+        section.style.transform = 'translateY(20px)';
+        section.style.transition = 'all 0.6s ease';
+        observer.observe(section);
+    });
+});
+</script>
+{% endblock %}

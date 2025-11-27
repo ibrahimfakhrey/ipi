@@ -99,6 +99,7 @@
                         <li><a href="{{ url_for('main.market') }}">السوق</a></li>
                         <li><a href="{{ url_for('main.about') }}">من نحن</a></li>
                         <li><a href="{{ url_for('main.faq') }}">الأسئلة الشائعة</a></li>
+                        <li><a href="{{ url_for('main.privacy_policy') }}">سياسة الخصوصية</a></li>
                     </ul>
                 </div>
                 
@@ -123,7 +124,8 @@
             </div>
             
             <div class="footer-bottom">
-                <p>&copy; 2025 منصة الاستثمار العقاري. جميع الحقوق محفوظة.</p>
+                <p>&copy; 2025 منصة الاستثمار العقاري. جميع الحقوق محفوظة. 
+                <a href="{{ url_for('main.privacy_policy') }}" style="color: var(--primary-gold); text-decoration: none; margin-right: 1rem;">سياسة الخصوصية</a></p>
             </div>
         </div>
     </footer>
