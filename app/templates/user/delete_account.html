@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}حذف الحساب - منصة الاستثمار العقاري{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+<style>
+    .delete-account-section {
+        padding: 4rem 0;
+        background: var(--background-navy);
+        min-height: 80vh;
+    }
+
+    .delete-account-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 3rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 215, 0, 0.1);
+    }
+
+    .delete-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .delete-icon {
+        font-size: 4rem;
+        color: #dc3545;
+        margin-bottom: 1rem;
+    }
+
+    .delete-title {
+        color: var(--text-primary);
+        font-size: 2.2rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+
+    .delete-subtitle {
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+
+    .warning-box {
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
+        border: 2px solid rgba(220, 53, 69, 0.3);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+    }
+
+    .warning-title {
+        color: #dc3545;
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .warning-list {
+        color: var(--text-primary);
+        margin: 0;
+        padding-right: 1.5rem;
+    }
+
+    .warning-list li {
+        margin-bottom: 0.8rem;
+        line-height: 1.5;
+    }
+
+    .account-info {
+        background: rgba(255, 215, 0, 0.05);
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+    }
+
+    .account-info h4 {
+        color: var(--primary-gold);
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+    }
+
+    .info-label {
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .info-value {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .confirmation-form {
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 215, 0, 0.2);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--input-bg);
+        border: 2px solid rgba(255, 215, 0, 0.2);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-gold);
+        box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        margin-top: 0.25rem;
+        transform: scale(1.2);
+    }
+
+    .checkbox-label {
+        color: var(--text-primary);
+        line-height: 1.5;
+        cursor: pointer;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .btn-cancel {
+        background: var(--secondary-navy);
+        color: var(--text-primary);
+        border: 2px solid rgba(255, 215, 0, 0.3);
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-cancel:hover {
+        background: rgba(255, 215, 0, 0.1);
+        border-color: var(--primary-gold);
+        color: var(--primary-gold);
+    }
+
+    .btn-delete {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .btn-delete:enabled {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .btn-delete:enabled:hover {
+        background: linear-gradient(135deg, #c82333, #bd2130);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .delete-account-container {
+            margin: 0 1rem;
+            padding: 2rem 1.5rem;
+        }
+
+        .button-group {
+            flex-direction: column;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="delete-account-section">
+    <div class="container">
+        <div class="delete-account-container">
+            <div class="delete-header">
+                <div class="delete-icon">
+                    <i class="fas fa-user-times"></i>
+                </div>
+                <h1 class="delete-title">حذف الحساب نهائياً</h1>
+                <p class="delete-subtitle">
+                    نأسف لرؤيتك تغادر. يرجى قراءة المعلومات التالية بعناية قبل المتابعة.
+                </p>
+            </div>
+
+            <div class="warning-box">
+                <h3 class="warning-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    تحذير مهم: هذا الإجراء لا يمكن التراجع عنه
+                </h3>
+                <ul class="warning-list">
+                    <li>سيتم حذف جميع بياناتك الشخصية نهائياً</li>
+                    <li>ستفقد الوصول إلى جميع استثماراتك ومحفظتك</li>
+                    <li>لن تتمكن من استرداد تاريخ المعاملات أو الأرباح</li>
+                    <li>سيتم إلغاء جميع طلبات الاستثمار المعلقة</li>
+                    <li>لن تتمكن من استخدام نفس البريد الإلكتروني للتسجيل مرة أخرى لمدة 30 يوماً</li>
+                </ul>
+            </div>
+
+            {% if current_user.is_authenticated %}
+            <div class="account-info">
+                <h4><i class="fas fa-user"></i> معلومات حسابك الحالي</h4>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">الاسم:</span>
+                        <span class="info-value">{{ current_user.name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">البريد الإلكتروني:</span>
+                        <span class="info-value">{{ current_user.email }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">رصيد المحفظة:</span>
+                        <span class="info-value">{{ "{:,.0f}".format(current_user.wallet_balance) }} جنيه</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">رصيد المكافآت:</span>
+                        <span class="info-value">{{ "{:,.0f}".format(current_user.rewards_balance) }} جنيه</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">عدد الاستثمارات:</span>
+                        <span class="info-value">{{ current_user.shares.count() + current_user.car_shares.count() }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">تاريخ التسجيل:</span>
+                        <span class="info-value">{{ current_user.date_joined.strftime('%Y/%m/%d') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if current_user.wallet_balance > 0 or current_user.rewards_balance > 0 %}
+            <div class="warning-box">
+                <h3 class="warning-title">
+                    <i class="fas fa-money-bill-wave"></i>
+                    لديك رصيد متبقي في حسابك
+                </h3>
+                <p style="color: var(--text-primary); margin: 0;">
+                    يرجى سحب جميع الأموال من محفظتك قبل حذف الحساب. 
+                    لن نتمكن من استرداد الأموال بعد حذف الحساب نهائياً.
+                    <br><br>
+                    <a href="{{ url_for('user_views.wallet') }}" class="btn btn-primary" style="margin-top: 1rem;">
+                        <i class="fas fa-wallet"></i> إدارة المحفظة
+                    </a>
+                </p>
+            </div>
+            {% endif %}
+
+            <form method="POST" class="confirmation-form" id="deleteForm">
+                {{ csrf_token() }}
+                
+                <div class="form-group">
+                    <label for="reason" class="form-label">
+                        <i class="fas fa-comment"></i>
+                        سبب حذف الحساب (اختياري)
+                    </label>
+                    <select name="reason" id="reason" class="form-control">
+                        <option value="">اختر السبب...</option>
+                        <option value="no_longer_need">لم أعد بحاجة للخدمة</option>
+                        <option value="privacy_concerns">مخاوف تتعلق بالخصوصية</option>
+                        <option value="found_alternative">وجدت بديل آخر</option>
+                        <option value="technical_issues">مشاكل تقنية</option>
+                        <option value="dissatisfied">عدم رضا عن الخدمة</option>
+                        <option value="other">سبب آخر</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">
+                        <i class="fas fa-lock"></i>
+                        تأكيد كلمة المرور الحالية *
+                    </label>
+                    <input type="password" name="password" id="password" class="form-control" required 
+                           placeholder="ادخل كلمة المرور الحالية للتأكيد">
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmation" class="form-label">
+                        <i class="fas fa-keyboard"></i>
+                        اكتب "حذف الحساب" للتأكيد *
+                    </label>
+                    <input type="text" name="confirmation" id="confirmation" class="form-control" required 
+                           placeholder="اكتب: حذف الحساب">
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="understand" name="understand" required>
+                    <label for="understand" class="checkbox-label">
+                        أفهم أن هذا الإجراء نهائي ولا يمكن التراجع عنه، وأن جميع بياناتي ستحذف نهائياً
+                    </label>
+                </div>
+
+                <div class="button-group">
+                    <a href="{{ url_for('user_views.dashboard') }}" class="btn-cancel">
+                        <i class="fas fa-arrow-right"></i>
+                        إلغاء والعودة
+                    </a>
+                    <button type="submit" class="btn-delete" id="deleteBtn" disabled>
+                        <i class="fas fa-trash-alt"></i>
+                        حذف الحساب نهائياً
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('deleteForm');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const passwordInput = document.getElementById('password');
+    const confirmationInput = document.getElementById('confirmation');
+    const understandCheckbox = document.getElementById('understand');
+
+    function checkFormValidity() {
+        const passwordFilled = passwordInput.value.trim().length > 0;
+        const confirmationMatch = confirmationInput.value.trim() === 'حذف الحساب';
+        const understood = understandCheckbox.checked;
+
+        if (passwordFilled && confirmationMatch && understood) {
+            deleteBtn.disabled = false;
+        } else {
+            deleteBtn.disabled = true;
+        }
+    }
+
+    passwordInput.addEventListener('input', checkFormValidity);
+    confirmationInput.addEventListener('input', checkFormValidity);
+    understandCheckbox.addEventListener('change', checkFormValidity);
+
+    form.addEventListener('submit', function(e) {
+        if (!confirm('هل أنت متأكد من رغبتك في حذف حسابك نهائياً؟ لن تتمكن من التراجع عن هذا القرار.')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

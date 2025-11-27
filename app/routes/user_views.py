@@ -786,3 +786,85 @@ def get_referral_link_car(car_id):
                          car=car,
                          referral_code=referral_code,
                          referral_link=referral_link)
+
+
+@bp.route('/delete-account', methods=['GET', 'POST'])
+@login_required
+def delete_account():
+    """Delete user account permanently"""
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirmation = request.form.get('confirmation') 
+        reason = request.form.get('reason')
+        understand = request.form.get('understand')
+        
+        # Verify password
+        if not current_user.check_password(password):
+            flash('كلمة المرور غير صحيحة', 'error')
+            return render_template('user/delete_account.html')
+        
+        # Verify confirmation text
+        if confirmation != 'حذف الحساب':
+            flash('يجب كتابة "حذف الحساب" بالضبط للتأكيد', 'error')
+            return render_template('user/delete_account.html')
+        
+        # Check if user has remaining balance
+        if current_user.wallet_balance > 0 or current_user.rewards_balance > 0:
+            flash('يجب سحب جميع الأموال من المحفظة قبل حذف الحساب', 'error')
+            return render_template('user/delete_account.html')
+        
+        # Store user info for logging
+        user_email = current_user.email
+        user_name = current_user.name
+        user_id = current_user.id
+        
+        try:
+            # Delete related records in proper order to avoid foreign key constraints
+            
+            # Delete car referral trees
+            CarReferralTree.query.filter_by(user_id=user_id).delete()
+            CarReferralTree.query.filter_by(referred_by_user_id=user_id).delete()
+            
+            # Delete referral trees
+            from app.models import ReferralTree
+            ReferralTree.query.filter_by(user_id=user_id).delete()
+            ReferralTree.query.filter_by(referred_by_user_id=user_id).delete()
+            
+            # Delete car investment requests
+            CarInvestmentRequest.query.filter_by(user_id=user_id).delete()
+            CarInvestmentRequest.query.filter_by(referred_by_user_id=user_id).update({CarInvestmentRequest.referred_by_user_id: None})
+            
+            # Delete investment requests
+            InvestmentRequest.query.filter_by(user_id=user_id).delete()
+            InvestmentRequest.query.filter_by(referred_by_user_id=user_id).update({InvestmentRequest.referred_by_user_id: None})
+            
+            # Delete car shares
+            CarShare.query.filter_by(user_id=user_id).delete()
+            
+            # Delete apartment shares  
+            Share.query.filter_by(user_id=user_id).delete()
+            
+            # Delete transactions
+            Transaction.query.filter_by(user_id=user_id).delete()
+            
+            # Finally delete the user account
+            db.session.delete(current_user)
+            db.session.commit()
+            
+            # Log the account deletion
+            print(f"Account deleted: {user_name} ({user_email}) - Reason: {reason}")
+            
+            # Logout the user
+            from flask_login import logout_user
+            logout_user()
+            
+            flash('تم حذف حسابك نهائياً. نتمنى لك التوفيق في رحلتك القادمة.', 'success')
+            return redirect(url_for('main.index'))
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error deleting account for {user_email}: {str(e)}")
+            flash('حدث خطأ أثناء حذف الحساب. يرجى المحاولة لاحقاً أو التواصل مع الدعم.', 'error')
+            return render_template('user/delete_account.html')
+    
+    return render_template('user/delete_account.html')

@@ -100,6 +100,7 @@
                         <li><a href="{{ url_for('main.about') }}">من نحن</a></li>
                         <li><a href="{{ url_for('main.faq') }}">الأسئلة الشائعة</a></li>
                         <li><a href="{{ url_for('main.privacy_policy') }}">سياسة الخصوصية</a></li>
+                        <li><a href="{{ url_for('main.delete_account_public') }}" style="color: #dc3545;">حذف الحساب</a></li>
                     </ul>
                 </div>
                 
@@ -125,7 +126,8 @@
             
             <div class="footer-bottom">
                 <p>&copy; 2025 منصة الاستثمار العقاري. جميع الحقوق محفوظة. 
-                <a href="{{ url_for('main.privacy_policy') }}" style="color: var(--primary-gold); text-decoration: none; margin-right: 1rem;">سياسة الخصوصية</a></p>
+                <a href="{{ url_for('main.privacy_policy') }}" style="color: var(--primary-gold); text-decoration: none; margin-right: 1rem;">سياسة الخصوصية</a>
+                <a href="{{ url_for('main.delete_account_public') }}" style="color: #dc3545; text-decoration: none; margin-right: 1rem;">حذف الحساب</a></p>
             </div>
         </div>
     </footer>

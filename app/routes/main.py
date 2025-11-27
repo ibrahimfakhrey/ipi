@@ -255,3 +255,14 @@ from app.models import db, Share, CarReferralTree
 def privacy_policy():
     """Privacy policy page in Arabic"""
     return render_template('user/privacy.html')
+
+
+@bp.route('/delete-account')
+def delete_account_public():
+    """Public delete account page - redirects to user route if logged in"""
+    from flask_login import current_user
+    if current_user.is_authenticated:
+        return redirect(url_for('user_views.delete_account'))
+    else:
+        flash('يجب تسجيل الدخول أولاً لحذف حسابك', 'info')
+        return redirect(url_for('auth.login'))

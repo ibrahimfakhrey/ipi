@@ -189,5 +189,46 @@
             {% endif %}
         </div>
     </div>
+    
+    <!-- Account Settings Section -->
+    <div class="card" style="margin-top: 2rem;">
+        <div class="card-header">
+            <h3 style="margin: 0;"><i class="fas fa-cog"></i> إعدادات الحساب</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>إدارة الحساب</h5>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 0.5rem;">
+                            <a href="{{ url_for('user_views.wallet') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-wallet"></i> إدارة المحفظة
+                            </a>
+                        </li>
+                        <li style="margin-bottom: 0.5rem;">
+                            <a href="{{ url_for('user_views.my_investment_requests') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-file-alt"></i> طلبات الاستثمار
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>خيارات متقدمة</h5>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 0.5rem;">
+                            <a href="{{ url_for('main.privacy_policy') }}" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-shield-alt"></i> سياسة الخصوصية
+                            </a>
+                        </li>
+                        <li style="margin-bottom: 0.5rem;">
+                            <a href="{{ url_for('user_views.delete_account') }}" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-user-times"></i> حذف الحساب
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
