@@ -50,6 +50,19 @@ class Config:
     # Admin credentials (in production, use environment variables)
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL') or 'admin@apartmentshare.com'
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') or 'admin123'
+    
+    # Social Authentication - Google OAuth
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID') or '162805126554-vmtgnbnrs0r0ev4pv0ebmq694dh1i77j.apps.googleusercontent.com'
+    GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET') or ''
+    
+    # Social Authentication - Apple Sign-In
+    APPLE_CLIENT_ID = os.environ.get('APPLE_CLIENT_ID') or ''
+    APPLE_TEAM_ID = os.environ.get('APPLE_TEAM_ID') or ''
+    APPLE_KEY_ID = os.environ.get('APPLE_KEY_ID') or ''
+    APPLE_PRIVATE_KEY = os.environ.get('APPLE_PRIVATE_KEY') or ''
+    
+    # Apple public keys cache timeout (24 hours)
+    APPLE_KEYS_CACHE_TIMEOUT = 86400
 
 
 class DevelopmentConfig(Config):

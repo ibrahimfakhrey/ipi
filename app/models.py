@@ -22,10 +22,15 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(200), nullable=False)
+    password_hash = db.Column(db.String(200), nullable=True)  # Nullable for social auth users
     wallet_balance = db.Column(db.Float, default=0.0)
     rewards_balance = db.Column(db.Float, default=0.0)  # Separate balance for referral rewards
     is_admin = db.Column(db.Boolean, default=False)
+    
+    # Social Authentication Fields
+    auth_provider = db.Column(db.String(20), default='email', index=True)  # 'email', 'google', 'apple'
+    provider_user_id = db.Column(db.String(255), index=True)  # Unique ID from provider
+    provider_email = db.Column(db.String(255))  # Email from provider
     date_joined = db.Column(db.DateTime, default=datetime.utcnow)
     
     # KYC Information
@@ -45,6 +50,9 @@ class User(UserMixin, db.Model):
                                          backref='user', 
                                          lazy='dynamic', 
                                          cascade='all, delete-orphan')
+    
+    # Composite index for social auth lookups
+    __table_args__ = (db.Index('idx_provider_lookup', 'auth_provider', 'provider_user_id'),)
     
     def set_password(self, password):
         """Hash and set user password"""
@@ -130,6 +138,12 @@ class User(UserMixin, db.Model):
             description=description
         )
         db.session.add(transaction)
+    
+    def link_social_account(self, provider, provider_user_id, provider_email):
+        """Link social authentication account to existing user"""
+        self.auth_provider = provider
+        self.provider_user_id = provider_user_id
+        self.provider_email = provider_email
     
     def __repr__(self):
         return f'<User {self.email}>'

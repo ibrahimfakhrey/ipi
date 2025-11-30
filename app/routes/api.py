@@ -292,6 +292,213 @@ def refresh():
         )
 
 
+@api_bp.route('/auth/google', methods=['POST'])
+def google_sign_in():
+    """
+    Authenticate user with Google Sign-In
+    POST /api/v1/auth/google
+    Body: {
+        "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6...",
+        "access_token": "ya29.a0AfH6SMBx..." (optional)
+    }
+    """
+    try:
+        from app.auth_providers import verify_google_token
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data or not data.get('id_token'):
+            return error_response(
+                message="id_token مطلوب",
+                code="MISSING_FIELDS"
+            )
+        
+        # Verify token with Google
+        user_info = verify_google_token(data['id_token'])
+        
+        if not user_info:
+            return error_response(
+                message="رمز Google غير صالح",
+                code="INVALID_TOKEN",
+                status=401
+            )
+        
+        # Extract user information
+        google_user_id = user_info['user_id']
+        email = user_info['email']
+        name = user_info['name']
+        
+        # Check if user exists with Google auth
+        user = User.query.filter_by(
+            auth_provider='google',
+            provider_user_id=google_user_id
+        ).first()
+        
+        is_new_user = False
+        
+        if not user:
+            # Check if email exists with different auth method (potential account linking)
+            user = User.query.filter_by(email=email).first()
+            
+            if user:
+                # Link existing account to Google
+                user.link_social_account('google', google_user_id, email)
+                message = "تم ربط الحساب بنجاح"
+            else:
+                # Create new user
+                user = User(
+                    name=name,
+                    email=email,
+                    auth_provider='google',
+                    provider_user_id=google_user_id,
+                    provider_email=email,
+                    wallet_balance=500000.0  # Default starting balance
+                )
+                db.session.add(user)
+                is_new_user = True
+                message = "تم إنشاء الحساب بنجاح"
+        else:
+            message = "تم تسجيل الدخول بنجاح"
+        
+        db.session.commit()
+        
+        # Create JWT tokens
+        access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=7))
+        refresh_token = create_refresh_token(identity=str(user.id), expires_delta=timedelta(days=30))
+        
+        return success_response(
+            data={
+                "user": serialize_user(user),
+                "access_token": access_token,
+                "refresh_token": refresh_token
+            },
+            message=message,
+            status=201 if is_new_user else 200
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ أثناء تسجيل الدخول عبر Google",
+            code="GOOGLE_AUTH_ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@api_bp.route('/auth/apple', methods=['POST'])
+def apple_sign_in():
+    """
+    Authenticate user with Apple Sign-In
+    POST /api/v1/auth/apple
+    Body: {
+        "identity_token": "eyJraWQiOiJlWGF1bm1MIiwiYWxnIjoi...",
+        "authorization_code": "c1a2b3c4d5e6f7g8h9i0..." (optional),
+        "user_identifier": "001234.5678abcd.1234",
+        "email": "john@privaterelay.appleid.com" (only first sign-in),
+        "given_name": "John" (only first sign-in),
+        "family_name": "Doe" (only first sign-in)
+    }
+    """
+    try:
+        from app.auth_providers import verify_apple_token
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data or not data.get('identity_token'):
+            return error_response(
+                message="identity_token مطلوب",
+                code="MISSING_FIELDS"
+            )
+        
+        # Verify token with Apple
+        user_info = verify_apple_token(data['identity_token'])
+        
+        if not user_info:
+            return error_response(
+                message="رمز Apple غير صالح",
+                code="INVALID_TOKEN",
+                status=401
+            )
+        
+        # Extract user information
+        apple_user_id = user_info['user_id']
+        
+        # Email and name are only provided on first sign-in
+        email = data.get('email') or user_info.get('email') or ''
+        given_name = data.get('given_name', '')
+        family_name = data.get('family_name', '')
+        name = f"{given_name} {family_name}".strip() or "Apple User"
+        
+        # Check if user exists with Apple auth
+        user = User.query.filter_by(
+            auth_provider='apple',
+            provider_user_id=apple_user_id
+        ).first()
+        
+        is_new_user = False
+        
+        if not user:
+            # For returning users, email might not be provided
+            if email:
+                # Check if email exists with different auth method
+                user = User.query.filter_by(email=email).first()
+                
+                if user:
+                    # Link existing account to Apple
+                    user.link_social_account('apple', apple_user_id, email)
+                    message = "تم ربط الحساب بنجاح"
+                else:
+                    # Create new user
+                    user = User(
+                        name=name,
+                        email=email,
+                        auth_provider='apple',
+                        provider_user_id=apple_user_id,
+                        provider_email=email,
+                        wallet_balance=500000.0  # Default starting balance
+                    )
+                    db.session.add(user)
+                    is_new_user = True
+                    message = "تم إنشاء الحساب بنجاح"
+            else:
+                # No email provided and user not found - this shouldn't happen
+                return error_response(
+                    message="لا يمكن العثور على الحساب. يرجى المحاولة مرة أخرى",
+                    code="USER_NOT_FOUND",
+                    status=404
+                )
+        else:
+            message = "تم تسجيل الدخول بنجاح"
+        
+        db.session.commit()
+        
+        # Create JWT tokens
+        access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=7))
+        refresh_token = create_refresh_token(identity=str(user.id), expires_delta=timedelta(days=30))
+        
+        return success_response(
+            data={
+                "user": serialize_user(user),
+                "access_token": access_token,
+                "refresh_token": refresh_token
+            },
+            message=message,
+            status=201 if is_new_user else 200
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ أثناء تسجيل الدخول عبر Apple",
+            code="APPLE_AUTH_ERROR",
+            details=str(e),
+            status=500
+        )
+
+
 # ==================== Apartment Endpoints ====================
 
 @api_bp.route('/apartments', methods=['GET'])
