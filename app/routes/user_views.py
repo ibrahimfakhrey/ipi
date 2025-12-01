@@ -9,7 +9,7 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, IntegerField, BooleanField, SelectField
 from wtforms.validators import DataRequired, Email, Length, Regexp
 from werkzeug.utils import secure_filename
-from app.models import db, Apartment, Share, Transaction, InvestmentRequest, User, Car, CarShare, CarInvestmentRequest, CarReferralTree
+from app.models import db, Apartment, Share, Transaction, InvestmentRequest, User, Car, CarShare, CarInvestmentRequest, CarReferralTree, WithdrawalRequest
 from sqlalchemy import desc
 import os
 from datetime import datetime
@@ -156,7 +156,7 @@ def dashboard():
 @bp.route('/wallet')
 @login_required
 def wallet():
-    """User wallet page with transaction history"""
+    """User wallet page with withdrawal requests and transaction history"""
     page = request.args.get('page', 1, type=int)
     
     # Get transactions with pagination
@@ -164,70 +164,112 @@ def wallet():
         .order_by(desc(Transaction.date))\
         .paginate(page=page, per_page=20, error_out=False)
     
+    # Get pending withdrawal request (only one allowed)
+    pending_request = WithdrawalRequest.query.filter_by(
+        user_id=current_user.id,
+        status='pending'
+    ).first()
+    
+    # Get withdrawal request history
+    withdrawal_requests = WithdrawalRequest.query.filter_by(
+        user_id=current_user.id
+    ).order_by(desc(WithdrawalRequest.request_date)).limit(10).all()
+    
     # Calculate statistics
-    total_deposits = db.session.query(db.func.sum(Transaction.amount))\
+    total_rental_income = db.session.query(db.func.sum(Transaction.amount))\
         .filter(Transaction.user_id == current_user.id,
-                Transaction.transaction_type == 'deposit').scalar() or 0
+                Transaction.transaction_type == 'rental_income').scalar() or 0
     
     total_withdrawals = db.session.query(db.func.sum(Transaction.amount))\
         .filter(Transaction.user_id == current_user.id,
                 Transaction.transaction_type == 'withdrawal').scalar() or 0
     
-    total_invested = db.session.query(db.func.sum(Share.share_price))\
-        .filter(Share.user_id == current_user.id).scalar() or 0
-    
-    total_rental_income = db.session.query(db.func.sum(Transaction.amount))\
-        .filter(Transaction.user_id == current_user.id,
-                Transaction.transaction_type == 'rental_income').scalar() or 0
-    
     stats = {
         'current_balance': current_user.wallet_balance,
-        'total_deposits': total_deposits,
-        'total_withdrawals': abs(total_withdrawals),
-        'total_invested': total_invested,
-        'total_rental_income': total_rental_income
+        'total_rental_income': total_rental_income,
+        'total_withdrawals': abs(total_withdrawals)
     }
     
     return render_template('user/wallet.html',
                          transactions=transactions,
-                         stats=stats)
+                         stats=stats,
+                         pending_request=pending_request,
+                         withdrawal_requests=withdrawal_requests)
 
 
-@bp.route('/wallet/deposit', methods=['POST'])
+@bp.route('/withdrawal-request', methods=['POST'])
 @login_required
-def deposit():
-    """Deposit money to wallet"""
-    amount = float(request.form.get('amount', 0))
+def withdrawal_request():
+    """Submit withdrawal request"""
+    # Check if user already has a pending request
+    pending = WithdrawalRequest.query.filter_by(
+        user_id=current_user.id,
+        status='pending'
+    ).first()
     
-    if amount <= 0:
-        flash('المبلغ يجب أن يكون أكبر من صفر', 'error')
+    if pending:
+        flash('لديك طلب سحب قيد المراجعة بالفعل. لا يمكن تقديم طلب جديد.', 'error')
         return redirect(url_for('user_views.wallet'))
     
-    current_user.add_to_wallet(amount, 'deposit')
-    db.session.commit()
-    
-    flash(f'تم إيداع {amount:,.0f} جنيه بنجاح', 'success')
-    return redirect(url_for('user_views.wallet'))
-
-
-@bp.route('/wallet/withdraw', methods=['POST'])
-@login_required
-def withdraw():
-    """Withdraw money from wallet"""
+    # Get form data
     amount = float(request.form.get('amount', 0))
+    payment_method = request.form.get('payment_method')
+    account_details = request.form.get('account_details', '').strip()
     
-    if amount <= 0:
-        flash('المبلغ يجب أن يكون أكبر من صفر', 'error')
+    # Validation
+    if amount < 100:
+        flash('الحد الأدنى للسحب هو 100 جنيه', 'error')
         return redirect(url_for('user_views.wallet'))
     
-    if current_user.wallet_balance < amount:
+    if amount > current_user.wallet_balance:
         flash('الرصيد غير كافي', 'error')
         return redirect(url_for('user_views.wallet'))
     
-    current_user.deduct_from_wallet(amount, 'withdrawal')
+    if payment_method not in ['instapay', 'wallet', 'company']:
+        flash('طريقة الدفع غير صالحة', 'error')
+        return redirect(url_for('user_views.wallet'))
+    
+    if not account_details and payment_method != 'company':
+        flash('يرجى إدخال تفاصيل الحساب', 'error')
+        return redirect(url_for('user_views.wallet'))
+    
+    # Create withdrawal request
+    new_request = WithdrawalRequest(
+        user_id=current_user.id,
+        amount=amount,
+        payment_method=payment_method,
+        account_details=account_details if payment_method != 'company' else 'استلام من الشركة',
+        status='pending'
+    )
+    
+    db.session.add(new_request)
     db.session.commit()
     
-    flash(f'تم سحب {amount:,.0f} جنيه بنجاح', 'success')
+    flash(f'تم تقديم طلب سحب {amount:,.0f} جنيه. سيتم مراجعته من قبل الإدارة.', 'success')
+    return redirect(url_for('user_views.wallet'))
+
+
+@bp.route('/cancel-withdrawal/<int:request_id>', methods=['POST'])
+@login_required
+def cancel_withdrawal(request_id):
+    """Cancel pending withdrawal request"""
+    withdrawal = WithdrawalRequest.query.get_or_404(request_id)
+    
+    # Check ownership
+    if withdrawal.user_id != current_user.id:
+        flash('غير مصرح لك بإلغاء هذا الطلب', 'error')
+        return redirect(url_for('user_views.wallet'))
+    
+    # Can only cancel pending requests
+    if withdrawal.status != 'pending':
+        flash('لا يمكن إلغاء هذا الطلب', 'error')
+        return redirect(url_for('user_views.wallet'))
+    
+    withdrawal.status = 'cancelled'
+    withdrawal.processed_date = datetime.utcnow()
+    db.session.commit()
+    
+    flash('تم إلغاء طلب السحب', 'info')
     return redirect(url_for('user_views.wallet'))
 
 

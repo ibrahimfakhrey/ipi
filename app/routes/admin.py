@@ -9,7 +9,7 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, SelectField
 from wtforms.validators import Optional
 from werkzeug.utils import secure_filename
-from app.models import db, Apartment, ApartmentImage, User, Share, Transaction, InvestmentRequest, Car, CarShare, CarInvestmentRequest, CarReferralTree, ReferralUsage
+from app.models import db, Apartment, ApartmentImage, User, Share, Transaction, InvestmentRequest, Car, CarShare, CarInvestmentRequest, CarReferralTree, ReferralUsage, WithdrawalRequest
 from datetime import datetime
 from sqlalchemy import func
 import os
@@ -1154,3 +1154,140 @@ def export_referrals():
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     
     return response
+
+
+# ==================== Withdrawal Requests (Admin) ====================
+
+@bp.route('/withdrawal-requests')
+@admin_required
+def withdrawal_requests():
+    """List all withdrawal requests"""
+    status_filter = request.args.get('status', 'all')
+    
+    query = WithdrawalRequest.query
+    
+    if status_filter == 'pending':
+        query = query.filter_by(status='pending')
+    elif status_filter == 'approved':
+        query = query.filter_by(status='approved')
+    elif status_filter == 'rejected':
+        query = query.filter_by(status='rejected')
+    
+    requests = query.order_by(WithdrawalRequest.request_date.desc()).all()
+    
+    # Count by status
+    pending_count = WithdrawalRequest.query.filter_by(status='pending').count()
+    
+    return render_template('admin/withdrawal_requests.html',
+                         requests=requests,
+                         current_filter=status_filter,
+                         pending_count=pending_count)
+
+
+@bp.route('/withdrawal-request/<int:request_id>')
+@admin_required
+def withdrawal_request_detail(request_id):
+    """View withdrawal request details"""
+    withdrawal = WithdrawalRequest.query.get_or_404(request_id)
+    return render_template('admin/withdrawal_request_detail.html',
+                         withdrawal=withdrawal)
+
+
+class WithdrawalProofForm(FlaskForm):
+    """Form for uploading withdrawal proof"""
+    proof_image = FileField('صورة إثبات التحويل', validators=[
+        FileRequired(message='مطلوب'),
+        FileAllowed(['jpg', 'jpeg', 'png', 'pdf'], 'Images/PDF only')
+    ])
+
+
+@bp.route('/withdrawal-request/<int:request_id>/approve', methods=['POST'])
+@admin_required
+def approve_withdrawal(request_id):
+    """Approve withdrawal request with proof upload"""
+    withdrawal = WithdrawalRequest.query.get_or_404(request_id)
+    
+    if withdrawal.status != 'pending':
+        flash('لا يمكن الموافقة على هذا الطلب', 'error')
+        return redirect(url_for('admin.withdrawal_request_detail', request_id=request_id))
+    
+    form = WithdrawalProofForm()
+    
+    if form.validate_on_submit():
+        # Upload proof image
+        proof_file = form.proof_image.data
+        if proof_file:
+            filename = secure_filename(proof_file.filename)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"withdrawal_proof_{withdrawal.id}_{timestamp}_{filename}"
+            
+            # Save to uploads/withdrawal_proofs
+            upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'withdrawal_proofs')
+            os.makedirs(upload_folder, exist_ok=True)
+            proof_path = os.path.join(upload_folder, filename)
+            proof_file.save(proof_path)
+            
+            withdrawal.proof_image = filename
+        
+        # Check if user has sufficient balance
+        user = withdrawal.user
+        if user.wallet_balance < withdrawal.amount:
+            flash('رصيد المستخدم غير كافي', 'error')
+            return redirect(url_for('admin.withdrawal_request_detail', request_id=request_id))
+        
+        # Deduct from wallet
+        user.wallet_balance -= withdrawal.amount
+        
+        # Create transaction record
+        transaction = Transaction(
+            user_id=user.id,
+            amount=-withdrawal.amount,  # Negative for withdrawal
+            transaction_type='withdrawal',
+            description=f'سحب عبر {withdrawal.payment_method_arabic} - {withdrawal.account_details}'
+        )
+        db.session.add(transaction)
+        
+        # Update withdrawal request
+        withdrawal.status = 'approved'
+        withdrawal.processed_date = datetime.utcnow()
+        withdrawal.processed_by = current_user.id
+        withdrawal.admin_notes = request.form.get('admin_notes', '')
+        
+        db.session.commit()
+        
+        flash(f'تم الموافقة على طلب السحب وخصم {withdrawal.amount:,.0f} جنيه من محفظة {user.name}', 'success')
+        return redirect(url_for('admin.withdrawal_requests'))
+    
+    # Form validation failed
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(f'{error}', 'error')
+    
+    return redirect(url_for('admin.withdrawal_request_detail', request_id=request_id))
+
+
+@bp.route('/withdrawal-request/<int:request_id>/reject', methods=['POST'])
+@admin_required
+def reject_withdrawal(request_id):
+    """Reject withdrawal request"""
+    withdrawal = WithdrawalRequest.query.get_or_404(request_id)
+    
+    if withdrawal.status != 'pending':
+        flash('لا يمكن رفض هذا الطلب', 'error')
+        return redirect(url_for('admin.withdrawal_request_detail', request_id=request_id))
+    
+    admin_notes = request.form.get('admin_notes', '').strip()
+    
+    if not admin_notes:
+        flash('يرجى إضافة سبب الرفض', 'error')
+        return redirect(url_for('admin.withdrawal_request_detail', request_id=request_id))
+    
+    withdrawal.status = 'rejected'
+    withdrawal.processed_date = datetime.utcnow()
+    withdrawal.processed_by = current_user.id
+    withdrawal.admin_notes = admin_notes
+    
+    db.session.commit()
+    
+    flash('تم رفض طلب السحب', 'info')
+    return redirect(url_for('admin.withdrawal_requests'))

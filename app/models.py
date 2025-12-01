@@ -763,3 +763,55 @@ class ReferralUsage(db.Model):
     
     def __repr__(self):
         return f'<ReferralUsage Referrer:{self.referrer_user_id} Referee:{self.referee_user_id} Asset:{self.asset_type}:{self.asset_id}>'
+
+
+class WithdrawalRequest(db.Model):
+    """
+    Withdrawal Request model for tracking user withdrawal requests
+    Requires admin approval with proof image upload
+    """
+    __tablename__ = 'withdrawal_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    amount = db.Column(db.Float, nullable=False)  # Requested amount
+    payment_method = db.Column(db.String(20), nullable=False)  # instapay, wallet, company
+    account_details = db.Column(db.String(200), nullable=False)  # Phone number or account info
+    
+    # Status tracking
+    status = db.Column(db.String(20), default='pending', index=True)  # pending, approved, rejected, cancelled
+    admin_notes = db.Column(db.Text)  # Admin comments
+    proof_image = db.Column(db.String(300))  # Path to uploaded proof image by admin
+    
+    # Timestamps
+    request_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    processed_date = db.Column(db.DateTime)
+    processed_by = db.Column(db.Integer, db.ForeignKey('users.id'))  # Admin who processed
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='withdrawal_requests')
+    processor = db.relationship('User', foreign_keys=[processed_by])
+    
+    @property
+    def status_arabic(self):
+        """Get status in Arabic"""
+        statuses = {
+            'pending': 'قيد الانتظار',
+            'approved': 'معتمد',
+            'rejected': 'مرفوض',
+            'cancelled': 'ملغي'
+        }
+        return statuses.get(self.status, self.status)
+    
+    @property
+    def payment_method_arabic(self):
+        """Get payment method in Arabic"""
+        methods = {
+            'instapay': 'إنستاباي',
+            'wallet': 'محفظة إلكترونية',
+            'company': 'استلام من الشركة'
+        }
+        return methods.get(self.payment_method, self.payment_method)
+    
+    def __repr__(self):
+        return f'<WithdrawalRequest User:{self.user_id} Amount:{self.amount} Status:{self.status}>'

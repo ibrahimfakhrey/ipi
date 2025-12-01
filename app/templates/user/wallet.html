@@ -7,9 +7,9 @@
     <h1 style="margin-bottom: 2rem;">
         <i class="fas fa-wallet"></i> المحفظة
     </h1>
-    
+
     <!-- Stats -->
-    <div class="grid grid-4" style="margin-bottom: 3rem;">
+    <div class="grid grid-3" style="margin-bottom: 3rem;">
         <div class="card text-center">
             <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
                 <i class="fas fa-wallet"></i>
@@ -17,23 +17,7 @@
             <div class="stat-number" style="font-size: 2rem;">{{ "{:,.0f}".format(stats.current_balance) }}</div>
             <div class="stat-label">الرصيد الحالي (جنيه)</div>
         </div>
-        
-        <div class="card text-center">
-            <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
-                <i class="fas fa-arrow-down"></i>
-            </div>
-            <div class="stat-number" style="font-size: 2rem;">{{ "{:,.0f}".format(stats.total_deposits) }}</div>
-            <div class="stat-label">إجمالي الإيداعات</div>
-        </div>
-        
-        <div class="card text-center">
-            <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
-                <i class="fas fa-coins"></i>
-            </div>
-            <div class="stat-number" style="font-size: 2rem;">{{ "{:,.0f}".format(stats.total_invested) }}</div>
-            <div class="stat-label">إجمالي الاستثمار</div>
-        </div>
-        
+
         <div class="card text-center">
             <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
                 <i class="fas fa-chart-line"></i>
@@ -41,59 +25,134 @@
             <div class="stat-number" style="font-size: 2rem;">{{ "{:,.0f}".format(stats.total_rental_income) }}</div>
             <div class="stat-label">دخل الإيجار</div>
         </div>
-    </div>
-    
-    <!-- Actions -->
-    <div class="grid grid-2" style="margin-bottom: 3rem;">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-plus-circle"></i> إيداع</h3>
+
+        <div class="card text-center">
+            <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-arrow-up"></i>
             </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('user_views.deposit') }}">
-                    <div class="form-group">
-                        <label for="deposit_amount" class="form-label">المبلغ (جنيه)</label>
-                        <input type="number" 
-                               id="deposit_amount" 
-                               name="amount" 
-                               class="form-control" 
-                               min="1"
-                               step="100"
-                               required>
+            <div class="stat-number" style="font-size: 2rem;">{{ "{:,.0f}".format(stats.total_withdrawals) }}</div>
+            <div class="stat-label">إجمالي السحب</div>
+        </div>
+    </div>
+
+    <!-- Withdrawal Request Section -->
+    <div class="card" style="margin-bottom: 3rem;">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-money-bill-wave"></i> طلب سحب</h3>
+        </div>
+        <div class="card-body">
+            {% if pending_request %}
+            <!-- Pending Request -->
+            <div
+                style="background: rgba(255, 193, 7, 0.1); border: 2px solid var(--gold); border-radius: 8px; padding: 1.5rem;">
+                <h4 style="color: var(--gold); margin-bottom: 1rem;">
+                    <i class="fas fa-clock"></i> لديك طلب قيد المراجعة
+                </h4>
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                        <strong>المبلغ:</strong> {{ "{:,.0f}".format(pending_request.amount) }} جنيه
                     </div>
-                    <button type="submit" class="btn btn-success" style="width: 100%;">
-                        <i class="fas fa-plus-circle"></i> إيداع
+                    <div>
+                        <strong>الطريقة:</strong> {{ pending_request.payment_method_arabic }}
+                    </div>
+                    <div>
+                        <strong>الحالة:</strong> {{ pending_request.status_arabic }}
+                    </div>
+                    <div>
+                        <strong>التاريخ:</strong> {{ pending_request.request_date.strftime('%Y-%m-%d') }}
+                    </div>
+                </div>
+                <form method="POST"
+                    action="{{ url_for('user_views.cancel_withdrawal', request_id=pending_request.id) }}"
+                    style="margin-top: 1rem;">
+                    <button type="submit" class="btn btn-warning btn-sm"
+                        onclick="return confirm('هل أنت متأكد من إلغاء الطلب؟')">
+                        <i class="fas fa-times"></i> إلغاء الطلب
                     </button>
                 </form>
             </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-minus-circle"></i> سحب</h3>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('user_views.withdraw') }}">
+            {% else %}
+            <!-- Withdrawal Request Form -->
+            <form method="POST" action="{{ url_for('user_views.withdrawal_request') }}" id="withdrawalForm">
+                <div class="grid grid-2" style="margin-bottom: 1.5rem;">
                     <div class="form-group">
-                        <label for="withdraw_amount" class="form-label">المبلغ (جنيه)</label>
-                        <input type="number" 
-                               id="withdraw_amount" 
-                               name="amount" 
-                               class="form-control" 
-                               min="1"
-                               max="{{ current_user.wallet_balance }}"
-                               step="100"
-                               required>
-                        <small class="text-muted">الحد الأقصى: {{ "{:,.0f}".format(current_user.wallet_balance) }} جنيه</small>
+                        <label for="amount" class="form-label">المبلغ (جنيه)</label>
+                        <input type="number" id="amount" name="amount" class="form-control" min="100"
+                            max="{{ current_user.wallet_balance }}" step="10" required>
+                        <small class="text-muted">الحد الأدنى: 100 جنيه | الحد الأقصى: {{
+                            "{:,.0f}".format(current_user.wallet_balance) }} جنيه</small>
                     </div>
-                    <button type="submit" class="btn btn-warning" style="width: 100%;">
-                        <i class="fas fa-minus-circle"></i> سحب
+
+                    <div class="form-group">
+                        <label for="payment_method" class="form-label">طريقة الاستلام</label>
+                        <select id="payment_method" name="payment_method" class="form-control" required
+                            onchange="toggleAccountDetails()">
+                            <option value="">اختر الطريقة</option>
+                            <option value="instapay">إنستاباي</option>
+                            <option value="wallet">محفظة إلكترونية</option>
+                            <option value="company">استلام من الشركة</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" id="accountDetailsGroup" style="display: none;">
+                    <label for="account_details" class="form-label">رقم الحساب / الهاتف</label>
+                    <input type="text" id="account_details" name="account_details" class="form-control"
+                        placeholder="أدخل رقم الهاتف أو الحساب">
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        <i class="fas fa-paper-plane"></i> تقديم طلب السحب
                     </button>
-                </form>
+                    <button type="button" class="btn btn-secondary" onclick="fillFullBalance()">
+                        <i class="fas fa-wallet"></i> سحب كامل الرصيد
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Withdrawal History -->
+    {% if withdrawal_requests %}
+    <div class="card" style="margin-bottom: 3rem;">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-history"></i> سجل طلبات السحب</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>المبلغ</th>
+                            <th>الطريقة</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in withdrawal_requests %}
+                        <tr>
+                            <td>{{ req.request_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ "{:,.0f}".format(req.amount) }} جنيه</td>
+                            <td>{{ req.payment_method_arabic }}</td>
+                            <td>
+                                <span
+                                    class="badge badge-{% if req.status == 'approved' %}success{% elif req.status == 'rejected' %}danger{% elif req.status == 'cancelled' %}secondary{% else %}warning{% endif %}">
+                                    {{ req.status_arabic }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-    
+    {% endif %}
+
     <!-- Transactions -->
     <div class="card">
         <div class="card-header">
@@ -101,57 +160,83 @@
         </div>
         <div class="card-body">
             {% if transactions.items %}
-                <div class="table-container">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>النوع</th>
-                                <th>المبلغ</th>
-                                <th>التاريخ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for transaction in transactions.items %}
-                            <tr>
-                                <td>
-                                    <span class="badge badge-{% if transaction.transaction_type == 'rental_income' %}success{% elif transaction.transaction_type == 'deposit' %}info{% elif transaction.transaction_type == 'withdrawal' %}warning{% else %}gold{% endif %}">
-                                        {{ transaction.type_arabic }}
-                                    </span>
-                                </td>
-                                <td class="{{ 'text-success' if transaction.amount > 0 else 'text-error' }}">
-                                    {{ "{:+,.0f}".format(transaction.amount) }} جنيه
-                                </td>
-                                <td>{{ transaction.date.strftime('%Y-%m-%d %H:%M') }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Pagination -->
-                {% if transactions.has_prev or transactions.has_next %}
-                <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 2rem;">
-                    {% if transactions.has_prev %}
-                        <a href="{{ url_for('user_views.wallet', page=transactions.prev_num) }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-right"></i> السابق
-                        </a>
-                    {% endif %}
-                    
-                    <span style="display: flex; align-items: center; padding: 0 1rem;">
-                        صفحة {{ transactions.page }} من {{ transactions.pages }}
-                    </span>
-                    
-                    {% if transactions.has_next %}
-                        <a href="{{ url_for('user_views.wallet', page=transactions.next_num) }}" class="btn btn-secondary">
-                            التالي <i class="fas fa-arrow-left"></i>
-                        </a>
-                    {% endif %}
-                </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>النوع</th>
+                            <th>المبلغ</th>
+                            <th>الوصف</th>
+                            <th>التاريخ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions.items %}
+                        <tr>
+                            <td>
+                                <span
+                                    class="badge badge-{% if transaction.transaction_type == 'rental_income' %}success{% elif transaction.transaction_type == 'withdrawal' %}warning{% else %}gold{% endif %}">
+                                    {{ transaction.type_arabic }}
+                                </span>
+                            </td>
+                            <td class="{{ 'text-success' if transaction.amount > 0 else 'text-error' }}">
+                                {{ "{:+,.0f}".format(transaction.amount) }} جنيه
+                            </td>
+                            <td>{{ transaction.description or '-' }}</td>
+                            <td>{{ transaction.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if transactions.has_prev or transactions.has_next %}
+            <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 2rem;">
+                {% if transactions.has_prev %}
+                <a href="{{ url_for('user_views.wallet', page=transactions.prev_num) }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-right"></i> السابق
+                </a>
                 {% endif %}
+
+                <span style="display: flex; align-items: center; padding: 0 1rem;">
+                    صفحة {{ transactions.page }} من {{ transactions.pages }}
+                </span>
+
+                {% if transactions.has_next %}
+                <a href="{{ url_for('user_views.wallet', page=transactions.next_num) }}" class="btn btn-secondary">
+                    التالي <i class="fas fa-arrow-left"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
             {% else %}
-                <p class="text-center text-muted">لا توجد معاملات حتى الآن</p>
+            <p class="text-center text-muted">لا توجد معاملات حتى الآن</p>
             {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+    function toggleAccountDetails() {
+        const paymentMethod = document.getElementById('payment_method').value;
+        const accountDetailsGroup = document.getElementById('accountDetailsGroup');
+        const accountDetailsInput = document.getElementById('account_details');
+
+        if (paymentMethod === 'company') {
+            accountDetailsGroup.style.display = 'none';
+            accountDetailsInput.required = false;
+        } else if (paymentMethod) {
+            accountDetailsGroup.style.display = 'block';
+            accountDetailsInput.required = true;
+        } else {
+            accountDetailsGroup.style.display = 'none';
+            accountDetailsInput.required = false;
+        }
+    }
+
+    function fillFullBalance() {
+        document.getElementById('amount').value = '{{ current_user.wallet_balance }}';
+    }
+</script>
 {% endblock %}
