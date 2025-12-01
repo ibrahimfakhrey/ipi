@@ -33,6 +33,9 @@ class User(UserMixin, db.Model):
     provider_email = db.Column(db.String(255))  # Email from provider
     date_joined = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Simple Referral System
+    referral_number = db.Column(db.String(20), unique=True, index=True)  # Simple referral number like IPI000123
+    
     # KYC Information
     phone = db.Column(db.String(20))
     national_id = db.Column(db.String(50))
@@ -50,9 +53,6 @@ class User(UserMixin, db.Model):
                                          backref='user', 
                                          lazy='dynamic', 
                                          cascade='all, delete-orphan')
-    
-    # Composite index for social auth lookups
-    __table_args__ = (db.Index('idx_provider_lookup', 'auth_provider', 'provider_user_id'),)
     
     def set_password(self, password):
         """Hash and set user password"""
@@ -138,6 +138,12 @@ class User(UserMixin, db.Model):
             description=description
         )
         db.session.add(transaction)
+    
+    def generate_referral_number(self):
+        """Generate unique referral number like 'IPI000123'"""
+        if not self.referral_number:
+            self.referral_number = f"IPI{str(self.id).zfill(6)}"
+        return self.referral_number
     
     def link_social_account(self, provider, provider_user_id, provider_email):
         """Link social authentication account to existing user"""
@@ -733,3 +739,27 @@ class CarReferralTree(db.Model):
 
     def __repr__(self):
         return f'<CarReferralTree User:{self.user_id} Car:{self.car_id} Level:{self.level}>'
+
+
+class ReferralUsage(db.Model):
+    """
+    Simple referral tracking - records when someone uses a referral number
+    Replaces complex MLM tree system with straightforward tracking
+    """
+    __tablename__ = 'referral_usages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    referrer_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)  # Who's number was used
+    referee_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)   # Who used the number
+    asset_type = db.Column(db.String(20), nullable=False)  # 'apartment' or 'car'
+    asset_id = db.Column(db.Integer, nullable=False)  # Which apartment/car ID
+    investment_amount = db.Column(db.Float, nullable=False)  # How much they invested
+    shares_purchased = db.Column(db.Integer, nullable=False)  # How many shares
+    date_used = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    # Relationships
+    referrer = db.relationship('User', foreign_keys=[referrer_user_id], backref='referrals_given')
+    referee = db.relationship('User', foreign_keys=[referee_user_id], backref='referrals_used')
+    
+    def __repr__(self):
+        return f'<ReferralUsage Referrer:{self.referrer_user_id} Referee:{self.referee_user_id} Asset:{self.asset_type}:{self.asset_id}>'

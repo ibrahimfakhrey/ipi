@@ -700,6 +700,23 @@ def approve_car_investment_request(request_id):
                     )
                     node.total_rewards_earned += reward_amount
 
+    # NEW SIMPLE REFERRAL SYSTEM: Create ReferralUsage record
+    if inv_request.referred_by_user_id:
+        from app.models import ReferralUsage
+        
+        # Create usage record
+        referral_usage = ReferralUsage(
+            referrer_user_id=inv_request.referred_by_user_id,
+            referee_user_id=inv_request.user_id,
+            asset_type='car',
+            asset_id=inv_request.car_id,
+            investment_amount=investment_amount,
+            shares_purchased=inv_request.shares_requested,
+            date_used=datetime.utcnow()
+        )
+        db.session.add(referral_usage)
+        print(f"✅ Created ReferralUsage record for car referrer user #{inv_request.referred_by_user_id}")
+
     db.session.commit()
     flash(f'تمت الموافقة على الطلب #{request_id}', 'success')
     if inv_request.referred_by_user_id:
@@ -908,6 +925,23 @@ def approve_investment_request(request_id):
 
                     # Update tree node's total rewards
                     node.total_rewards_earned += reward_amount
+    
+    # NEW SIMPLE REFERRAL SYSTEM: Create ReferralUsage record
+    if inv_request.referred_by_user_id:
+        from app.models import ReferralUsage
+        
+        # Create usage record for the new simple system
+        referral_usage = ReferralUsage(
+            referrer_user_id=inv_request.referred_by_user_id,
+            referee_user_id=inv_request.user_id,
+            asset_type='apartment',
+            asset_id=inv_request.apartment_id,
+            investment_amount=investment_amount,
+            shares_purchased=inv_request.shares_requested,
+            date_used=datetime.utcnow()
+        )
+        db.session.add(referral_usage)
+        print(f"✅ Created ReferralUsage record for referrer user #{inv_request.referred_by_user_id}")
     
     db.session.commit()
     

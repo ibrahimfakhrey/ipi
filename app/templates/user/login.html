@@ -10,45 +10,87 @@
                 <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
             </h2>
         </div>
-        
+
         <div class="card-body">
             <form method="POST" action="{{ url_for('auth.login') }}">
                 <div class="form-group">
                     <label for="email" class="form-label">البريد الإلكتروني</label>
-                    <input type="email" 
-                           id="email" 
-                           name="email" 
-                           class="form-control" 
-                           placeholder="example@email.com"
-                           required>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="example@email.com"
+                        required>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="password" class="form-label">كلمة المرور</label>
-                    <input type="password" 
-                           id="password" 
-                           name="password" 
-                           class="form-control" 
-                           placeholder="••••••••"
-                           required>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="••••••••"
+                        required>
                 </div>
-                
+
                 <div class="form-group">
                     <label style="display: flex; align-items: center; gap: 0.5rem;">
                         <input type="checkbox" name="remember" value="1">
                         <span>تذكرني</span>
                     </label>
                 </div>
-                
+
                 <button type="submit" class="btn btn-primary" style="width: 100%;">
                     <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
                 </button>
+
+                <!-- Divider -->
+                <div style="text-align: center; margin: 1.5rem 0; position: relative;">
+                    <hr style="border-top: 1px solid rgba(212, 175, 55, 0.2);">
+                    <span
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--background-navy); padding: 0 1rem; color: var(--text-muted);">أو</span>
+                </div>
+
+                <!-- Google Sign-In Button -->
+                <div id="g_id_onload"
+                    data-client_id="7685982458-7hdh31pb18cgcaiedkd9dg9onidefvid.apps.googleusercontent.com"
+                    data-context="signin" data-ux_mode="popup" data-callback="handleGoogleSignIn"
+                    data-auto_prompt="false">
+                </div>
+
+                <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_black"
+                    data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="100%"
+                    style="width: 100%; display: flex; justify-content: center;">
+                </div>
             </form>
         </div>
-        
+
         <div class="card-footer text-center">
             <p>ليس لديك حساب؟ <a href="{{ url_for('auth.register') }}">إنشاء حساب جديد</a></p>
         </div>
     </div>
 </div>
+
+<!-- Google Sign-In Library -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+    function handleGoogleSignIn(response) {
+        // Send the credential (ID token) to our backend
+        fetch('/auth/google/callback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                credential: response.credential
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect to dashboard or intended page
+                    window.location.href = data.redirect_url || '/user/dashboard';
+                } else {
+                    alert(data.message || 'حدث خطأ أثناء تسجيل الدخول');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء تسجيل الدخول عبر Google');
+            });
+    }
+</script>
 {% endblock %}

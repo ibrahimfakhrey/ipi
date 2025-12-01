@@ -4,7 +4,12 @@ Sets up Flask app, database, login manager, scheduler, JWT, and CORS
 """
 from flask import Flask
 from flask_login import LoginManager
-from flask_apscheduler import APScheduler
+try:
+    from flask_apscheduler import APScheduler
+    SCHEDULER_AVAILABLE = True
+except ImportError:
+    SCHEDULER_AVAILABLE = False
+    APScheduler = None
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from config import config
@@ -17,8 +22,11 @@ login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'يرجى تسجيل الدخول للوصول إلى هذه الصفحة'
 
-# Initialize scheduler
-scheduler = APScheduler()
+# Initialize scheduler (only if available)
+if SCHEDULER_AVAILABLE:
+    scheduler = APScheduler()
+else:
+    scheduler = None
 
 # Initialize JWT manager
 jwt = JWTManager()
@@ -30,18 +38,19 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-def create_app(config_name='default'):
-    """
-    Application factory function
-    Creates and configures the Flask application
-    """
-    app = Flask(__name__)
+def create_app(config_name='development'):
+    """Create and configure Flask application"""
+    # CRITICAL: Disable instance folder to prevent creating instance/app.db
+    app = Flask(__name__, instance_relative_config=False)
+    
+    # Load configuration
     app.config.from_object(config[config_name])
     
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
-    scheduler.init_app(app)
+    if SCHEDULER_AVAILABLE and scheduler:
+        scheduler.init_app(app)
     jwt.init_app(app)
     
     # Enable CORS for API endpoints
@@ -67,16 +76,18 @@ def create_app(config_name='default'):
     
     # Create database tables
     with app.app_context():
+        # DEBUG: Print database path
+        print(f">>> DATABASE PATH: {app.config['SQLALCHEMY_DATABASE_URI']}")
         db.create_all()
         create_admin_user(app)
     
-    # Start scheduler for monthly payouts (only in development mode)
-    # Skip scheduler in production/PythonAnywhere to avoid threading issues
-    if app.config.get('SCHEDULER_ENABLED', False) and not scheduler.running:
+    
+    # Start scheduler for monthly payouts (only if available and enabled)
+    if SCHEDULER_AVAILABLE and scheduler and app.config.get('SCHEDULER_ENABLED', False) and not scheduler.running:
         try:
             scheduler.start()
         except RuntimeError as e:
-            # Scheduler not available in this environment (e.g., PythonAnywhere)
+            # Scheduler not available in this environment
             app.logger.warning(f"Scheduler not started: {e}")
     
     return app
@@ -86,17 +97,22 @@ def create_admin_user(app):
     """Create default admin user if it doesn't exist"""
     from app.models import User
     
-    admin = User.query.filter_by(email=app.config['ADMIN_EMAIL']).first()
+    # HARDCODED admin credentials to prevent environment variable override
+    ADMIN_EMAIL = 'amsprog2022@gmail.com'
+    ADMIN_PASSWORD = 'Zo2lot@123'
+    
+    admin = User.query.filter_by(email=ADMIN_EMAIL).first()
     if not admin:
         admin = User(
             name='Admin',
-            email=app.config['ADMIN_EMAIL'],
-            is_admin=True
+            email=ADMIN_EMAIL,
+            is_admin=True,
+            referral_number='IPI000001'
         )
-        admin.set_password(app.config['ADMIN_PASSWORD'])
+        admin.set_password(ADMIN_PASSWORD)
         db.session.add(admin)
         db.session.commit()
-        print(f"Admin user created: {app.config['ADMIN_EMAIL']}")
+        print(f"Admin user created: {ADMIN_EMAIL}")
 
 
 def schedule_monthly_payouts():
@@ -118,8 +134,9 @@ def schedule_monthly_payouts():
     print(f"Monthly payouts completed: {total_payouts} payments processed at {datetime.utcnow()}")
 
 
-# Register scheduled tasks
-@scheduler.task('cron', id='monthly_rent_distribution', day=1, hour=0, minute=0)
-def scheduled_rent_distribution():
-    """Monthly rent distribution task"""
-    schedule_monthly_payouts()
+# Register scheduled tasks (only if scheduler is available)
+if SCHEDULER_AVAILABLE and scheduler:
+    @scheduler.task('cron', id='monthly_rent_distribution', day=1, hour=0, minute=0)
+    def scheduled_rent_distribution():
+        """Monthly rent distribution task"""
+        schedule_monthly_payouts()

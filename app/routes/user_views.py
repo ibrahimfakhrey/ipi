@@ -394,40 +394,28 @@ def investment_request(apartment_id):
     shares_count = int(request.args.get('shares', 1))
     total_amount = apartment.share_price * shares_count
     
-    # Check for referral code in session
-    referral_code = None
-    referrer_tree = None
-    if 'referral_code' in session and session.get('referral_apartment') == apartment_id:
-        referral_code = session['referral_code']
-        from app.models import ReferralTree
-        referrer_tree = ReferralTree.query.filter_by(
-            apartment_id=apartment_id,
-            referral_code=referral_code
-        ).first()
-    
+    # Initialize form first
     form = InvestmentRequestForm()
     
-    # Pre-populate referral code field if in session
-    if referral_code and request.method == 'GET':
-        form.referral_code.data = referral_code
+    # Check for referral number in form
+    referral_number = None
+    referrer_user = None
     
     if form.validate_on_submit():
-        # Check for manual referral code entry (overrides session)
-        manual_referral_code = form.referral_code.data
-        if manual_referral_code:
-            from app.models import ReferralTree
-            referrer_tree = ReferralTree.query.filter_by(
-                apartment_id=apartment_id,
-                referral_code=manual_referral_code.strip()
+        # Check for manual referral number entry
+        manual_referral_number = form.referral_code.data
+        if manual_referral_number:
+            referrer_user = User.query.filter_by(
+                referral_number=manual_referral_number.strip().upper()
             ).first()
-            if not referrer_tree:
-                flash('كود الإحالة غير صحيح أو غير موجود لهذه الوحدة', 'error')
+            if not referrer_user:
+                flash('رقم الإحالة غير صحيح', 'error')
                 return render_template('user/investment_request.html',
                                      form=form,
                                      apartment=apartment,
                                      shares_count=shares_count,
                                      total_amount=total_amount,
-                                     referral_code=manual_referral_code,
+                                     referral_code=manual_referral_number,
                                      referrer=None)
         # Create uploads directories if they don't exist - use absolute path
         from flask import current_app
@@ -485,7 +473,7 @@ def investment_request(apartment_id):
             id_document_back=back_filename,
             proof_of_address=address_filename,
             status='pending',
-            referred_by_user_id=referrer_tree.user_id if referrer_tree else None
+            referred_by_user_id=referrer_user.id if referrer_user else None
         )
         
         db.session.add(inv_request)
@@ -509,8 +497,8 @@ def investment_request(apartment_id):
                          apartment=apartment,
                          shares_count=shares_count,
                          total_amount=total_amount,
-                         referral_code=referral_code,
-                         referrer=User.query.get(referrer_tree.user_id) if referrer_tree else None)
+                         referral_code=None,
+                         referrer=referrer_user)
 
 
 @bp.route('/car-investment-request/<int:car_id>', methods=['GET', 'POST'])
@@ -653,68 +641,20 @@ def my_investment_requests():
 @bp.route('/my-referrals')
 @login_required
 def my_referrals():
-    """Show user's referral trees for all apartments and cars they invested in"""
-    from app.models import ReferralTree
-
-    # Apartments where user has approved investments
-    approved_requests = InvestmentRequest.query.filter_by(
-        user_id=current_user.id,
-        status='approved'
-    ).all()
-
-    trees = []
-    for req in approved_requests:
-        referral_code = current_user.get_or_create_referral_code(req.apartment_id)
-        tree_node = ReferralTree.query.filter_by(
-            user_id=current_user.id,
-            apartment_id=req.apartment_id
-        ).first()
-
-        if tree_node:
-            upline = tree_node.get_upline()
-            downline = tree_node.get_downline()
-            trees.append({
-                'apartment': req.apartment,
-                'referral_code': referral_code,
-                'upline': upline,
-                'downline': downline,
-                'total_referrals': len(downline),
-                'total_rewards': tree_node.total_rewards_earned
-            })
-
-    # Cars where user has approved investments
-    car_approved_requests = CarInvestmentRequest.query.filter_by(
-        user_id=current_user.id,
-        status='approved'
-    ).all()
-
-    car_trees = []
-    for req in car_approved_requests:
-        node = CarReferralTree.query.filter_by(user_id=current_user.id, car_id=req.car_id).first()
-        if not node:
-            import secrets
-            node = CarReferralTree(
-                user_id=current_user.id,
-                car_id=req.car_id,
-                level=0,
-                referral_code=f"REF{current_user.id}CAR{req.car_id}{secrets.token_hex(4).upper()}"
-            )
-            db.session.add(node)
-            db.session.commit()
-
-        if node:
-            upline = node.get_upline()
-            downline = node.get_downline()
-            car_trees.append({
-                'car': req.car,
-                'referral_code': node.referral_code,
-                'upline': upline,
-                'downline': downline,
-                'total_referrals': len(downline),
-                'total_rewards': node.total_rewards_earned
-            })
-
-    return render_template('user/my_referrals.html', trees=trees, car_trees=car_trees)
+    """Show user's referral number and who used it"""
+    from app.models import ReferralUsage
+    
+    # Ensure user has a referral number
+    if not current_user.referral_number:
+        current_user.generate_referral_number()
+        db.session.commit()
+    
+    # Get all people who used this user's referral number
+    referrals = ReferralUsage.query.filter_by(
+        referrer_user_id=current_user.id
+    ).order_by(desc(ReferralUsage.date_used)).all()
+    
+    return render_template('user/my_referrals.html', referrals=referrals)
 
 
 @bp.route('/refer/<int:apartment_id>')

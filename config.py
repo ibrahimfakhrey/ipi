@@ -1,11 +1,10 @@
 """
-Configuration file for the Apartment Sharing Platform
-Contains all application settings and environment variables
+Flask application configuration
 """
 import os
 from datetime import timedelta
 
-# Base directory of the application
+# Get absolute path to project directory
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -20,9 +19,9 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     
-    # Database configuration
+    # Database configuration - Use Flask instance folder
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'sqlite:///' + os.path.join(basedir, 'apartment_platform.db')
+        'sqlite:///app.db'  # Relative path creates instance/app.db automatically
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Upload folder for apartment images
@@ -48,21 +47,8 @@ class Config:
     TEXT_LIGHT = "#FFFFFF"  # White text
     
     # Admin credentials (in production, use environment variables)
-    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL') or 'admin@apartmentshare.com'
-    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') or 'admin123'
-    
-    # Social Authentication - Google OAuth
-    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID') or '162805126554-vmtgnbnrs0r0ev4pv0ebmq694dh1i77j.apps.googleusercontent.com'
-    GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET') or ''
-    
-    # Social Authentication - Apple Sign-In
-    APPLE_CLIENT_ID = os.environ.get('APPLE_CLIENT_ID') or ''
-    APPLE_TEAM_ID = os.environ.get('APPLE_TEAM_ID') or ''
-    APPLE_KEY_ID = os.environ.get('APPLE_KEY_ID') or ''
-    APPLE_PRIVATE_KEY = os.environ.get('APPLE_PRIVATE_KEY') or ''
-    
-    # Apple public keys cache timeout (24 hours)
-    APPLE_KEYS_CACHE_TIMEOUT = 86400
+    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL') or 'amsprog2022@gmail.com'
+    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') or 'Zo2lot@123'
 
 
 class DevelopmentConfig(Config):

@@ -81,24 +81,58 @@
         animation: dotPulse 1.5s ease-in-out infinite;
     }
 
-    .upload-dot:nth-child(1) { animation-delay: 0s; }
-    .upload-dot:nth-child(2) { animation-delay: 0.3s; }
-    .upload-dot:nth-child(3) { animation-delay: 0.6s; }
+    .upload-dot:nth-child(1) {
+        animation-delay: 0s;
+    }
+
+    .upload-dot:nth-child(2) {
+        animation-delay: 0.3s;
+    }
+
+    .upload-dot:nth-child(3) {
+        animation-delay: 0.6s;
+    }
 
     @keyframes uploadPulse {
-        0%, 100% { transform: scale(1); opacity: 0.8; }
-        50% { transform: scale(1.1); opacity: 1; }
+
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 0.8;
+        }
+
+        50% {
+            transform: scale(1.1);
+            opacity: 1;
+        }
     }
 
     @keyframes progressAnimation {
-        0% { width: 0%; }
-        50% { width: 70%; }
-        100% { width: 100%; }
+        0% {
+            width: 0%;
+        }
+
+        50% {
+            width: 70%;
+        }
+
+        100% {
+            width: 100%;
+        }
     }
 
     @keyframes dotPulse {
-        0%, 100% { opacity: 0.3; transform: scale(0.8); }
-        50% { opacity: 1; transform: scale(1.2); }
+
+        0%,
+        100% {
+            opacity: 0.3;
+            transform: scale(0.8);
+        }
+
+        50% {
+            opacity: 1;
+            transform: scale(1.2);
+        }
     }
 
     .form-uploading {
@@ -129,8 +163,9 @@
             <h1 class="text-gold" style="margin-bottom: 1rem;">
                 <i class="fas fa-file-contract"></i> طلب استثمار
             </h1>
-            
-            <div style="background: var(--secondary-navy); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 2rem;">
+
+            <div
+                style="background: var(--secondary-navy); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 2rem;">
                 <h3 style="margin-bottom: 1rem;">{{ apartment.title }}</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                     <div>
@@ -147,114 +182,115 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="alert alert-info">
                 <i class="fas fa-info-circle"></i>
-                <strong>مهم:</strong> يرجى ملء جميع البيانات بدقة وتحميل المستندات المطلوبة. سيتم مراجعة طلبك خلال 24-48 ساعة.
+                <strong>مهم:</strong> يرجى ملء جميع البيانات بدقة وتحميل المستندات المطلوبة. سيتم مراجعة طلبك خلال 24-48
+                ساعة.
             </div>
-            
+
             <form method="POST" enctype="multipart/form-data" style="margin-top: 2rem;">
                 {{ form.hidden_tag() }}
-                
+
                 <h3 class="text-gold" style="margin-bottom: 1.5rem;">
                     <i class="fas fa-user"></i> البيانات الشخصية
                 </h3>
-                
+
                 <div class="form-group">
                     {{ form.full_name.label }}
                     {{ form.full_name(class="form-control", placeholder="الاسم الكامل كما في البطاقة") }}
                     {% if form.full_name.errors %}
-                        <div class="text-danger">{{ form.full_name.errors[0] }}</div>
+                    <div class="text-danger">{{ form.full_name.errors[0] }}</div>
                     {% endif %}
                 </div>
-                
+
                 <div class="grid grid-2" style="gap: 1.5rem;">
                     <div class="form-group">
                         {{ form.phone.label }}
                         {{ form.phone(class="form-control", placeholder="+20 1XX XXX XXXX") }}
                         {% if form.phone.errors %}
-                            <div class="text-danger">{{ form.phone.errors[0] }}</div>
+                        <div class="text-danger">{{ form.phone.errors[0] }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="form-group">
                         {{ form.date_of_birth.label }}
                         {{ form.date_of_birth(class="form-control", type="date") }}
                         {% if form.date_of_birth.errors %}
-                            <div class="text-danger">{{ form.date_of_birth.errors[0] }}</div>
+                        <div class="text-danger">{{ form.date_of_birth.errors[0] }}</div>
                         {% endif %}
                     </div>
                 </div>
-                
+
                 <div class="grid grid-2" style="gap: 1.5rem;">
                     <div class="form-group">
                         {{ form.national_id.label }}
                         {{ form.national_id(class="form-control", placeholder="رقم البطاقة (14 رقم)") }}
                         {% if form.national_id.errors %}
-                            <div class="text-danger">{{ form.national_id.errors[0] }}</div>
+                        <div class="text-danger">{{ form.national_id.errors[0] }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="form-group">
                         {{ form.nationality.label }}
                         {{ form.nationality(class="form-control", placeholder="الجنسية") }}
                         {% if form.nationality.errors %}
-                            <div class="text-danger">{{ form.nationality.errors[0] }}</div>
+                        <div class="text-danger">{{ form.nationality.errors[0] }}</div>
                         {% endif %}
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     {{ form.occupation.label }}
                     {{ form.occupation(class="form-control", placeholder="المهنة") }}
                     {% if form.occupation.errors %}
-                        <div class="text-danger">{{ form.occupation.errors[0] }}</div>
+                    <div class="text-danger">{{ form.occupation.errors[0] }}</div>
                     {% endif %}
                 </div>
-                
+
                 <div class="form-group">
                     {{ form.address.label }}
                     {{ form.address(class="form-control", rows=3, placeholder="العنوان الكامل") }}
                     {% if form.address.errors %}
-                        <div class="text-danger">{{ form.address.errors[0] }}</div>
+                    <div class="text-danger">{{ form.address.errors[0] }}</div>
                     {% endif %}
                 </div>
-                
+
                 <hr style="margin: 2rem 0; border-color: var(--gold);">
-                
+
                 <h3 class="text-gold" style="margin-bottom: 1.5rem;">
-                    <i class="fas fa-users"></i> الإحالة (اختياري)
+                    <i class="fas fa-gift"></i> رقم الإحالة (اختياري)
                 </h3>
-                
+
                 <div class="form-group">
-                    {{ form.referral_code.label }}
-                    {{ form.referral_code(class="form-control", placeholder="أدخل كود الإحالة إذا كان لديك واحد") }}
+                    {{ form.referral_code.label(text="رقم الإحالة") }}
+                    {{ form.referral_code(class="form-control", placeholder="IPI000123") }}
                     {% if form.referral_code.errors %}
-                        <div class="text-danger">{{ form.referral_code.errors[0] }}</div>
+                    <div class="text-danger">{{ form.referral_code.errors[0] }}</div>
                     {% endif %}
                     <small class="text-muted">
                         <i class="fas fa-info-circle"></i>
-                        إذا كنت مُحالاً من مستثمر آخر، أدخل كود الإحالة الخاص به للحصول على المزايا
+                        إذا كان لديك رقم إحالة من مستثمر آخر، أدخله هنا (مثال: IPI000123)
                     </small>
                     {% if referrer %}
-                        <div class="alert alert-success" style="margin-top: 0.5rem;">
-                            <i class="fas fa-check-circle"></i>
-                            تم الإحالة من: <strong>{{ referrer.name }}</strong>
-                        </div>
+                    <div class="alert alert-success" style="margin-top: 0.5rem;">
+                        <i class="fas fa-check-circle"></i>
+                        تم الإحالة من: <strong>{{ referrer.name }}</strong>
+                    </div>
                     {% endif %}
                 </div>
-                
+
                 <hr style="margin: 2rem 0; border-color: var(--gold);">
-                
+
                 <h3 class="text-gold" style="margin-bottom: 1.5rem;">
                     <i class="fas fa-file-upload"></i> المستندات المطلوبة
                 </h3>
-                
+
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle"></i>
                     يرجى تحميل صور واضحة للمستندات (PDF أو صور JPG/PNG - حجم أقصى 5 ميجا)
                 </div>
-                
+
                 <div class="form-group">
                     {{ form.id_document_front.label }}
                     <div class="file-input-wrapper">
@@ -262,10 +298,10 @@
                         <small class="text-muted">صورة وجه البطاقة الشخصية</small>
                     </div>
                     {% if form.id_document_front.errors %}
-                        <div class="text-danger">{{ form.id_document_front.errors[0] }}</div>
+                    <div class="text-danger">{{ form.id_document_front.errors[0] }}</div>
                     {% endif %}
                 </div>
-                
+
                 <div class="form-group">
                     {{ form.id_document_back.label }}
                     <div class="file-input-wrapper">
@@ -273,10 +309,10 @@
                         <small class="text-muted">صورة ظهر البطاقة الشخصية</small>
                     </div>
                     {% if form.id_document_back.errors %}
-                        <div class="text-danger">{{ form.id_document_back.errors[0] }}</div>
+                    <div class="text-danger">{{ form.id_document_back.errors[0] }}</div>
                     {% endif %}
                 </div>
-                
+
                 <div class="form-group">
                     {{ form.proof_of_address.label }}
                     <div class="file-input-wrapper">
@@ -284,27 +320,29 @@
                         <small class="text-muted">فاتورة كهرباء أو مياه أو غاز حديثة</small>
                     </div>
                     {% if form.proof_of_address.errors %}
-                        <div class="text-danger">{{ form.proof_of_address.errors[0] }}</div>
+                    <div class="text-danger">{{ form.proof_of_address.errors[0] }}</div>
                     {% endif %}
                 </div>
-                
+
                 <hr style="margin: 2rem 0; border-color: var(--gold);">
-                
+
                 <div class="form-group">
                     <label style="display: flex; align-items: center; gap: 0.5rem;">
                         {{ form.agree_terms(style="width: auto;") }}
-                        <span>أوافق على <a href="#" class="text-gold">الشروط والأحكام</a> و <a href="#" class="text-gold">سياسة الخصوصية</a></span>
+                        <span>أوافق على <a href="#" class="text-gold">الشروط والأحكام</a> و <a href="#"
+                                class="text-gold">سياسة الخصوصية</a></span>
                     </label>
                     {% if form.agree_terms.errors %}
-                        <div class="text-danger">{{ form.agree_terms.errors[0] }}</div>
+                    <div class="text-danger">{{ form.agree_terms.errors[0] }}</div>
                     {% endif %}
                 </div>
-                
+
                 <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                     <button type="submit" class="btn btn-primary" id="submitBtn" style="flex: 1;">
                         <i class="fas fa-paper-plane"></i> إرسال الطلب
                     </button>
-                    <a href="{{ url_for('main.apartment_detail', apartment_id=apartment.id) }}" class="btn btn-secondary">
+                    <a href="{{ url_for('main.apartment_detail', apartment_id=apartment.id) }}"
+                        class="btn btn-secondary">
                         <i class="fas fa-times"></i> إلغاء
                     </a>
                 </div>
@@ -336,102 +374,102 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
-    const submitBtn = document.getElementById('submitBtn');
-    const uploadOverlay = document.getElementById('uploadOverlay');
-    const fileInputs = document.querySelectorAll('input[type="file"]');
-    
-    // File preview functionality
-    fileInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            const wrapper = this.closest('.file-input-wrapper');
-            let preview = wrapper.querySelector('.file-preview');
-            
-            if (!preview) {
-                preview = document.createElement('div');
-                preview.className = 'file-preview';
-                wrapper.appendChild(preview);
-            }
-            
-            if (this.files[0]) {
-                const file = this.files[0];
-                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
-                preview.innerHTML = `
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadOverlay = document.getElementById('uploadOverlay');
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+
+        // File preview functionality
+        fileInputs.forEach(input => {
+            input.addEventListener('change', function () {
+                const wrapper = this.closest('.file-input-wrapper');
+                let preview = wrapper.querySelector('.file-preview');
+
+                if (!preview) {
+                    preview = document.createElement('div');
+                    preview.className = 'file-preview';
+                    wrapper.appendChild(preview);
+                }
+
+                if (this.files[0]) {
+                    const file = this.files[0];
+                    const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                    preview.innerHTML = `
                     <i class="fas fa-file-check"></i>
                     تم اختيار: ${file.name} (${sizeInMB} ميجا)
                 `;
-                preview.style.display = 'block';
-                
-                // Check file size
-                if (file.size > 5 * 1024 * 1024) {
-                    preview.innerHTML = `
+                    preview.style.display = 'block';
+
+                    // Check file size
+                    if (file.size > 5 * 1024 * 1024) {
+                        preview.innerHTML = `
                         <i class="fas fa-exclamation-triangle text-danger"></i>
                         حجم الملف كبير جداً (${sizeInMB} ميجا). الحد الأقصى 5 ميجا
                     `;
-                    preview.style.color = 'var(--danger)';
-                    this.value = '';
+                        preview.style.color = 'var(--danger)';
+                        this.value = '';
+                    } else {
+                        preview.style.color = 'var(--gold)';
+                    }
                 } else {
-                    preview.style.color = 'var(--gold)';
+                    preview.style.display = 'none';
                 }
-            } else {
-                preview.style.display = 'none';
+            });
+        });
+
+        // Form submission with loading animation
+        form.addEventListener('submit', function (e) {
+            // Validate files are selected
+            let allFilesSelected = true;
+            const requiredFileInputs = document.querySelectorAll('input[type="file"][required]');
+
+            requiredFileInputs.forEach(input => {
+                if (!input.files[0]) {
+                    allFilesSelected = false;
+                }
+            });
+
+            if (!allFilesSelected) {
+                alert('يرجى اختيار جميع الملفات المطلوبة');
+                e.preventDefault();
+                return;
+            }
+
+            // Check file sizes
+            let validSizes = true;
+            fileInputs.forEach(input => {
+                if (input.files[0] && input.files[0].size > 5 * 1024 * 1024) {
+                    validSizes = false;
+                }
+            });
+
+            if (!validSizes) {
+                alert('حجم بعض الملفات كبير جداً. يرجى اختيار ملفات أصغر من 5 ميجا');
+                e.preventDefault();
+                return;
+            }
+
+            // Show loading animation
+            uploadOverlay.style.display = 'flex';
+            form.classList.add('form-uploading');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+
+            // Prevent multiple submissions
+            setTimeout(() => {
+                const newSubmitBtn = submitBtn.cloneNode(true);
+                newSubmitBtn.disabled = true;
+                submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+            }, 100);
+        });
+
+        // Handle form validation errors (hide loading if form doesn't submit)
+        window.addEventListener('beforeunload', function () {
+            if (uploadOverlay.style.display === 'flex') {
+                return 'يتم حالياً رفع الملفات. هل أنت متأكد من إغلاق الصفحة؟';
             }
         });
     });
-    
-    // Form submission with loading animation
-    form.addEventListener('submit', function(e) {
-        // Validate files are selected
-        let allFilesSelected = true;
-        const requiredFileInputs = document.querySelectorAll('input[type="file"][required]');
-        
-        requiredFileInputs.forEach(input => {
-            if (!input.files[0]) {
-                allFilesSelected = false;
-            }
-        });
-        
-        if (!allFilesSelected) {
-            alert('يرجى اختيار جميع الملفات المطلوبة');
-            e.preventDefault();
-            return;
-        }
-        
-        // Check file sizes
-        let validSizes = true;
-        fileInputs.forEach(input => {
-            if (input.files[0] && input.files[0].size > 5 * 1024 * 1024) {
-                validSizes = false;
-            }
-        });
-        
-        if (!validSizes) {
-            alert('حجم بعض الملفات كبير جداً. يرجى اختيار ملفات أصغر من 5 ميجا');
-            e.preventDefault();
-            return;
-        }
-        
-        // Show loading animation
-        uploadOverlay.style.display = 'flex';
-        form.classList.add('form-uploading');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
-        
-        // Prevent multiple submissions
-        setTimeout(() => {
-            const newSubmitBtn = submitBtn.cloneNode(true);
-            newSubmitBtn.disabled = true;
-            submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
-        }, 100);
-    });
-    
-    // Handle form validation errors (hide loading if form doesn't submit)
-    window.addEventListener('beforeunload', function() {
-        if (uploadOverlay.style.display === 'flex') {
-            return 'يتم حالياً رفع الملفات. هل أنت متأكد من إغلاق الصفحة؟';
-        }
-    });
-});
 </script>
 {% endblock %}

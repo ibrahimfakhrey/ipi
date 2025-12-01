@@ -151,7 +151,7 @@ def register():
             name=data['name'],
             email=data['email'],
             phone=data.get('phone'),
-            wallet_balance=500000.0  # Default starting balance
+            wallet_balance=0.0  # Start with zero balance
         )
         user.set_password(data['password'])
         
@@ -353,7 +353,7 @@ def google_sign_in():
                     auth_provider='google',
                     provider_user_id=google_user_id,
                     provider_email=email,
-                    wallet_balance=500000.0  # Default starting balance
+                    wallet_balance=0.0  # Start with zero balance
                 )
                 db.session.add(user)
                 is_new_user = True
@@ -458,7 +458,7 @@ def apple_sign_in():
                         auth_provider='apple',
                         provider_user_id=apple_user_id,
                         provider_email=email,
-                        wallet_balance=500000.0  # Default starting balance
+                        wallet_balance=0.0  # Start with zero balance
                     )
                     db.session.add(user)
                     is_new_user = True

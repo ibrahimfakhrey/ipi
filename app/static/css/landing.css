@@ -32,12 +32,15 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
         transform: translateY(100vh) translateX(var(--x-start)) rotate(0deg);
         opacity: 0;
     }
+
     10% {
         opacity: 0.8;
     }
+
     90% {
         opacity: 0.4;
     }
+
     100% {
         transform: translateY(-10vh) translateX(var(--x-end)) rotate(360deg);
         opacity: 0;
@@ -79,7 +82,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
+    background:
         radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.15) 0%, transparent 50%),
         radial-gradient(circle at 80% 50%, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
     pointer-events: none;
@@ -94,7 +97,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 
 .hero.hero--with-image::before {
     /* Subtle overlay for text contrast */
-    background: linear-gradient(135deg, rgba(10,10,10,0.35) 0%, rgba(5,9,20,0.45) 50%, rgba(10,10,10,0.5) 100%);
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.35) 0%, rgba(5, 9, 20, 0.45) 50%, rgba(10, 10, 10, 0.5) 100%);
 }
 
 /* Hero video background variant */
@@ -139,9 +142,11 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     top: 50%;
     left: 50%;
     width: 100vw;
-    height: 56.25vw; /* 16:9 aspect ratio */
+    height: 56.25vw;
+    /* 16:9 aspect ratio */
     min-height: 100vh;
-    min-width: 177.78vh; /* 16:9 aspect ratio */
+    min-width: 177.78vh;
+    /* 16:9 aspect ratio */
     transform: translate(-50%, -50%);
     pointer-events: none;
     border: none;
@@ -154,16 +159,17 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, 
-        rgba(10,10,10,0.4) 0%, 
-        rgba(5,9,20,0.5) 50%, 
-        rgba(10,10,10,0.45) 100%);
+    background: linear-gradient(135deg,
+            rgba(10, 10, 10, 0.4) 0%,
+            rgba(5, 9, 20, 0.5) 50%,
+            rgba(10, 10, 10, 0.45) 100%);
     z-index: 1;
     pointer-events: none;
 }
 
 /* Disable video on slow connections or mobile data saver mode */
 @media (prefers-reduced-data: reduce) {
+
     .hero-video,
     .vimeo-background {
         display: none;
@@ -175,19 +181,19 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     .hero-video {
         opacity: 0.85;
     }
-    
+
     .vimeo-background iframe {
         width: 100%;
         height: 100%;
         min-width: auto;
         min-height: auto;
     }
-    
+
     .video-overlay {
-        background: linear-gradient(135deg, 
-            rgba(10,10,10,0.6) 0%, 
-            rgba(5,9,20,0.7) 50%, 
-            rgba(10,10,10,0.65) 100%);
+        background: linear-gradient(135deg,
+                rgba(10, 10, 10, 0.6) 0%,
+                rgba(5, 9, 20, 0.7) 50%,
+                rgba(10, 10, 10, 0.65) 100%);
     }
 }
 
@@ -212,6 +218,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     margin-bottom: 1rem;
     z-index: 10;
 }
+
 /* Handwriting signature animation using SVG text */
 .brand-signature {
     display: block;
@@ -220,46 +227,72 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     position: relative;
     z-index: 10;
 }
+
 .brand-signature text {
     font-family: 'Cinzel', serif;
     font-weight: 900;
     font-size: 120px;
     letter-spacing: 0.14em;
     text-transform: lowercase;
-    fill: transparent;                 /* hollow */
-    stroke: var(--primary-gold);       /* outline color */
+
+    /* Animated black liquid fill */
+    fill: url(#liquidFillGradient);
+
+    stroke: var(--primary-gold);
+    /* Gold outline */
     stroke-width: 2.5px;
-    paint-order: stroke fill;          /* ensure stroke on top */
-    vector-effect: non-scaling-stroke; /* keep stroke width stable */
+    paint-order: stroke fill;
+    /* Stroke on top */
+    vector-effect: non-scaling-stroke;
     stroke-linecap: round;
     stroke-linejoin: round;
-    /* handwriting draw */
+
+    /* Handwriting stroke animation */
     stroke-dasharray: 1600;
     stroke-dashoffset: 1600;
-    animation: brandWrite 2.8s ease forwards, brandGlow 6s ease-in-out 2.8s infinite;
-    filter: drop-shadow(0 12px 28px rgba(194,161,77,0.18));
-    /* Mobile fix: ensure visibility */
+    animation: brandWrite 2.8s ease forwards;
+
+    filter: drop-shadow(0 12px 28px rgba(194, 161, 77, 0.18));
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
     will-change: stroke-dashoffset;
 }
+
 @keyframes brandFade {
-  from { opacity: 0; letter-spacing: 0.2em; }
-  to { opacity: 1; letter-spacing: 0.14em; }
+    from {
+        opacity: 0;
+        letter-spacing: 0.2em;
+    }
+
+    to {
+        opacity: 1;
+        letter-spacing: 0.14em;
+    }
 }
 
 @keyframes brandWrite {
-    to { stroke-dashoffset: 0; }
+    to {
+        stroke-dashoffset: 0;
+    }
 }
 
 @keyframes brandGlow {
-    0%, 100% { text-shadow: 0 0 8px rgba(194,161,77,0.18), 0 0 18px rgba(194,161,77,0.10); }
-    50% { text-shadow: 0 0 14px rgba(194,161,77,0.32), 0 0 28px rgba(194,161,77,0.16); }
+
+    0%,
+    100% {
+        text-shadow: 0 0 8px rgba(194, 161, 77, 0.18), 0 0 18px rgba(194, 161, 77, 0.10);
+    }
+
+    50% {
+        text-shadow: 0 0 14px rgba(194, 161, 77, 0.32), 0 0 28px rgba(194, 161, 77, 0.16);
+    }
 }
 
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
-    .brand-signature text { animation: none; }
+    .brand-signature text {
+        animation: none;
+    }
 }
 
 /* Mobile optimizations for brand signature */
@@ -268,6 +301,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
         width: 95vw;
         max-width: 100%;
     }
+
     .brand-signature text {
         font-size: 80px;
         stroke-width: 2px;
@@ -302,23 +336,47 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 .hero .emphasis {
-        color: var(--primary-gold);
-        font-weight: 800;
+    color: var(--primary-gold);
+    font-weight: 800;
 }
 
 .flip-word {
-        display: inline-block;
-        min-width: 6ch;
+    display: inline-block;
+    min-width: 6ch;
 }
-.flip-in { opacity: 0; animation: flipIn 0.3s ease forwards; }
-.flip-out { opacity: 1; animation: flipOut 0.2s ease forwards; }
+
+.flip-in {
+    opacity: 0;
+    animation: flipIn 0.3s ease forwards;
+}
+
+.flip-out {
+    opacity: 1;
+    animation: flipOut 0.2s ease forwards;
+}
+
 @keyframes flipIn {
-    from { opacity: 0; transform: translateY(10px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
+
 @keyframes flipOut {
-    from { opacity: 1; transform: translateY(0) scale(1); }
-    to { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+    }
 }
 
 
@@ -359,9 +417,12 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 @keyframes pulseGlow {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 20px rgba(212, 175, 55, 0.4), 0 0 40px rgba(212, 175, 55, 0.2);
     }
+
     50% {
         box-shadow: 0 0 30px rgba(212, 175, 55, 0.6), 0 0 60px rgba(212, 175, 55, 0.3);
     }
@@ -375,7 +436,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 
 .card-3d:hover {
     transform: translateY(-10px) rotateX(2deg) rotateY(-2deg);
-    box-shadow: 
+    box-shadow:
         0 20px 40px rgba(212, 175, 55, 0.3),
         0 0 50px rgba(212, 175, 55, 0.1);
 }
@@ -418,20 +479,23 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     left: -50%;
     width: 200%;
     height: 200%;
-    background: linear-gradient(
-        45deg,
-        transparent 0%,
-        rgba(212, 175, 55, 0.1) 50%,
-        transparent 100%
-    );
+    background: linear-gradient(45deg,
+            transparent 0%,
+            rgba(212, 175, 55, 0.1) 50%,
+            transparent 100%);
     animation: rotateGradient 3s linear infinite;
     opacity: 0;
     transition: opacity 0.3s ease;
 }
 
 @keyframes rotateGradient {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .stat-card:hover::before {
@@ -441,7 +505,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 .stat-card:hover {
     border-color: var(--primary-gold);
     transform: translateY(-10px) scale(1.05);
-    box-shadow: 
+    box-shadow:
         0 15px 30px rgba(255, 215, 0, 0.3),
         0 0 50px rgba(255, 215, 0, 0.2);
 }
@@ -495,7 +559,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(10,10,10,0.88) 0%, rgba(5,9,20,0.92) 50%, rgba(10,10,10,0.90) 100%);
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.88) 0%, rgba(5, 9, 20, 0.92) 50%, rgba(10, 10, 10, 0.90) 100%);
     pointer-events: none;
     z-index: 0;
 }
@@ -558,12 +622,10 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     left: -50%;
     width: 200%;
     height: 200%;
-    background: linear-gradient(
-        45deg,
-        transparent 30%,
-        rgba(212, 175, 55, 0.05) 50%,
-        transparent 70%
-    );
+    background: linear-gradient(45deg,
+            transparent 30%,
+            rgba(212, 175, 55, 0.05) 50%,
+            transparent 70%);
     transform: rotate(0deg);
     transition: transform 0.6s ease;
 }
@@ -581,7 +643,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 .feature-card:hover {
     border-color: var(--primary-gold);
     transform: translateY(-8px) scale(1.02);
-    box-shadow: 
+    box-shadow:
         0 12px 24px rgba(212, 175, 55, 0.15),
         0 0 40px rgba(212, 175, 55, 0.1);
 }
@@ -657,7 +719,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 
 .apartment-card:hover {
     transform: translateY(-10px) scale(1.02);
-    box-shadow: 
+    box-shadow:
         0 15px 35px rgba(212, 175, 55, 0.2),
         0 0 50px rgba(212, 175, 55, 0.1);
     border-color: var(--primary-gold);
@@ -872,10 +934,13 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 @keyframes pulseCta {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: translate(-50%, -50%) scale(1);
         opacity: 0.5;
     }
+
     50% {
         transform: translate(-50%, -50%) scale(1.1);
         opacity: 0.8;
@@ -891,7 +956,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     width: auto;
     height: auto;
     transform: none;
-    background: linear-gradient(135deg, rgba(10,10,10,0.75) 0%, rgba(5,9,20,0.82) 50%, rgba(10,10,10,0.78) 100%);
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.75) 0%, rgba(5, 9, 20, 0.82) 50%, rgba(10, 10, 10, 0.78) 100%);
     border-radius: 0;
     z-index: 0;
     animation: none;
@@ -930,11 +995,11 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     .hero-title {
         font-size: 2.5rem;
     }
-    
+
     .hero-subtitle {
         font-size: 1.25rem;
     }
-    
+
     /* Reduce particle count handled in JS */
 }
 
@@ -942,55 +1007,55 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     .hero-title {
         font-size: 2rem;
     }
-    
+
     .hero-subtitle {
         font-size: 1rem;
     }
-    
+
     .hero-cta {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .stat-number {
         font-size: 2rem;
     }
-    
+
     .apartments-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .section-title {
         font-size: 2rem;
     }
-    
+
     .cta-title {
         font-size: 2rem;
     }
-    
+
     /* Mobile: simplify complex animations for performance */
     .feature-card::after,
     .stat-card::before {
         display: none;
     }
-    
+
     .feature-card:hover,
     .stat-card:hover,
     .apartment-card:hover {
         transform: translateY(-5px) scale(1.01);
     }
-    
+
     /* Disable parallax on mobile */
     [data-parallax="true"],
     [data-parallax-section="true"] {
         transform: none !important;
     }
-    
+
     /* Optimize button glow for mobile */
     .btn-glow {
         animation: none;
     }
-    
+
     .btn-glow:active {
         transform: scale(0.98);
     }
@@ -998,9 +1063,12 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 
 /* ============= Floating Animation ============= */
 @keyframes floating {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: translateY(0);
     }
+
     50% {
         transform: translateY(-20px);
     }
@@ -1015,18 +1083,17 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     0% {
         background-position: -1000px 0;
     }
+
     100% {
         background-position: 1000px 0;
     }
 }
 
 .shimmer {
-    background: linear-gradient(
-        90deg,
-        rgba(212, 175, 55, 0) 0%,
-        rgba(212, 175, 55, 0.2) 50%,
-        rgba(212, 175, 55, 0) 100%
-    );
+    background: linear-gradient(90deg,
+            rgba(212, 175, 55, 0) 0%,
+            rgba(212, 175, 55, 0.2) 50%,
+            rgba(212, 175, 55, 0) 100%);
     background-size: 1000px 100%;
     animation: shimmer 2s infinite;
 }
@@ -1039,9 +1106,17 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
     will-change: opacity, transform;
 }
 
-.reveal.reveal-up { transform: translateY(24px); }
-.reveal.reveal-fade { transform: none; }
-.reveal.reveal-scale { transform: scale(0.98); }
+.reveal.reveal-up {
+    transform: translateY(24px);
+}
+
+.reveal.reveal-fade {
+    transform: none;
+}
+
+.reveal.reveal-scale {
+    transform: scale(0.98);
+}
 
 .reveal.in-view {
     opacity: 1;
@@ -1049,7 +1124,11 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .reveal {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
 }
 
 /* ============= LIGHT MODE LANDING PAGE OVERRIDES ============= */
@@ -1058,7 +1137,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 [data-theme="light"] .hero::before {
-    background: 
+    background:
         radial-gradient(circle at 20% 50%, rgba(184, 134, 11, 0.1) 0%, transparent 50%),
         radial-gradient(circle at 80% 50%, rgba(218, 165, 32, 0.08) 0%, transparent 50%);
 }
@@ -1103,7 +1182,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 
 [data-theme="light"] .stat-card:hover {
     border-color: var(--primary-gold);
-    box-shadow: 
+    box-shadow:
         0 15px 30px rgba(184, 134, 11, 0.15),
         0 0 50px rgba(184, 134, 11, 0.1);
 }
@@ -1125,7 +1204,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 [data-theme="light"] .features-section.features-section--with-bg::before {
-    background: linear-gradient(135deg, rgba(248,250,251,0.92) 0%, rgba(240,244,248,0.95) 50%, rgba(248,250,251,0.93) 100%);
+    background: linear-gradient(135deg, rgba(248, 250, 251, 0.92) 0%, rgba(240, 244, 248, 0.95) 50%, rgba(248, 250, 251, 0.93) 100%);
 }
 
 [data-theme="light"] .section-title {
@@ -1143,7 +1222,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 
 [data-theme="light"] .feature-card:hover {
     border-color: var(--primary-gold);
-    box-shadow: 
+    box-shadow:
         0 12px 24px rgba(184, 134, 11, 0.12),
         0 0 40px rgba(184, 134, 11, 0.08);
 }
@@ -1178,7 +1257,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 [data-theme="light"] .apartment-card:hover {
-    box-shadow: 
+    box-shadow:
         0 15px 35px rgba(184, 134, 11, 0.12),
         0 0 50px rgba(245, 220, 200, 0.5);
 }
@@ -1224,7 +1303,7 @@ Modern Visual Effects: Particles, Parallax, 3D Cards
 }
 
 [data-theme="light"] .cta-section.cta-section--with-bg::before {
-    background: linear-gradient(135deg, rgba(31,41,55,0.85) 0%, rgba(17,24,39,0.90) 50%, rgba(31,41,55,0.88) 100%);
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.85) 0%, rgba(17, 24, 39, 0.90) 50%, rgba(31, 41, 55, 0.88) 100%);
 }
 
 [data-theme="light"] .cta-title {

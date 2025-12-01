@@ -7,7 +7,7 @@
     <h1 style="margin-bottom: 2rem;">
         <i class="fas fa-chart-line"></i> لوحة التحكم
     </h1>
-    
+
     <!-- Stats Cards -->
     <div class="grid grid-4" style="margin-bottom: 3rem;">
         <div class="card text-center">
@@ -17,7 +17,7 @@
             <div class="stat-number" style="font-size: 2rem;">{{ "{:,.0f}".format(current_user.wallet_balance) }}</div>
             <div class="stat-label">رصيد المحفظة (جنيه)</div>
         </div>
-        
+
         <div class="card text-center">
             <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
                 <i class="fas fa-coins"></i>
@@ -25,7 +25,7 @@
             <div class="stat-number" style="font-size: 2rem;">{{ "{:,.0f}".format(total_invested) }}</div>
             <div class="stat-label">إجمالي الاستثمار</div>
         </div>
-        
+
         <div class="card text-center">
             <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
                 <i class="fas fa-hand-holding-usd"></i>
@@ -33,7 +33,7 @@
             <div class="stat-number" style="font-size: 2rem;">{{ "{:,.0f}".format(expected_monthly) }}</div>
             <div class="stat-label">الدخل الشهري المتوقع</div>
         </div>
-        
+
         <div class="card text-center">
             <div class="stat-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">
                 <i class="fas fa-building"></i>
@@ -42,26 +42,28 @@
             <div class="stat-label">عدد الاستثمارات</div>
         </div>
     </div>
-    
+
     <!-- Referral Rewards Card -->
     {% if current_user.rewards_balance > 0 %}
     <div class="alert alert-warning" style="margin-bottom: 2rem;">
         <div class="row align-items-center">
             <div class="col-md-8">
                 <h5 style="margin: 0; color: #D4AF37;">
-                    <i class="fas fa-gift"></i> لديك مكافآت إحالة بقيمة {{ "{:,.2f}".format(current_user.rewards_balance) }} جنيه
+                    <i class="fas fa-gift"></i> لديك مكافآت إحالة بقيمة {{
+                    "{:,.2f}".format(current_user.rewards_balance) }} جنيه
                 </h5>
                 <small style="color: #666;">يتم صرفها بواسطة الإدارة. راجع شجرة الإحالات لمزيد من التفاصيل.</small>
             </div>
             <div class="col-md-4 text-end">
-                <a href="{{ url_for('user_views.my_referrals') }}" class="btn btn-sm" style="background: #D4AF37; color: white;">
+                <a href="{{ url_for('user_views.my_referrals') }}" class="btn btn-sm"
+                    style="background: #D4AF37; color: white;">
                     <i class="fas fa-tree"></i> شجرة الإحالات
                 </a>
             </div>
         </div>
     </div>
     {% endif %}
-    
+
     <!-- Quick Actions -->
     <div class="grid grid-3" style="margin-bottom: 3rem;">
         <a href="{{ url_for('main.market') }}" class="btn btn-primary btn-lg" style="text-decoration: none;">
@@ -70,32 +72,54 @@
         <a href="{{ url_for('user_views.wallet') }}" class="btn btn-secondary btn-lg" style="text-decoration: none;">
             <i class="fas fa-wallet"></i> المحفظة
         </a>
-        <a href="{{ url_for('user_views.my_investments') }}" class="btn btn-secondary btn-lg" style="text-decoration: none;">
+        <a href="{{ url_for('user_views.my_investments') }}" class="btn btn-secondary btn-lg"
+            style="text-decoration: none;">
             <i class="fas fa-chart-pie"></i> استثماراتي
         </a>
     </div>
-    
-    <!-- Referral Section -->
-    <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, #D4AF37 0%, #C19B2E 100%); color: white;">
-        <div style="padding: 1.5rem;">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h4 style="margin: 0 0 0.5rem 0; color: white;">
-                        <i class="fas fa-users"></i> برنامج الإحالة
-                    </h4>
-                    <p style="margin: 0; opacity: 0.9;">
-                        احصل على مكافآت عند إحالة مستثمرين جدد. شارك روابط الإحالة واكسب من استثماراتهم!
-                    </p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <a href="{{ url_for('user_views.my_referrals') }}" class="btn btn-light btn-lg">
-                        <i class="fas fa-share-alt"></i> روابط الإحالة
-                    </a>
-                </div>
+
+    <!-- PILLARS CASHBACK Section -->
+    <div
+        style="margin-bottom: 2rem; background: linear-gradient(135deg, #D4AF37 0%, #E8C547 50%, #C19B2E 100%); border-radius: 20px; padding: 2.5rem 2rem; box-shadow: 0 10px 40px rgba(212, 175, 55, 0.4); position: relative; overflow: hidden;">
+        <!-- Decorative elements -->
+        <div style="position: absolute; top: 20px; right: 30px; font-size: 3rem; opacity: 0.15;">🎁</div>
+        <div style="position: absolute; bottom: 20px; left: 30px; font-size: 2.5rem; opacity: 0.15;">💰</div>
+        <div style="position: absolute; top: 50%; right: 60%; font-size: 2rem; opacity: 0.1; transform: rotate(15deg);">
+            ⭐</div>
+
+        <div style="text-align: center; position: relative; z-index: 1;">
+            <!-- Icon & Title -->
+            <div style="margin-bottom: 1rem;">
+                <i class="fas fa-gift"
+                    style="font-size: 3.5rem; color: white; margin-bottom: 0.5rem; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));"></i>
+                <h3
+                    style="color: white; font-size: 1.8rem; font-weight: 800; margin: 0.5rem 0 0 0; text-transform: uppercase; letter-spacing: 0.1em; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                    PILLARS CASHBACK
+                </h3>
             </div>
+
+            <!-- User's Referral Number -->
+            <div
+                style="background: white; color: #000; display: inline-block; padding: 1rem 2rem; border-radius: 12px; font-size: 2rem; font-weight: 900; letter-spacing: 0.15em; box-shadow: 0 6px 20px rgba(0,0,0,0.4); margin: 1rem 0;">
+                {{ current_user.referral_number or 'IPI' + '%06d'|format(current_user.id) }}
+            </div>
+            <p style="color: rgba(255,255,255,0.95); font-size: 0.95rem; margin-bottom: 1.5rem; font-weight: 500;">
+                رقمك الإحالي - شاركه مع الأصدقاء
+            </p>
+
+            <!-- CTA Button -->
+            <a href="{{ url_for('user_views.my_referrals') }}" class="btn"
+                style="display: inline-block; background: white; color: #C19B2E; font-size: 1.2rem; font-weight: 700; padding: 0.9rem 2rem; border-radius: 50px; box-shadow: 0 6px 20px rgba(0,0,0,0.3); transition: transform 0.3s ease, box-shadow 0.3s ease; text-decoration: none; border: none;"
+                onmouseover="this.style.transform='translateY(-3px) scale(1.05)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.4)'"
+                onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.3)'">
+                <i class="fas fa-users" style="margin-right: 0.5rem;"></i>
+                View My Referrals
+                <i class="fas fa-arrow-right" style="margin-left: 0.5rem;"></i>
+            </a>
         </div>
     </div>
-    
+
+
     <!-- Investments -->
     <div class="card" style="margin-bottom: 3rem;">
         <div class="card-header">
@@ -103,55 +127,56 @@
         </div>
         <div class="card-body">
             {% if investments %}
-                <div class="table-container">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>الأصل</th>
-                                <th>النوع</th>
-                                <th>حصصي</th>
-                                <th>المستثمرين</th>
-                                <th>الحصص المباعة</th>
-                                <th>المبلغ المستثمر</th>
-                                <th>الدخل الشهري</th>
-                                <th>الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for investment in investments %}
-                            <tr>
-                                <td>
-                                    <strong>{{ investment.title }}</strong><br>
-                                    <small class="text-muted">{{ investment.location }}</small>
-                                </td>
-                                <td>
-                                    <span class="badge badge-{{ 'primary' if investment.type == 'unit' else 'info' }}">
-                                        {{ 'وحدة' if investment.type == 'unit' else 'سيارة' }}
-                                    </span>
-                                </td>
-                                <td>{{ investment.shares_count }} حصة</td>
-                                <td><span class="badge badge-info">{{ investment.investors_count }} مستثمر</span></td>
-                                <td>{{ investment.shares_sold }} / {{ investment.total_shares }}</td>
-                                <td>{{ "{:,.0f}".format(investment.total_invested) }} جنيه</td>
-                                <td class="text-success">{{ "{:,.0f}".format(investment.monthly_income) }} جنيه</td>
-                                <td>
-                                    <span class="badge badge-{{ 'success' if investment.is_closed else 'warning' }}">{{ investment.status }}</span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الأصل</th>
+                            <th>النوع</th>
+                            <th>حصصي</th>
+                            <th>المستثمرين</th>
+                            <th>الحصص المباعة</th>
+                            <th>المبلغ المستثمر</th>
+                            <th>الدخل الشهري</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for investment in investments %}
+                        <tr>
+                            <td>
+                                <strong>{{ investment.title }}</strong><br>
+                                <small class="text-muted">{{ investment.location }}</small>
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ 'primary' if investment.type == 'unit' else 'info' }}">
+                                    {{ 'وحدة' if investment.type == 'unit' else 'سيارة' }}
+                                </span>
+                            </td>
+                            <td>{{ investment.shares_count }} حصة</td>
+                            <td><span class="badge badge-info">{{ investment.investors_count }} مستثمر</span></td>
+                            <td>{{ investment.shares_sold }} / {{ investment.total_shares }}</td>
+                            <td>{{ "{:,.0f}".format(investment.total_invested) }} جنيه</td>
+                            <td class="text-success">{{ "{:,.0f}".format(investment.monthly_income) }} جنيه</td>
+                            <td>
+                                <span class="badge badge-{{ 'success' if investment.is_closed else 'warning' }}">{{
+                                    investment.status }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% else %}
-                <div class="text-center" style="padding: 2rem;">
-                    <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
-                    <p>لا توجد استثمارات حالياً</p>
-                    <a href="{{ url_for('main.market') }}" class="btn btn-primary">ابدأ الاستثمار</a>
-                </div>
+            <div class="text-center" style="padding: 2rem;">
+                <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                <p>لا توجد استثمارات حالياً</p>
+                <a href="{{ url_for('main.market') }}" class="btn btn-primary">ابدأ الاستثمار</a>
+            </div>
             {% endif %}
         </div>
     </div>
-    
+
     <!-- Recent Transactions -->
     <div class="card">
         <div class="card-header">
@@ -159,37 +184,37 @@
         </div>
         <div class="card-body">
             {% if recent_transactions %}
-                <div class="table-container">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>النوع</th>
-                                <th>المبلغ</th>
-                                <th>التاريخ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for transaction in recent_transactions %}
-                            <tr>
-                                <td>{{ transaction.type_arabic }}</td>
-                                <td class="{{ 'text-success' if transaction.amount > 0 else 'text-error' }}">
-                                    {{ "{:+,.0f}".format(transaction.amount) }} جنيه
-                                </td>
-                                <td>{{ transaction.date.strftime('%Y-%m-%d %H:%M') }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="text-center" style="margin-top: 1rem;">
-                    <a href="{{ url_for('user_views.wallet') }}" class="btn btn-secondary">عرض جميع العمليات</a>
-                </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>النوع</th>
+                            <th>المبلغ</th>
+                            <th>التاريخ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in recent_transactions %}
+                        <tr>
+                            <td>{{ transaction.type_arabic }}</td>
+                            <td class="{{ 'text-success' if transaction.amount > 0 else 'text-error' }}">
+                                {{ "{:+,.0f}".format(transaction.amount) }} جنيه
+                            </td>
+                            <td>{{ transaction.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center" style="margin-top: 1rem;">
+                <a href="{{ url_for('user_views.wallet') }}" class="btn btn-secondary">عرض جميع العمليات</a>
+            </div>
             {% else %}
-                <p class="text-center text-muted">لا توجد عمليات حتى الآن</p>
+            <p class="text-center text-muted">لا توجد عمليات حتى الآن</p>
             {% endif %}
         </div>
     </div>
-    
+
     <!-- Account Settings Section -->
     <div class="card" style="margin-top: 2rem;">
         <div class="card-header">
@@ -206,7 +231,8 @@
                             </a>
                         </li>
                         <li style="margin-bottom: 0.5rem;">
-                            <a href="{{ url_for('user_views.my_investment_requests') }}" class="btn btn-outline-secondary btn-sm">
+                            <a href="{{ url_for('user_views.my_investment_requests') }}"
+                                class="btn btn-outline-secondary btn-sm">
                                 <i class="fas fa-file-alt"></i> طلبات الاستثمار
                             </a>
                         </li>
