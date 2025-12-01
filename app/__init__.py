@@ -136,7 +136,18 @@ def schedule_monthly_payouts():
 
 # Register scheduled tasks (only if scheduler is available)
 if SCHEDULER_AVAILABLE and scheduler:
-    @scheduler.task('cron', id='monthly_rent_distribution', day=1, hour=0, minute=0)
-    def scheduled_rent_distribution():
-        """Monthly rent distribution task"""
-        schedule_monthly_payouts()
+    @scheduler.task('cron', id='automatic_monthly_payouts', hour=0, minute=5)
+    def scheduled_automatic_payouts():
+        """
+        Automatic monthly payout distributor
+        Runs daily at 00:05 AM
+        Distributes rental income to all investors based on approval date
+        """
+        with scheduler.app.app_context():
+            from app.utils.auto_payouts import process_automatic_payouts
+            result = process_automatic_payouts()
+            
+            if result['success']:
+                print(f"✅ Auto-payout: Processed {result['shares_processed']} shares, distributed {result['total_distributed']:.2f} EGP")
+            else:
+                print(f"❌ Auto-payout: Failed with errors: {result['errors']}")

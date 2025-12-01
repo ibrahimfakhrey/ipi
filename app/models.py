@@ -300,6 +300,7 @@ class Share(db.Model):
     apartment_id = db.Column(db.Integer, db.ForeignKey('apartments.id'), nullable=False)
     share_price = db.Column(db.Float, nullable=False)
     date_purchased = db.Column(db.DateTime, default=datetime.utcnow)
+    last_auto_payout_date = db.Column(db.DateTime)  # Tracks last automatic monthly payout
     
     def __repr__(self):
         return f'<Share User:{self.user_id} Apartment:{self.apartment_id}>'
@@ -596,6 +597,7 @@ class CarShare(db.Model):
     car_id = db.Column(db.Integer, db.ForeignKey('cars.id'), nullable=False)
     share_price = db.Column(db.Float, nullable=False)
     date_purchased = db.Column(db.DateTime, default=datetime.utcnow)
+    last_auto_payout_date = db.Column(db.DateTime)  # Tracks last automatic monthly payout
 
     # Relationship back to user
     investor = db.relationship('User', backref=db.backref('car_shares', lazy='dynamic', cascade='all, delete-orphan'))
