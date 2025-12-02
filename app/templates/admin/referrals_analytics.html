@@ -48,6 +48,29 @@
         </div>
     </div>
 
+    <!-- Charts Section -->
+    <div class="grid grid-2" style="margin-bottom: 3rem;">
+        <!-- Top Referrers Bar Chart -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-chart-bar"></i> أفضل 10 مُحيلين</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="topReferrersChart" style="max-height: 400px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Investment Distribution Pie Chart -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-chart-pie"></i> توزيع الاستثمارات</h3>
+            </div>
+            <div class="card-body">
+                <canvas id="investmentDistributionChart" style="max-height: 400px;"></canvas>
+            </div>
+        </div>
+    </div>
+
     <!-- Top Referrers -->
     <div class="card" style="margin-bottom: 3rem;">
         <div class="card-header">
@@ -232,4 +255,173 @@
         text-align: left;
     }
 </style>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+    // Chart colors matching the theme
+    const goldColor = 'rgba(212, 175, 55, 1)';
+    const goldColorLight = 'rgba(212, 175, 55, 0.6)';
+    const goldColorVeryLight = 'rgba(212, 175, 55, 0.2)';
+    const primaryColor = 'rgba(52, 152, 219, 1)';
+    const primaryColorLight = 'rgba(52, 152, 219, 0.6)';
+    const successColor = 'rgba(46, 204, 113, 1)';
+    const successColorLight = 'rgba(46, 204, 113, 0.6)';
+
+    // Prepare data from the backend
+    const referralStats = {{ referral_stats| tojson }};
+    const topReferrers = referralStats.slice(0, 10).filter(stat => stat.total_referrals > 0);
+
+    // 1. Top Referrers Bar Chart
+    const topReferrersCtx = document.getElementById('topReferrersChart');
+    if (topReferrersCtx && topReferrers.length > 0) {
+        new Chart(topReferrersCtx, {
+            type: 'bar',
+            data: {
+                labels: topReferrers.map(stat => stat.name),
+                datasets: [{
+                    label: 'عدد الإحالات',
+                    data: topReferrers.map(stat => stat.total_referrals),
+                    backgroundColor: goldColorLight,
+                    borderColor: goldColor,
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        rtl: true,
+                        textDirection: 'rtl',
+                        callbacks: {
+                            label: function (context) {
+                                return 'الإحالات: ' + context.parsed.x;
+                            },
+                            afterLabel: function (context) {
+                                const stat = topReferrers[context.dataIndex];
+                                return [
+                                    'الاستثمار: ' + stat.total_amount.toLocaleString('ar-EG') + ' جنيه',
+                                    'الأسهم: ' + stat.total_shares
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        },
+                        grid: {
+                            color: 'rgba(212, 175, 55, 0.1)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    } else if (topReferrersCtx) {
+        topReferrersCtx.parentElement.innerHTML = '<p class="text-center text-muted" style="padding: 2rem;">لا توجد بيانات لعرضها</p>';
+    }
+
+    // 2. Investment Distribution Pie Chart
+    const investmentDistributionCtx = document.getElementById('investmentDistributionChart');
+    const activeReferrersWithInvestments = topReferrers.filter(stat => stat.total_amount > 0);
+
+    if (investmentDistributionCtx && activeReferrersWithInvestments.length > 0) {
+        // Generate colors for each referrer
+        const colors = [
+            'rgba(212, 175, 55, 0.8)',
+            'rgba(52, 152, 219, 0.8)',
+            'rgba(46, 204, 113, 0.8)',
+            'rgba(231, 76, 60, 0.8)',
+            'rgba(155, 89, 182, 0.8)',
+            'rgba(241, 196, 15, 0.8)',
+            'rgba(26, 188, 156, 0.8)',
+            'rgba(230, 126, 34, 0.8)',
+            'rgba(149, 165, 166, 0.8)',
+            'rgba(52, 73, 94, 0.8)'
+        ];
+
+        new Chart(investmentDistributionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: activeReferrersWithInvestments.map(stat => stat.name),
+                datasets: [{
+                    label: 'إجمالي الاستثمارات (جنيه)',
+                    data: activeReferrersWithInvestments.map(stat => stat.total_amount),
+                    backgroundColor: colors.slice(0, activeReferrersWithInvestments.length),
+                    borderColor: '#1a1a1a',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        rtl: true,
+                        textDirection: 'rtl',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 12
+                            },
+                            generateLabels: function (chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        return {
+                                            text: label + ': ' + value.toLocaleString('ar-EG') + ' جنيه',
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            hidden: false,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    tooltip: {
+                        rtl: true,
+                        textDirection: 'rtl',
+                        callbacks: {
+                            label: function (context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                const stat = activeReferrersWithInvestments[context.dataIndex];
+                                return [
+                                    label,
+                                    'المبلغ: ' + value.toLocaleString('ar-EG') + ' جنيه',
+                                    'النسبة: ' + percentage + '%',
+                                    'الإحالات: ' + stat.total_referrals,
+                                    'الأسهم: ' + stat.total_shares
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else if (investmentDistributionCtx) {
+        investmentDistributionCtx.parentElement.innerHTML = '<p class="text-center text-muted" style="padding: 2rem;">لا توجد بيانات لعرضها</p>';
+    }
+</script>
 {% endblock %}
