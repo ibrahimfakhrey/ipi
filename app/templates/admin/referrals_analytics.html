@@ -290,7 +290,6 @@
                 }]
             },
             options: {
-                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
@@ -302,7 +301,7 @@
                         textDirection: 'rtl',
                         callbacks: {
                             label: function (context) {
-                                return 'الإحالات: ' + context.parsed.x;
+                                return 'الإحالات: ' + context.parsed.y;
                             },
                             afterLabel: function (context) {
                                 const stat = topReferrers[context.dataIndex];
@@ -315,7 +314,7 @@
                     }
                 },
                 scales: {
-                    x: {
+                    y: {
                         beginAtZero: true,
                         ticks: {
                             stepSize: 1
@@ -324,7 +323,7 @@
                             color: 'rgba(212, 175, 55, 0.1)'
                         }
                     },
-                    y: {
+                    x: {
                         grid: {
                             display: false
                         }
