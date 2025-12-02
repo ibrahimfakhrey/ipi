@@ -67,12 +67,13 @@ def create_app(config_name='development'):
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
     # Register blueprints
-    from app.routes import auth, main, admin, user_views, api
+    from app.routes import auth, main, admin, user_views, api, admin_api
     app.register_blueprint(auth.bp)
     app.register_blueprint(main.bp)
     app.register_blueprint(admin.bp)
     app.register_blueprint(user_views.bp)
     app.register_blueprint(api.api_bp)  # Register API blueprint
+    app.register_blueprint(admin_api.bp)  # Register Admin API blueprint
     
     # Create database tables
     with app.app_context():
