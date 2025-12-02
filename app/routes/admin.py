@@ -1093,9 +1093,23 @@ def referrals_analytics():
     total_shares = sum([usage[0].shares_purchased for usage in referral_usages]) if referral_usages else 0
     active_referrers = sum([1 for stat in referral_stats if stat.total_referrals > 0])
     
+    # Convert Row objects to dictionaries for JSON serialization
+    referral_stats_dict = [
+        {
+            'id': stat.id,
+            'name': stat.name,
+            'email': stat.email,
+            'referral_number': stat.referral_number,
+            'total_referrals': stat.total_referrals or 0,
+            'total_amount': float(stat.total_amount or 0),
+            'total_shares': stat.total_shares or 0
+        }
+        for stat in referral_stats
+    ]
+    
     return render_template('admin/referrals_analytics.html',
                          referrals=referrals_with_details,
-                         referral_stats=referral_stats,
+                         referral_stats=referral_stats_dict,
                          total_referrals=total_referrals,
                          total_amount=total_amount,
                          total_shares=total_shares,
