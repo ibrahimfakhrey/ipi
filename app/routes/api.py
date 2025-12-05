@@ -107,10 +107,28 @@ def serialize_share(share):
     return {
         "id": share.id,
         "apartment_id": share.apartment_id,
-        "apartment_title": share.apartment.title if share.apartment else None,
+        "num_shares": 1,
         "share_price": share.share_price,
-        "date_purchased": share.date_purchased.isoformat() if share.date_purchased else None,
-        "monthly_income": share.apartment.monthly_rent / share.apartment.total_shares if share.apartment else 0
+        "purchase_date": share.purchase_date.isoformat() if share.purchase_date else None
+    }
+
+
+def serialize_withdrawal_request(request):
+    """Convert WithdrawalRequest object to dictionary"""
+    return {
+        "id": request.id,
+        "user_id": request.user_id,
+        "amount": request.amount,
+        "payment_method": request.payment_method,
+        "payment_method_arabic": request.payment_method_arabic,
+        "account_details": request.account_details,
+        "status": request.status,
+        "status_arabic": request.status_arabic,
+        "admin_notes": request.admin_notes,
+        "proof_image": request.proof_image if request.proof_image else None,
+        "request_date": request.request_date.isoformat() if request.request_date else None,
+        "processed_date": request.processed_date.isoformat() if request.processed_date else None,
+        "processed_by": request.processed_by
     }
 
 
@@ -403,6 +421,8 @@ def apple_sign_in():
     """
     try:
         from app.auth_providers import verify_apple_token
+        from flask import current_app
+        import jwt as pyjwt
         
         data = request.get_json()
         
@@ -413,10 +433,40 @@ def apple_sign_in():
                 code="MISSING_FIELDS"
             )
         
+        identity_token = data.get('identity_token')
+        
+        # 🔍 DEBUG: Decode token WITHOUT verification to see what's inside
+        try:
+            unverified = pyjwt.decode(identity_token, options={"verify_signature": False})
+            print("=" * 80)
+            print("🔍 APPLE TOKEN DEBUG INFO:")
+            print(f"📋 All Token Claims: {unverified}")
+            print(f"👤 Subject (sub): {unverified.get('sub')}")
+            print(f"📧 Email: {unverified.get('email', 'Not provided')}")
+            print(f"🎯 Audience (aud): {unverified.get('aud')}")
+            print(f"✅ Expected Audience: {current_app.config.get('APPLE_CLIENT_ID')}")
+            print(f"🏢 Issuer (iss): {unverified.get('iss')}")
+            print(f"⏰ Expiration (exp): {unverified.get('exp')}")
+            print(f"🔑 Key ID from header: {pyjwt.get_unverified_header(identity_token).get('kid')}")
+            
+            # Compare audience
+            actual_aud = unverified.get('aud')
+            expected_aud = current_app.config.get('APPLE_CLIENT_ID')
+            if actual_aud != expected_aud:
+                print(f"⚠️  WARNING: Audience mismatch!")
+                print(f"   Actual:   '{actual_aud}'")
+                print(f"   Expected: '{expected_aud}'")
+            else:
+                print(f"✅ Audience matches!")
+            print("=" * 80)
+        except Exception as e:
+            print(f"❌ DEBUG: Failed to decode token for debugging: {e}")
+        
         # Verify token with Apple
-        user_info = verify_apple_token(data['identity_token'])
+        user_info = verify_apple_token(identity_token)
         
         if not user_info:
+            print("❌ verify_apple_token() returned None - Token verification failed!")
             return error_response(
                 message="رمز Apple غير صالح",
                 code="INVALID_TOKEN",
@@ -494,6 +544,110 @@ def apple_sign_in():
         return error_response(
             message="حدث خطأ أثناء تسجيل الدخول عبر Apple",
             code="APPLE_AUTH_ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@api_bp.route('/auth/delete-account', methods=['POST'])
+@jwt_required()
+def delete_account():
+    """
+    Delete user account permanently
+    POST /api/v1/auth/delete-account
+    Headers: Authorization: Bearer <token>
+    Body: {
+        "password": "user_password"
+    }
+    
+    ⚠️ WARNING: This action is irreversible!
+    All user data will be permanently deleted including:
+    - Profile information
+    - Wallet balance
+    - Investment shares
+    - Transaction history
+    - Investment requests
+    - Referral data
+    """
+    try:
+        from app.models import WithdrawalRequest, ReferralTree, ReferralUsage, CarShare, CarReferralTree
+        
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id))
+        
+        if not user:
+            return error_response(
+                message="المستخدم غير موجود",
+                code="USER_NOT_FOUND",
+                status=404
+            )
+        
+        data = request.get_json()
+        
+        # For email/password users, require password confirmation
+        if user.auth_provider == 'email' or user.password_hash:
+            if not data or not data.get('password'):
+                return error_response(
+                    message="كلمة المرور مطلوبة لتأكيد حذف الحساب",
+                    code="PASSWORD_REQUIRED"
+                )
+            
+            if not user.check_password(data['password']):
+                return error_response(
+                    message="كلمة المرور غير صحيحة",
+                    code="INVALID_PASSWORD",
+                    status=401
+                )
+        
+        # Check for pending withdrawal requests
+        pending_withdrawals = WithdrawalRequest.query.filter_by(
+            user_id=user.id,
+            status='pending'
+        ).count()
+        
+        if pending_withdrawals > 0:
+            return error_response(
+                message="لا يمكن حذف الحساب - لديك طلبات سحب معلقة. يرجى إلغاءها أولاً.",
+                code="PENDING_WITHDRAWALS",
+                details={"pending_count": pending_withdrawals}
+            )
+        
+        # Store user email for confirmation message
+        user_email = user.email
+        
+        # Delete related records that don't have cascade delete
+        # Delete withdrawal requests (non-pending ones)
+        WithdrawalRequest.query.filter_by(user_id=user.id).delete()
+        
+        # Delete referral tree entries
+        ReferralTree.query.filter_by(user_id=user.id).delete()
+        ReferralTree.query.filter_by(referred_by_user_id=user.id).update({'referred_by_user_id': None})
+        
+        # Delete car referral tree entries
+        CarReferralTree.query.filter_by(user_id=user.id).delete()
+        CarReferralTree.query.filter_by(referred_by_user_id=user.id).update({'referred_by_user_id': None})
+        
+        # Delete referral usage records
+        ReferralUsage.query.filter_by(referrer_user_id=user.id).delete()
+        ReferralUsage.query.filter_by(referee_user_id=user.id).delete()
+        
+        # Delete car shares (cascade should handle this, but being explicit)
+        CarShare.query.filter_by(user_id=user.id).delete()
+        
+        # Delete the user (cascades will handle shares, transactions, investment_requests)
+        db.session.delete(user)
+        db.session.commit()
+        
+        return success_response(
+            data={"deleted_email": user_email},
+            message="تم حذف الحساب بنجاح. نأسف لرؤيتك تغادر!"
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ أثناء حذف الحساب",
+            code="DELETE_ACCOUNT_ERROR",
             details=str(e),
             status=500
         )
@@ -764,15 +918,17 @@ def get_wallet_balance():
         )
 
 
-@api_bp.route('/wallet/deposit', methods=['POST'])
+@api_bp.route('/wallet/withdrawal-request', methods=['POST'])
 @jwt_required()
-def deposit_to_wallet():
+def submit_withdrawal_request():
     """
-    Deposit money to wallet
-    POST /api/v1/wallet/deposit
+    Submit withdrawal request
+    POST /api/v1/wallet/withdrawal-request
     Headers: Authorization: Bearer <token>
     Body: {
-        "amount": 10000
+        "amount": 500,
+        "payment_method": "instapay",  // instapay, wallet, company
+        "account_details": "01234567890"  // optional for company
     }
     """
     try:
@@ -786,83 +942,39 @@ def deposit_to_wallet():
                 status=404
             )
         
-        data = request.get_json()
+        # Check if user already has a pending request
+        from app.models import WithdrawalRequest
+        pending = WithdrawalRequest.query.filter_by(
+            user_id=user.id,
+            status='pending'
+        ).first()
         
-        if not data or not data.get('amount'):
+        if pending:
             return error_response(
-                message="المبلغ مطلوب",
-                code="MISSING_AMOUNT"
-            )
-        
-        amount = float(data['amount'])
-        
-        if amount <= 0:
-            return error_response(
-                message="المبلغ يجب أن يكون أكبر من صفر",
-                code="INVALID_AMOUNT"
-            )
-        
-        # Add to wallet
-        user.add_to_wallet(amount, 'deposit')
-        db.session.commit()
-        
-        return success_response(
-            data={
-                "new_balance": user.wallet_balance,
-                "amount_deposited": amount
-            },
-            message="تم الإيداع بنجاح"
-        )
-        
-    except Exception as e:
-        db.session.rollback()
-        return error_response(
-            message="حدث خطأ أثناء الإيداع",
-            code="DEPOSIT_ERROR",
-            details=str(e),
-            status=500
-        )
-
-
-@api_bp.route('/wallet/withdraw', methods=['POST'])
-@jwt_required()
-def withdraw_from_wallet():
-    """
-    Withdraw money from wallet
-    POST /api/v1/wallet/withdraw
-    Headers: Authorization: Bearer <token>
-    Body: {
-        "amount": 5000
-    }
-    """
-    try:
-        user_id = get_jwt_identity()
-        user = User.query.get(int(user_id))
-        
-        if not user:
-            return error_response(
-                message="المستخدم غير موجود",
-                code="USER_NOT_FOUND",
-                status=404
+                message="لديك طلب سحب قيد المراجعة بالفعل. لا يمكن تقديم طلب جديد.",
+                code="PENDING_REQUEST_EXISTS"
             )
         
         data = request.get_json()
         
-        if not data or not data.get('amount'):
+        if not data or not data.get('amount') or not data.get('payment_method'):
             return error_response(
-                message="المبلغ مطلوب",
-                code="MISSING_AMOUNT"
+                message="المبلغ وطريقة الدفع مطلوبة",
+                code="MISSING_FIELDS"
             )
         
         amount = float(data['amount'])
+        payment_method = data['payment_method']
+        account_details = data.get('account_details', '').strip()
         
-        if amount <= 0:
+        # Validation
+        if amount < 100:
             return error_response(
-                message="المبلغ يجب أن يكون أكبر من صفر",
+                message="الحد الأدنى للسحب هو 100 جنيه",
                 code="INVALID_AMOUNT"
             )
         
-        if user.wallet_balance < amount:
+        if amount > user.wallet_balance:
             return error_response(
                 message="رصيد المحفظة غير كافي",
                 code="INSUFFICIENT_BALANCE",
@@ -872,23 +984,202 @@ def withdraw_from_wallet():
                 }
             )
         
-        # Deduct from wallet
-        user.deduct_from_wallet(amount, 'withdrawal')
+        if payment_method not in ['instapay', 'wallet', 'company']:
+            return error_response(
+                message="طريقة الدفع غير صالحة",
+                code="INVALID_PAYMENT_METHOD"
+            )
+        
+        if not account_details and payment_method != 'company':
+            return error_response(
+                message="يرجى إدخال تفاصيل الحساب",
+                code="MISSING_ACCOUNT_DETAILS"
+            )
+        
+        # Create withdrawal request
+        new_request = WithdrawalRequest(
+            user_id=user.id,
+            amount=amount,
+            payment_method=payment_method,
+            account_details=account_details if payment_method != 'company' else 'استلام من الشركة',
+            status='pending'
+        )
+        
+        db.session.add(new_request)
         db.session.commit()
         
         return success_response(
             data={
-                "new_balance": user.wallet_balance,
-                "amount_withdrawn": amount
+                "request": serialize_withdrawal_request(new_request),
+                "message": f"تم تقديم طلب سحب {amount:,.0f} جنيه. سيتم مراجعته من قبل الإدارة."
             },
-            message="تم السحب بنجاح"
+            message="تم تقديم طلب السحب بنجاح",
+            status=201
         )
         
     except Exception as e:
         db.session.rollback()
         return error_response(
-            message="حدث خطأ أثناء السحب",
-            code="WITHDRAWAL_ERROR",
+            message="حدث خطأ أثناء تقديم الطلب",
+            code="REQUEST_ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@api_bp.route('/wallet/withdrawal-requests', methods=['GET'])
+@jwt_required()
+def get_withdrawal_requests():
+    """
+    Get user's withdrawal request history
+    GET /api/v1/wallet/withdrawal-requests?page=1&per_page=20
+    Headers: Authorization: Bearer <token>
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id))
+        
+        if not user:
+            return error_response(
+                message="المستخدم غير موجود",
+                code="USER_NOT_FOUND",
+                status=404
+            )
+        
+        from app.models import WithdrawalRequest
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        
+        # Paginate requests
+        pagination = WithdrawalRequest.query.filter_by(user_id=user.id)\
+            .order_by(WithdrawalRequest.request_date.desc())\
+            .paginate(page=page, per_page=per_page, error_out=False)
+        
+        requests = [serialize_withdrawal_request(req) for req in pagination.items]
+        
+        return success_response(
+            data={
+                "requests": requests,
+                "total": pagination.total,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": pagination.pages
+            },
+            message="تم جلب طلبات السحب بنجاح"
+        )
+        
+    except Exception as e:
+        return error_response(
+            message="حدث خطأ أثناء جلب الطلبات",
+            code="FETCH_ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@api_bp.route('/wallet/pending-request', methods=['GET'])
+@jwt_required()
+def get_pending_withdrawal_request():
+    """
+    Get current pending withdrawal request
+    GET /api/v1/wallet/pending-request
+    Headers: Authorization: Bearer <token>
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id))
+        
+        if not user:
+            return error_response(
+                message="المستخدم غير موجود",
+                code="USER_NOT_FOUND",
+                status=404
+            )
+        
+        from app.models import WithdrawalRequest
+        pending_request = WithdrawalRequest.query.filter_by(
+            user_id=user.id,
+            status='pending'
+        ).first()
+        
+        return success_response(
+            data={
+                "pending_request": serialize_withdrawal_request(pending_request) if pending_request else None
+            },
+            message="تم جلب الطلب المعلق بنجاح"
+        )
+        
+    except Exception as e:
+        return error_response(
+            message="حدث خطأ أثناء جلب الطلب",
+            code="FETCH_ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@api_bp.route('/wallet/cancel-request/<int:request_id>', methods=['POST'])
+@jwt_required()
+def cancel_withdrawal_request(request_id):
+    """
+    Cancel pending withdrawal request
+    POST /api/v1/wallet/cancel-request/<id>
+    Headers: Authorization: Bearer <token>
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id))
+        
+        if not user:
+            return error_response(
+                message="المستخدم غير موجود",
+                code="USER_NOT_FOUND",
+                status=404
+            )
+        
+        from app.models import WithdrawalRequest
+        from datetime import datetime
+        
+        withdrawal_request = WithdrawalRequest.query.get(request_id)
+        
+        if not withdrawal_request:
+            return error_response(
+                message="الطلب غير موجود",
+                code="REQUEST_NOT_FOUND",
+                status=404
+            )
+        
+        # Check ownership
+        if withdrawal_request.user_id != user.id:
+            return error_response(
+                message="غير مصرح لك بإلغاء هذا الطلب",
+                code="UNAUTHORIZED",
+                status=403
+            )
+        
+        # Can only cancel pending requests
+        if withdrawal_request.status != 'pending':
+            return error_response(
+                message="لا يمكن إلغاء هذا الطلب",
+                code="CANNOT_CANCEL"
+            )
+        
+        withdrawal_request.status = 'cancelled'
+        withdrawal_request.processed_date = datetime.utcnow()
+        db.session.commit()
+        
+        return success_response(
+            data={
+                "request": serialize_withdrawal_request(withdrawal_request)
+            },
+            message="تم إلغاء طلب السحب بنجاح"
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ أثناء إلغاء الطلب",
+            code="CANCEL_ERROR",
             details=str(e),
             status=500
         )

@@ -49,6 +49,18 @@ class Config:
     # Admin credentials (in production, use environment variables)
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL') or 'amsprog2022@gmail.com'
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') or 'Zo2lot@123'
+    
+    # Social Authentication Configuration
+    # Google Sign-In
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID') or '7685982458-280u9fp7fk62230mikv3hl1asacieon0.apps.googleusercontent.com'
+    GOOGLE_CLIENT_ID_IOS = '7685982458-280u9fp7fk62230mikv3hl1asacieon0.apps.googleusercontent.com'
+    GOOGLE_CLIENT_ID_ANDROID = '7685982458-7hdh31pb18cgcaiedkd9dg9onidefvid.apps.googleusercontent.com'
+    
+    # Apple Sign-In
+    APPLE_CLIENT_ID = os.environ.get('APPLE_CLIENT_ID') or 'international.ipi.investment.signin'
+    APPLE_TEAM_ID = os.environ.get('APPLE_TEAM_ID') or '52D8TDFTXN'
+    APPLE_KEY_ID = os.environ.get('APPLE_KEY_ID') or '37XJXQAPKL'
+    APPLE_PRIVATE_KEY_PATH = os.environ.get('APPLE_PRIVATE_KEY_PATH') or os.path.join(basedir, 'AuthKey_37XJXQAPKL.p8')
 
 
 class DevelopmentConfig(Config):

@@ -17,6 +17,7 @@ from functools import lru_cache
 def verify_google_token(token_string):
     """
     Verify Google ID token and extract user information
+    Supports both iOS and Android client IDs
     
     Args:
         token_string (str): Google ID token from client
@@ -26,18 +27,38 @@ def verify_google_token(token_string):
         None: If verification fails
     """
     try:
-        client_id = current_app.config.get('GOOGLE_CLIENT_ID')
+        # Get all possible client IDs (iOS, Android, and default)
+        client_ids = [
+            current_app.config.get('GOOGLE_CLIENT_ID'),
+            current_app.config.get('GOOGLE_CLIENT_ID_IOS'),
+            current_app.config.get('GOOGLE_CLIENT_ID_ANDROID')
+        ]
+        # Remove None values and duplicates
+        client_ids = list(set(filter(None, client_ids)))
         
-        if not client_id:
+        if not client_ids:
             print("⚠️  Google Client ID not configured")
             return None
         
-        # Verify the token with Google
-        idinfo = id_token.verify_oauth2_token(
-            token_string, 
-            google_requests.Request(), 
-            client_id
-        )
+        # Try to verify with each client ID
+        idinfo = None
+        for client_id in client_ids:
+            try:
+                # Verify the token with Google
+                idinfo = id_token.verify_oauth2_token(
+                    token_string, 
+                    google_requests.Request(), 
+                    client_id
+                )
+                print(f"✅ Google token verified with client ID: {client_id[:30]}...")
+                break  # Successfully verified
+            except ValueError:
+                # Try next client ID
+                continue
+        
+        if not idinfo:
+            print(f"❌ Token verification failed with all client IDs")
+            return None
         
         # Verify the issuer
         if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
@@ -96,34 +117,44 @@ def verify_apple_token(token_string):
         client_id = current_app.config.get('APPLE_CLIENT_ID')
         
         if not client_id:
-            print("⚠️  Apple Client ID not configured")
+            print("❌ VERIFY_APPLE_TOKEN: Apple Client ID not configured in config.py")
             return None
+        
+        print(f"✅ VERIFY_APPLE_TOKEN: Using APPLE_CLIENT_ID = {client_id}")
         
         # Get Apple's public keys
         keys = get_apple_public_keys()
         if not keys:
-            print("❌ Could not retrieve Apple public keys")
+            print("❌ VERIFY_APPLE_TOKEN: Could not retrieve Apple public keys from https://appleid.apple.com/auth/keys")
             return None
+        
+        print(f"✅ VERIFY_APPLE_TOKEN: Retrieved {len(keys)} public keys from Apple")
         
         # Decode the header to get the key ID
         header = jwt.get_unverified_header(token_string)
         kid = header.get('kid')
         
         if not kid:
-            print("❌ Token missing 'kid' in header")
+            print("❌ VERIFY_APPLE_TOKEN: Token missing 'kid' in header")
             return None
+        
+        print(f"✅ VERIFY_APPLE_TOKEN: Token has kid = {kid}")
         
         # Find the matching public key
         key = next((k for k in keys if k['kid'] == kid), None)
         if not key:
-            print(f"❌ No matching key found for kid: {kid}")
+            print(f"❌ VERIFY_APPLE_TOKEN: No matching key found for kid: {kid}")
+            print(f"   Available kids: {[k['kid'] for k in keys]}")
             return None
+        
+        print(f"✅ VERIFY_APPLE_TOKEN: Found matching public key")
         
         # Convert JWK to PEM format for PyJWT
         from jwt.algorithms import RSAAlgorithm
         public_key = RSAAlgorithm.from_jwk(json.dumps(key))
         
         # Verify and decode the token
+        print(f"🔐 VERIFY_APPLE_TOKEN: Attempting to verify token with audience={client_id}")
         decoded = jwt.decode(
             token_string,
             public_key,
@@ -132,10 +163,14 @@ def verify_apple_token(token_string):
             issuer='https://appleid.apple.com'
         )
         
+        print(f"✅ VERIFY_APPLE_TOKEN: Token verified successfully!")
+        print(f"   User ID: {decoded['sub']}")
+        print(f"   Email: {decoded.get('email', 'Not provided')}")
+        
         # Check expiration
         exp = decoded.get('exp')
         if exp and datetime.fromtimestamp(exp) < datetime.utcnow():
-            print("❌ Apple token has expired")
+            print("❌ VERIFY_APPLE_TOKEN: Apple token has expired")
             return None
         
         # Return user info
@@ -145,13 +180,15 @@ def verify_apple_token(token_string):
         }
         
     except jwt.ExpiredSignatureError:
-        print("❌ Apple token has expired")
+        print("❌ VERIFY_APPLE_TOKEN: Apple token has expired (ExpiredSignatureError)")
         return None
     except jwt.InvalidTokenError as e:
-        print(f"❌ Invalid Apple token: {e}")
+        print(f"❌ VERIFY_APPLE_TOKEN: Invalid Apple token - {type(e).__name__}: {e}")
         return None
     except Exception as e:
-        print(f"❌ Unexpected error verifying Apple token: {e}")
+        print(f"❌ VERIFY_APPLE_TOKEN: Unexpected error - {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 

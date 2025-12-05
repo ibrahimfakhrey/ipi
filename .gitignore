@@ -66,3 +66,6 @@ app/static/uploads/contracts/*
 
 # Database
 apartment_platform.db
+# Apple Private Key - DO NOT COMMIT
+AuthKey_*.p8
+*.p8
