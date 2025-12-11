@@ -5,11 +5,15 @@
 {% block content %}
 <div class="container" style="max-width: 800px; padding: 3rem 0;">
     <h1 style="margin-bottom: 2rem;">
-        <i class="fas fa-shopping-cart"></i> شراء حصص
+        <i class="fas fa-building"></i> اختيار عدد الحصص
     </h1>
     
     <div class="card" style="margin-bottom: 2rem;">
         <div class="card-body">
+            <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 2rem; font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1)); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">
+                <i class="fas fa-building"></i>
+                وحدة سكنية
+            </div>
             <h2 class="text-gold">{{ apartment.title }}</h2>
             <p class="text-muted"><i class="fas fa-map-marker-alt"></i> {{ apartment.location }}</p>
             
@@ -18,7 +22,7 @@
                     <div style="font-size: 1.5rem; color: var(--primary-gold); font-weight: 700;">
                         {{ "{:,.0f}".format(apartment.share_price) }}
                     </div>
-                    <div style="font-size: 0.875rem; color: var(--text-muted);">سعر الحصة</div>
+                    <div style="font-size: 0.875rem; color: var(--text-muted);">سعر الحصة (جنيه)</div>
                 </div>
                 
                 <div style="text-align: center; padding: 1rem; background: rgba(212, 175, 55, 0.1); border-radius: 0.5rem;">
@@ -40,7 +44,7 @@
     
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">تفاصيل عملية الشراء</h3>
+            <h3 class="card-title">اختر عدد الحصص</h3>
         </div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('user_views.buy_shares', apartment_id=apartment.id) }}">
@@ -53,14 +57,16 @@
                            min="1"
                            max="{{ apartment.shares_available }}"
                            value="1"
-                           required>
+                           required
+                           data-share-price="{{ apartment.share_price }}"
+                           data-monthly-return="{{ apartment.monthly_rent / apartment.total_shares }}">
                     <small class="text-muted">الحد الأقصى: {{ apartment.shares_available }} حصة</small>
                 </div>
                 
                 <div style="background: var(--secondary-navy); padding: 1.5rem; border-radius: 0.5rem; margin: 1.5rem 0;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
                         <span>سعر الحصة:</span>
-                        <strong id="share_price" class="text-gold">{{ "{:,.0f}".format(apartment.share_price) }} جنيه</strong>
+                        <strong class="text-gold">{{ "{:,.0f}".format(apartment.share_price) }} جنيه</strong>
                     </div>
                     
                     <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(212, 175, 55, 0.2);">
@@ -68,46 +74,27 @@
                         <strong id="num_shares_display">1</strong>
                     </div>
                     
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; font-size: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 1.25rem;">
                         <span>المبلغ الإجمالي:</span>
-                        <strong id="total_cost" class="text-gold">{{ "{:,.0f}".format(apartment.share_price) }}</strong>
-                        <span class="text-gold">جنيه</span>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; padding-top: 1rem; border-top: 1px solid rgba(212, 175, 55, 0.2);">
-                        <span>رصيدك الحالي:</span>
-                        <strong id="user_balance" class="text-success">{{ "{:,.0f}".format(current_user.wallet_balance) }}</strong>
-                        <span class="text-success">جنيه</span>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>الرصيد بعد الشراء:</span>
-                        <strong id="remaining_balance" class="text-success">{{ "{:,.0f}".format(current_user.wallet_balance - apartment.share_price) }}</strong>
-                        <span>جنيه</span>
+                        <strong id="total_cost" class="text-gold">{{ "{:,.0f}".format(apartment.share_price) }} جنيه</strong>
                     </div>
                 </div>
                 
                 <div style="background: rgba(16, 185, 129, 0.1); padding: 1rem; border-radius: 0.5rem; border-right: 4px solid var(--success); margin-bottom: 1.5rem;">
-                    <strong class="text-success">الدخل الشهري المتوقع:</strong>
+                    <strong class="text-success">العائد الشهري المتوقع:</strong>
                     <div style="font-size: 1.5rem; color: var(--success); font-weight: 700; margin-top: 0.5rem;">
-                        {{ "{:,.0f}".format(apartment.monthly_rent / apartment.total_shares) }} جنيه/شهر
+                        <span id="monthly_return">{{ "{:,.0f}".format(apartment.monthly_rent / apartment.total_shares) }}</span> جنيه/شهر
                     </div>
-                    <small class="text-muted">لكل حصة واحدة</small>
                 </div>
                 
-                {% if current_user.wallet_balance >= apartment.share_price %}
-                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
-                        <i class="fas fa-check"></i> تأكيد الشراء
-                    </button>
-                {% else %}
-                    <div class="alert alert-error">
-                        <i class="fas fa-exclamation-circle"></i>
-                        رصيدك غير كافٍ. يرجى إيداع المزيد من الأموال أولاً.
-                    </div>
-                    <a href="{{ url_for('user_views.wallet') }}" class="btn btn-success btn-lg" style="width: 100%;">
-                        <i class="fas fa-plus-circle"></i> إيداع أموال
-                    </a>
-                {% endif %}
+                <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>ملاحظة:</strong> بعد اختيار عدد الحصص، سيتم توجيهك لملء نموذج طلب الاستثمار وتحميل المستندات المطلوبة.
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                    <i class="fas fa-arrow-left"></i> متابعة لطلب الاستثمار
+                </button>
             </form>
         </div>
     </div>
@@ -120,25 +107,18 @@
 </div>
 
 <script>
-document.getElementById('num_shares').addEventListener('input', function() {
+const numEl = document.getElementById('num_shares');
+const sharePrice = parseFloat(numEl.dataset.sharePrice) || 0;
+const monthlyReturnPerShare = parseFloat(numEl.dataset.monthlyReturn) || 0;
+
+numEl.addEventListener('input', function() {
     const numShares = parseInt(this.value) || 1;
-    const sharePrice = {{ apartment.share_price }};
-    const userBalance = {{ current_user.wallet_balance }};
     const totalCost = numShares * sharePrice;
-    const remaining = userBalance - totalCost;
+    const totalMonthlyReturn = numShares * monthlyReturnPerShare;
     
     document.getElementById('num_shares_display').textContent = numShares;
-    document.getElementById('total_cost').textContent = totalCost.toLocaleString('ar-EG');
-    document.getElementById('remaining_balance').textContent = remaining.toLocaleString('ar-EG');
-    
-    const remainingElement = document.getElementById('remaining_balance');
-    if (remaining < 0) {
-        remainingElement.style.color = 'var(--error)';
-        remainingElement.parentElement.querySelector('span').style.color = 'var(--error)';
-    } else {
-        remainingElement.style.color = 'var(--success)';
-        remainingElement.parentElement.querySelector('span').style.color = 'var(--success)';
-    }
+    document.getElementById('total_cost').textContent = totalCost.toLocaleString('ar-EG') + ' جنيه';
+    document.getElementById('monthly_return').textContent = totalMonthlyReturn.toLocaleString('ar-EG');
 });
 </script>
 {% endblock %}

@@ -1,6 +1,6 @@
 """
 Main application initialization file
-Sets up Flask app, database, login manager, scheduler, JWT, and CORS
+Sets up Flask app, database, login manager, scheduler, JWT, CORS, and Mail
 """
 from flask import Flask
 from flask_login import LoginManager
@@ -14,6 +14,7 @@ from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from config import config
 from app.models import db, User
+from app.utils.email_service import mail
 import os
 
 
@@ -49,6 +50,7 @@ def create_app(config_name='development'):
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
+    mail.init_app(app)  # Initialize Flask-Mail
     if SCHEDULER_AVAILABLE and scheduler:
         scheduler.init_app(app)
     jwt.init_app(app)

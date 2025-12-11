@@ -9,77 +9,165 @@
             <i class="fas fa-file-contract"></i> طلبات الاستثمار
         </h1>
         
-        {% if requests %}
-            <div style="display: grid; gap: 1.5rem;">
-                {% for req in requests %}
-                    <div class="card">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                            <div>
-                                <h3 style="margin-bottom: 0.5rem;">{{ req.apartment.title }}</h3>
-                                <p class="text-muted">رقم الطلب: #{{ req.id }}</p>
+        {% if apartment_requests or car_requests %}
+            
+            <!-- Apartment Investment Requests -->
+            {% if apartment_requests %}
+                <h2 style="margin-bottom: 1.5rem; color: var(--text-light);">
+                    <i class="fas fa-building" style="color: var(--primary-gold);"></i> طلبات استثمار العقارات
+                    <span class="badge badge-primary" style="font-size: 0.8rem; margin-right: 0.5rem;">{{ apartment_requests|length }}</span>
+                </h2>
+                <div style="display: grid; gap: 1.5rem; margin-bottom: 3rem;">
+                    {% for req in apartment_requests %}
+                        <div class="card" style="border-right: 4px solid var(--primary-gold);">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                                <div>
+                                    <span class="badge badge-info" style="margin-bottom: 0.5rem; font-size: 0.7rem;">
+                                        <i class="fas fa-building"></i> عقار
+                                    </span>
+                                    <h3 style="margin-bottom: 0.5rem;">{{ req.apartment.title }}</h3>
+                                    <p class="text-muted">رقم الطلب: #{{ req.id }}</p>
+                                </div>
+                                <span class="badge badge-{{ 'success' if req.status == 'approved' else 'warning' if req.status == 'pending' or req.status == 'under_review' else 'danger' if req.status == 'rejected' else 'secondary' }}">
+                                    {{ req.status_arabic }}
+                                </span>
                             </div>
-                            <span class="badge badge-{{ 'success' if req.status == 'approved' else 'warning' if req.status == 'pending' or req.status == 'under_review' else 'danger' if req.status == 'rejected' else 'secondary' }}">
-                                {{ req.status_arabic }}
-                            </span>
+                            
+                            <div class="grid grid-3" style="gap: 1rem; margin-bottom: 1.5rem;">
+                                <div>
+                                    <span class="text-muted">عدد الحصص:</span>
+                                    <strong class="text-gold">{{ req.shares_requested }}</strong>
+                                </div>
+                                <div>
+                                    <span class="text-muted">المبلغ الإجمالي:</span>
+                                    <strong class="text-success">{{ "{:,.0f}".format(req.total_amount) }} جنيه</strong>
+                                </div>
+                                <div>
+                                    <span class="text-muted">تاريخ التقديم:</span>
+                                    <strong>{{ req.date_submitted.strftime('%Y-%m-%d') }}</strong>
+                                </div>
+                            </div>
+                            
+                            {% if req.status == 'documents_missing' and req.missing_documents %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>مستندات ناقصة:</strong> {{ req.missing_documents }}
+                                </div>
+                            {% endif %}
+                            
+                            {% if req.admin_notes %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-comment"></i>
+                                    <strong>ملاحظات الإدارة:</strong> {{ req.admin_notes }}
+                                </div>
+                            {% endif %}
+                            
+                            {% if req.contract_pdf %}
+                                <div style="margin-top: 1rem;">
+                                    <a href="{{ url_for('static', filename='uploads/contracts/' + req.contract_pdf) }}" 
+                                       class="btn btn-primary" target="_blank" download>
+                                        <i class="fas fa-file-pdf"></i> تحميل العقد
+                                    </a>
+                                </div>
+                            {% endif %}
+                            
+                            {% if req.status == 'approved' %}
+                                <div class="alert alert-success" style="margin-top: 1rem;">
+                                    <i class="fas fa-check-circle"></i>
+                                    تمت الموافقة على طلبك! يمكنك الآن تحميل العقد والتواصل معنا لإتمام الإجراءات.
+                                </div>
+                            {% endif %}
                         </div>
-                        
-                        <div class="grid grid-3" style="gap: 1rem; margin-bottom: 1.5rem;">
-                            <div>
-                                <span class="text-muted">عدد الحصص:</span>
-                                <strong class="text-gold">{{ req.shares_requested }}</strong>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <!-- Car Investment Requests -->
+            {% if car_requests %}
+                <h2 style="margin-bottom: 1.5rem; color: var(--text-light);">
+                    <i class="fas fa-car" style="color: #10B981;"></i> طلبات استثمار السيارات
+                    <span class="badge badge-success" style="font-size: 0.8rem; margin-right: 0.5rem;">{{ car_requests|length }}</span>
+                </h2>
+                <div style="display: grid; gap: 1.5rem;">
+                    {% for req in car_requests %}
+                        <div class="card" style="border-right: 4px solid #10B981;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                                <div>
+                                    <span class="badge" style="background: #10B981; color: white; margin-bottom: 0.5rem; font-size: 0.7rem;">
+                                        <i class="fas fa-car"></i> سيارة
+                                    </span>
+                                    <h3 style="margin-bottom: 0.5rem;">{{ req.car.title }}</h3>
+                                    <p class="text-muted">رقم الطلب: #{{ req.id }}</p>
+                                </div>
+                                <span class="badge badge-{{ 'success' if req.status == 'approved' else 'warning' if req.status == 'pending' or req.status == 'under_review' else 'danger' if req.status == 'rejected' else 'secondary' }}">
+                                    {{ req.status_arabic }}
+                                </span>
                             </div>
-                            <div>
-                                <span class="text-muted">المبلغ الإجمالي:</span>
-                                <strong class="text-success">{{ "{:,.0f}".format(req.total_amount) }} جنيه</strong>
+                            
+                            <div class="grid grid-3" style="gap: 1rem; margin-bottom: 1.5rem;">
+                                <div>
+                                    <span class="text-muted">عدد الحصص:</span>
+                                    <strong class="text-gold">{{ req.shares_requested }}</strong>
+                                </div>
+                                <div>
+                                    <span class="text-muted">المبلغ الإجمالي:</span>
+                                    <strong class="text-success">{{ "{:,.0f}".format(req.total_amount) }} جنيه</strong>
+                                </div>
+                                <div>
+                                    <span class="text-muted">تاريخ التقديم:</span>
+                                    <strong>{{ req.date_submitted.strftime('%Y-%m-%d') }}</strong>
+                                </div>
                             </div>
-                            <div>
-                                <span class="text-muted">تاريخ التقديم:</span>
-                                <strong>{{ req.date_submitted.strftime('%Y-%m-%d') }}</strong>
-                            </div>
+                            
+                            {% if req.status == 'documents_missing' and req.missing_documents %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>مستندات ناقصة:</strong> {{ req.missing_documents }}
+                                </div>
+                            {% endif %}
+                            
+                            {% if req.admin_notes %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-comment"></i>
+                                    <strong>ملاحظات الإدارة:</strong> {{ req.admin_notes }}
+                                </div>
+                            {% endif %}
+                            
+                            {% if req.contract_pdf %}
+                                <div style="margin-top: 1rem;">
+                                    <a href="{{ url_for('static', filename='uploads/contracts/' + req.contract_pdf) }}" 
+                                       class="btn btn-primary" target="_blank" download>
+                                        <i class="fas fa-file-pdf"></i> تحميل العقد
+                                    </a>
+                                </div>
+                            {% endif %}
+                            
+                            {% if req.status == 'approved' %}
+                                <div class="alert alert-success" style="margin-top: 1rem;">
+                                    <i class="fas fa-check-circle"></i>
+                                    تمت الموافقة على طلبك! يمكنك الآن تحميل العقد والتواصل معنا لإتمام الإجراءات.
+                                </div>
+                            {% endif %}
                         </div>
-                        
-                        {% if req.status == 'documents_missing' and req.missing_documents %}
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <strong>مستندات ناقصة:</strong> {{ req.missing_documents }}
-                            </div>
-                        {% endif %}
-                        
-                        {% if req.admin_notes %}
-                            <div class="alert alert-info">
-                                <i class="fas fa-comment"></i>
-                                <strong>ملاحظات الإدارة:</strong> {{ req.admin_notes }}
-                            </div>
-                        {% endif %}
-                        
-                        {% if req.contract_pdf %}
-                            <div style="margin-top: 1rem;">
-                                <a href="{{ url_for('static', filename='uploads/contracts/' + req.contract_pdf) }}" 
-                                   class="btn btn-primary" target="_blank" download>
-                                    <i class="fas fa-file-pdf"></i> تحميل العقد
-                                </a>
-                            </div>
-                        {% endif %}
-                        
-                        {% if req.status == 'approved' %}
-                            <div class="alert alert-success" style="margin-top: 1rem;">
-                                <i class="fas fa-check-circle"></i>
-                                تمت الموافقة على طلبك! يمكنك الآن تحميل العقد والتواصل معنا لإتمام الإجراءات.
-                            </div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
         {% else %}
             <div class="card text-center" style="padding: 3rem;">
                 <div style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;">
                     <i class="fas fa-inbox"></i>
                 </div>
                 <h3 class="text-muted">لا توجد طلبات استثمار</h3>
-                <p class="text-muted">ابدأ الاستثمار الآن واختر العقار المناسب</p>
-                <a href="{{ url_for('main.market') }}" class="btn btn-primary" style="margin-top: 1rem;">
-                    <i class="fas fa-search"></i> تصفح العقارات
-                </a>
+                <p class="text-muted">ابدأ الاستثمار الآن واختر العقار أو السيارة المناسبة</p>
+                <div style="margin-top: 1rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="{{ url_for('main.market') }}" class="btn btn-primary">
+                        <i class="fas fa-building"></i> تصفح العقارات
+                    </a>
+                    <a href="{{ url_for('main.car_market') }}" class="btn btn-success">
+                        <i class="fas fa-car"></i> تصفح السيارات
+                    </a>
+                </div>
             </div>
         {% endif %}
     </div>

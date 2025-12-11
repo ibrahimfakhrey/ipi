@@ -276,8 +276,13 @@ def cancel_withdrawal(request_id):
 @bp.route('/buy-shares/<int:apartment_id>', methods=['GET', 'POST'])
 @login_required
 def buy_shares(apartment_id):
-    """Buy shares page - redirects to investment request"""
+    """Buy shares page - redirects to unified investment request"""
     apartment = Apartment.query.get_or_404(apartment_id)
+    
+    # Check if apartment is available
+    if apartment.is_closed or apartment.shares_available <= 0:
+        flash('هذه الوحدة غير متاحة للاستثمار حالياً', 'error')
+        return redirect(url_for('main.apartment_detail', apartment_id=apartment_id))
     
     if request.method == 'POST':
         num_shares = int(request.form.get('num_shares', 1))
@@ -286,9 +291,14 @@ def buy_shares(apartment_id):
             flash('يجب شراء حصة واحدة على الأقل', 'error')
             return render_template('user/buy_shares.html', apartment=apartment)
         
-        # Redirect to investment request form instead of direct purchase
-        return redirect(url_for('user_views.investment_request', 
-                              apartment_id=apartment_id, 
+        if num_shares > apartment.shares_available:
+            flash(f'الحد الأقصى المتاح هو {apartment.shares_available} حصة', 'error')
+            return render_template('user/buy_shares.html', apartment=apartment)
+        
+        # Redirect to UNIFIED investment request form
+        return redirect(url_for('user_views.unified_investment_request', 
+                              asset_type='apartment',
+                              asset_id=apartment_id, 
                               shares=num_shares))
     
     return render_template('user/buy_shares.html', apartment=apartment)
@@ -297,15 +307,29 @@ def buy_shares(apartment_id):
 @bp.route('/buy-car-shares/<int:car_id>', methods=['GET', 'POST'])
 @login_required
 def buy_car_shares(car_id):
-    """Buy car shares page - redirects to car investment request"""
+    """Buy car shares page - redirects to unified investment request"""
     car = Car.query.get_or_404(car_id)
+    
+    # Check if car is available
+    if car.is_closed or car.shares_available <= 0:
+        flash('هذه السيارة غير متاحة للاستثمار حالياً', 'error')
+        return redirect(url_for('main.car_detail', car_id=car_id))
 
     if request.method == 'POST':
         num_shares = int(request.form.get('num_shares', 1))
         if num_shares < 1:
             flash('يجب شراء حصة واحدة على الأقل', 'error')
             return render_template('user/buy_car_shares.html', car=car)
-        return redirect(url_for('user_views.car_investment_request', car_id=car_id, shares=num_shares))
+        
+        if num_shares > car.shares_available:
+            flash(f'الحد الأقصى المتاح هو {car.shares_available} حصة', 'error')
+            return render_template('user/buy_car_shares.html', car=car)
+        
+        # Redirect to UNIFIED investment request form
+        return redirect(url_for('user_views.unified_investment_request', 
+                              asset_type='car',
+                              asset_id=car_id, 
+                              shares=num_shares))
 
     return render_template('user/buy_car_shares.html', car=car)
 
@@ -424,6 +448,221 @@ def change_password():
     
     flash('تم تغيير كلمة المرور بنجاح', 'success')
     return redirect(url_for('user_views.profile'))
+
+
+# ==================== UNIFIED INVESTMENT REQUEST ====================
+
+@bp.route('/invest/<asset_type>/<int:asset_id>', methods=['GET', 'POST'])
+@login_required
+def unified_investment_request(asset_type, asset_id):
+    """
+    Unified investment request form for both apartments and cars
+    asset_type: 'apartment' or 'car'
+    asset_id: ID of the apartment or car
+    """
+    # Validate asset type
+    if asset_type not in ['apartment', 'car']:
+        flash('نوع الأصل غير صحيح', 'error')
+        return redirect(url_for('user_views.dashboard'))
+    
+    # Get the asset
+    if asset_type == 'apartment':
+        asset = Apartment.query.get_or_404(asset_id)
+        asset_type_arabic = 'وحدة سكنية'
+        asset_icon = 'fa-building'
+    else:  # car
+        asset = Car.query.get_or_404(asset_id)
+        asset_type_arabic = 'سيارة'
+        asset_icon = 'fa-car'
+    
+    # Check if asset is available
+    if asset.is_closed or asset.shares_available <= 0:
+        flash('هذا الأصل غير متاح للاستثمار حالياً', 'error')
+        if asset_type == 'apartment':
+            return redirect(url_for('main.apartment_detail', apartment_id=asset_id))
+        else:
+            return redirect(url_for('main.car_detail', car_id=asset_id))
+    
+    # Get shares count from query params
+    shares_count = int(request.args.get('shares', 1))
+    
+    # Validate shares count
+    if shares_count < 1:
+        shares_count = 1
+    if shares_count > asset.shares_available:
+        shares_count = asset.shares_available
+        flash(f'تم تعديل عدد الحصص إلى {shares_count} (الحد الأقصى المتاح)', 'warning')
+    
+    total_amount = asset.share_price * shares_count
+    
+    # Initialize form
+    form = InvestmentRequestForm()
+    
+    referrer_user = None
+    
+    if form.validate_on_submit():
+        # Check for referral number
+        manual_referral_number = form.referral_code.data
+        if manual_referral_number:
+            referrer_user = User.query.filter_by(
+                referral_number=manual_referral_number.strip().upper()
+            ).first()
+            if not referrer_user:
+                flash('رقم الإحالة غير صحيح', 'error')
+                return render_template('user/unified_investment_request.html',
+                                     form=form,
+                                     asset=asset,
+                                     asset_type=asset_type,
+                                     asset_type_arabic=asset_type_arabic,
+                                     asset_icon=asset_icon,
+                                     shares_count=shares_count,
+                                     total_amount=total_amount,
+                                     referrer=None)
+            # Check referrer is not the same user
+            if referrer_user.id == current_user.id:
+                flash('لا يمكنك استخدام رقم الإحالة الخاص بك', 'error')
+                return render_template('user/unified_investment_request.html',
+                                     form=form,
+                                     asset=asset,
+                                     asset_type=asset_type,
+                                     asset_type_arabic=asset_type_arabic,
+                                     asset_icon=asset_icon,
+                                     shares_count=shares_count,
+                                     total_amount=total_amount,
+                                     referrer=None)
+        
+        # Create uploads directory
+        from flask import current_app
+        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'documents')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Save uploaded files
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        try:
+            # Process front document
+            front_file = form.id_document_front.data
+            front_filename = secure_filename(f"{timestamp}_front_{current_user.id}_{front_file.filename}")
+            front_path = os.path.join(upload_dir, front_filename)
+            front_file.save(front_path)
+            optimize_uploaded_file(front_path)
+            
+            # Process back document
+            back_file = form.id_document_back.data
+            back_filename = secure_filename(f"{timestamp}_back_{current_user.id}_{back_file.filename}")
+            back_path = os.path.join(upload_dir, back_filename)
+            back_file.save(back_path)
+            optimize_uploaded_file(back_path)
+            
+            # Process address proof
+            address_file = form.proof_of_address.data
+            address_filename = secure_filename(f"{timestamp}_address_{current_user.id}_{address_file.filename}")
+            address_path = os.path.join(upload_dir, address_filename)
+            address_file.save(address_path)
+            optimize_uploaded_file(address_path)
+            
+        except Exception as e:
+            flash('حدث خطأ أثناء رفع الملفات. يرجى المحاولة مرة أخرى.', 'error')
+            return render_template('user/unified_investment_request.html',
+                                 form=form,
+                                 asset=asset,
+                                 asset_type=asset_type,
+                                 asset_type_arabic=asset_type_arabic,
+                                 asset_icon=asset_icon,
+                                 shares_count=shares_count,
+                                 total_amount=total_amount,
+                                 referrer=referrer_user)
+        
+        # Create the appropriate investment request based on asset type
+        if asset_type == 'apartment':
+            inv_request = InvestmentRequest(
+                user_id=current_user.id,
+                apartment_id=asset_id,
+                shares_requested=shares_count,
+                full_name=form.full_name.data,
+                phone=form.phone.data,
+                national_id=form.national_id.data,
+                address=form.address.data,
+                date_of_birth=form.date_of_birth.data,
+                nationality=form.nationality.data,
+                occupation=form.occupation.data,
+                id_document_front=front_filename,
+                id_document_back=back_filename,
+                proof_of_address=address_filename,
+                status='pending',
+                referred_by_user_id=referrer_user.id if referrer_user else None
+            )
+        else:  # car
+            inv_request = CarInvestmentRequest(
+                user_id=current_user.id,
+                car_id=asset_id,
+                shares_requested=shares_count,
+                full_name=form.full_name.data,
+                phone=form.phone.data,
+                national_id=form.national_id.data,
+                address=form.address.data,
+                date_of_birth=form.date_of_birth.data,
+                nationality=form.nationality.data,
+                occupation=form.occupation.data,
+                id_document_front=front_filename,
+                id_document_back=back_filename,
+                proof_of_address=address_filename,
+                status='pending',
+                referred_by_user_id=referrer_user.id if referrer_user else None
+            )
+        
+        db.session.add(inv_request)
+        db.session.commit()
+        
+        flash('تم إرسال طلبك بنجاح! سنتواصل معك قريباً', 'success')
+        return redirect(url_for('user_views.unified_request_confirmation', 
+                               asset_type=asset_type, 
+                               request_id=inv_request.id))
+    
+    # If form has errors, flash them
+    if form.errors:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{error}', 'error')
+    
+    return render_template('user/unified_investment_request.html',
+                         form=form,
+                         asset=asset,
+                         asset_type=asset_type,
+                         asset_type_arabic=asset_type_arabic,
+                         asset_icon=asset_icon,
+                         shares_count=shares_count,
+                         total_amount=total_amount,
+                         referrer=referrer_user)
+
+
+@bp.route('/invest-confirmation/<asset_type>/<int:request_id>')
+@login_required
+def unified_request_confirmation(asset_type, request_id):
+    """Show confirmation page after submitting investment request"""
+    if asset_type == 'apartment':
+        inv_request = InvestmentRequest.query.get_or_404(request_id)
+        asset = inv_request.apartment
+        asset_type_arabic = 'وحدة سكنية'
+    else:
+        inv_request = CarInvestmentRequest.query.get_or_404(request_id)
+        asset = inv_request.car
+        asset_type_arabic = 'سيارة'
+    
+    # Ensure user can only see their own requests
+    if inv_request.user_id != current_user.id:
+        flash('غير مصرح لك بعرض هذا الطلب', 'error')
+        return redirect(url_for('user_views.dashboard'))
+    
+    return render_template('user/unified_request_confirmation.html', 
+                         inv_request=inv_request,
+                         asset=asset,
+                         asset_type=asset_type,
+                         asset_type_arabic=asset_type_arabic,
+                         request_id=request_id)
+
+
+# ==================== END UNIFIED INVESTMENT REQUEST ====================
 
 
 @bp.route('/investment-request/<int:apartment_id>', methods=['GET', 'POST'])
@@ -671,11 +910,18 @@ def request_confirmation(request_id):
 @bp.route('/my-investment-requests')
 @login_required
 def my_investment_requests():
-    """Show user's investment requests"""
-    requests = InvestmentRequest.query.filter_by(user_id=current_user.id)\
+    """Show user's investment requests (apartments and cars)"""
+    # Get apartment investment requests
+    apartment_requests = InvestmentRequest.query.filter_by(user_id=current_user.id)\
         .order_by(desc(InvestmentRequest.date_submitted)).all()
     
-    return render_template('user/my_investment_requests.html', requests=requests)
+    # Get car investment requests
+    car_requests = CarInvestmentRequest.query.filter_by(user_id=current_user.id)\
+        .order_by(desc(CarInvestmentRequest.date_submitted)).all()
+    
+    return render_template('user/my_investment_requests.html', 
+                         apartment_requests=apartment_requests,
+                         car_requests=car_requests)
 
 
 # ============= REFERRAL SYSTEM =============

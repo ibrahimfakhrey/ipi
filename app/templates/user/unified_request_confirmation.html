@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}تأكيد الطلب - {{ asset.title }}{% endblock %}
+
+{% block content %}
+<div style="padding: 3rem 0;">
+    <div class="container" style="max-width: 600px;">
+        <div class="card" style="text-align: center;">
+            
+            <!-- Success Icon Animation -->
+            <div style="margin-bottom: 2rem;">
+                <div style="width: 100px; height: 100px; margin: 0 auto; background: linear-gradient(135deg, var(--success), #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: scaleIn 0.5s ease-out;">
+                    <i class="fas fa-check" style="font-size: 3rem; color: white;"></i>
+                </div>
+            </div>
+            
+            <h1 class="text-gold" style="margin-bottom: 1rem;">
+                تم إرسال طلبك بنجاح! 🎉
+            </h1>
+            
+            <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 2rem;">
+                شكراً لك على ثقتك في منصتنا. سيتم مراجعة طلبك من قبل فريقنا وسنتواصل معك قريباً.
+            </p>
+            
+            <!-- Request Summary -->
+            <div style="background: var(--secondary-navy); padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 2rem; text-align: right;">
+                <h3 class="text-gold" style="margin-bottom: 1rem; text-align: center;">
+                    <i class="fas fa-receipt"></i> ملخص الطلب
+                </h3>
+                
+                <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid rgba(212, 175, 55, 0.2);">
+                    <span class="text-muted">رقم الطلب:</span>
+                    <strong class="text-gold">#{{ request_id }}</strong>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid rgba(212, 175, 55, 0.2);">
+                    <span class="text-muted">نوع الاستثمار:</span>
+                    <strong>
+                        {% if asset_type == 'apartment' %}
+                        <i class="fas fa-building"></i> وحدة سكنية
+                        {% else %}
+                        <i class="fas fa-car"></i> سيارة
+                        {% endif %}
+                    </strong>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid rgba(212, 175, 55, 0.2);">
+                    <span class="text-muted">الأصل:</span>
+                    <strong>{{ asset.title }}</strong>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid rgba(212, 175, 55, 0.2);">
+                    <span class="text-muted">عدد الحصص:</span>
+                    <strong>{{ inv_request.shares_requested }}</strong>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid rgba(212, 175, 55, 0.2);">
+                    <span class="text-muted">المبلغ الإجمالي:</span>
+                    <strong class="text-success">{{ "{:,.0f}".format(inv_request.total_amount) }} جنيه</strong>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding: 0.75rem 0;">
+                    <span class="text-muted">حالة الطلب:</span>
+                    <span class="badge" style="background: var(--warning); color: black; padding: 0.25rem 0.75rem; border-radius: 1rem;">
+                        <i class="fas fa-clock"></i> {{ inv_request.status_arabic }}
+                    </span>
+                </div>
+            </div>
+            
+            <!-- What's Next -->
+            <div style="background: rgba(212, 175, 55, 0.1); padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 2rem; text-align: right;">
+                <h4 class="text-gold" style="margin-bottom: 1rem;">
+                    <i class="fas fa-clipboard-list"></i> الخطوات القادمة
+                </h4>
+                <ol style="margin: 0; padding-right: 1.5rem; line-height: 2;">
+                    <li>سيقوم فريقنا بمراجعة المستندات المقدمة</li>
+                    <li>سنتواصل معك خلال 24-48 ساعة عمل</li>
+                    <li>بعد الموافقة، سيتم ترتيب عملية التحويل</li>
+                    <li>بمجرد إتمام التحويل، ستحصل على حصصك</li>
+                </ol>
+            </div>
+            
+            <!-- Contact Info -->
+            <div style="background: var(--secondary-navy); padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem;">
+                <p class="text-muted" style="margin: 0;">
+                    <i class="fas fa-question-circle"></i>
+                    لديك استفسار؟ تواصل معنا على:
+                    <a href="tel:+201000000000" class="text-gold">+20 100 000 0000</a>
+                </p>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('user_views.dashboard') }}" class="btn btn-primary">
+                    <i class="fas fa-home"></i> لوحة التحكم
+                </a>
+                <a href="{{ url_for('user_views.my_investment_requests') }}" class="btn btn-secondary">
+                    <i class="fas fa-list"></i> طلباتي
+                </a>
+                <a href="{{ url_for('main.market') }}" class="btn btn-outline-gold">
+                    <i class="fas fa-search"></i> تصفح المزيد
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes scaleIn {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.btn-outline-gold {
+    background: transparent;
+    border: 2px solid var(--primary-gold);
+    color: var(--primary-gold);
+}
+
+.btn-outline-gold:hover {
+    background: var(--primary-gold);
+    color: var(--background-black);
+}
+</style>
+{% endblock %}

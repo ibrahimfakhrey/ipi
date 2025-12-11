@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+
+{% block title %}طلب استثمار - {{ asset.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Beautiful Arabic Loading Animation */
+    .upload-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        backdrop-filter: blur(10px);
+    }
+
+    .upload-container {
+        text-align: center;
+        color: var(--text-light);
+        max-width: 400px;
+        padding: 3rem;
+        background: var(--secondary-navy);
+        border-radius: 1rem;
+        border: 2px solid var(--gold);
+        box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+    }
+
+    .upload-icon {
+        font-size: 4rem;
+        color: var(--gold);
+        margin-bottom: 2rem;
+        animation: uploadPulse 2s ease-in-out infinite;
+    }
+
+    .upload-text {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        color: var(--gold);
+    }
+
+    .upload-subtext {
+        font-size: 1rem;
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+    }
+
+    .upload-progress {
+        width: 100%;
+        height: 8px;
+        background: var(--background-black);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .upload-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--gold), var(--accent-gold));
+        border-radius: 4px;
+        width: 0%;
+        animation: progressAnimation 3s ease-in-out infinite;
+    }
+
+    .upload-dots {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .upload-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--gold);
+        animation: dotPulse 1.5s ease-in-out infinite;
+    }
+
+    .upload-dot:nth-child(1) { animation-delay: 0s; }
+    .upload-dot:nth-child(2) { animation-delay: 0.3s; }
+    .upload-dot:nth-child(3) { animation-delay: 0.6s; }
+
+    @keyframes uploadPulse {
+        0%, 100% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    @keyframes progressAnimation {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+    }
+
+    @keyframes dotPulse {
+        0%, 100% { opacity: 0.3; transform: scale(0.8); }
+        50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    .form-uploading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+    }
+
+    .file-preview {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background: var(--secondary-navy);
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        color: var(--gold);
+        display: none;
+    }
+
+    /* Asset type badge */
+    .asset-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    .asset-type-badge.apartment {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+        color: #60a5fa;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    
+    .asset-type-badge.car {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    /* Investment summary card */
+    .investment-summary {
+        background: linear-gradient(135deg, var(--secondary-navy) 0%, rgba(212, 175, 55, 0.1) 100%);
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .investment-summary h3 {
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .investment-summary .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .investment-summary .summary-item {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 0.5rem;
+    }
+
+    .investment-summary .summary-item .value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary-gold);
+    }
+
+    .investment-summary .summary-item .label {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+
+    .monthly-return-highlight {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    .monthly-return-highlight .value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--success);
+    }
+
+    .monthly-return-highlight .label {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding: 3rem 0;">
+    <div class="container" style="max-width: 800px;">
+        <div class="card">
+            <h1 class="text-gold" style="margin-bottom: 1rem;">
+                <i class="fas fa-file-contract"></i> طلب استثمار
+            </h1>
+
+            <!-- Asset Type Badge -->
+            <div class="asset-type-badge {{ asset_type }}">
+                <i class="fas {{ asset_icon }}"></i>
+                {{ asset_type_arabic }}
+            </div>
+
+            <!-- Investment Summary -->
+            <div class="investment-summary">
+                <h3>
+                    <i class="fas {{ asset_icon }} text-gold"></i>
+                    {{ asset.title }}
+                </h3>
+                <p class="text-muted" style="margin-bottom: 1rem;">
+                    <i class="fas fa-map-marker-alt"></i> {{ asset.location }}
+                </p>
+                
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="value">{{ shares_count }}</div>
+                        <div class="label">عدد الحصص</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value">{{ "{:,.0f}".format(asset.share_price) }}</div>
+                        <div class="label">سعر الحصة (جنيه)</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value" style="color: var(--success);">{{ "{:,.0f}".format(total_amount) }}</div>
+                        <div class="label">المبلغ الإجمالي (جنيه)</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="value">{{ asset.shares_available }}</div>
+                        <div class="label">حصص متاحة</div>
+                    </div>
+                </div>
+
+                <div class="monthly-return-highlight">
+                    <div class="label">العائد الشهري المتوقع</div>
+                    <div class="value">
+                        {{ "{:,.0f}".format((asset.monthly_rent / asset.total_shares) * shares_count) }} جنيه/شهر
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>مهم:</strong> يرجى ملء جميع البيانات بدقة وتحميل المستندات المطلوبة. سيتم مراجعة طلبك خلال 24-48 ساعة.
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" style="margin-top: 2rem;">
+                {{ form.hidden_tag() }}
+
+                <h3 class="text-gold" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-user"></i> البيانات الشخصية
+                </h3>
+
+                <div class="form-group">
+                    {{ form.full_name.label }}
+                    {{ form.full_name(class="form-control", placeholder="الاسم الكامل كما في البطاقة") }}
+                    {% if form.full_name.errors %}
+                    <div class="text-danger">{{ form.full_name.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-2" style="gap: 1.5rem;">
+                    <div class="form-group">
+                        {{ form.phone.label }}
+                        {{ form.phone(class="form-control", placeholder="+20 1XX XXX XXXX") }}
+                        {% if form.phone.errors %}
+                        <div class="text-danger">{{ form.phone.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        {{ form.date_of_birth.label }}
+                        {{ form.date_of_birth(class="form-control", type="date") }}
+                        {% if form.date_of_birth.errors %}
+                        <div class="text-danger">{{ form.date_of_birth.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-2" style="gap: 1.5rem;">
+                    <div class="form-group">
+                        {{ form.national_id.label }}
+                        {{ form.national_id(class="form-control", placeholder="رقم البطاقة (14 رقم)") }}
+                        {% if form.national_id.errors %}
+                        <div class="text-danger">{{ form.national_id.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        {{ form.nationality.label }}
+                        {{ form.nationality(class="form-control", placeholder="الجنسية") }}
+                        {% if form.nationality.errors %}
+                        <div class="text-danger">{{ form.nationality.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    {{ form.occupation.label }}
+                    {{ form.occupation(class="form-control", placeholder="المهنة") }}
+                    {% if form.occupation.errors %}
+                    <div class="text-danger">{{ form.occupation.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.address.label }}
+                    {{ form.address(class="form-control", rows=3, placeholder="العنوان الكامل") }}
+                    {% if form.address.errors %}
+                    <div class="text-danger">{{ form.address.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <hr style="margin: 2rem 0; border-color: var(--gold);">
+
+                <h3 class="text-gold" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-gift"></i> رقم الإحالة (اختياري)
+                </h3>
+
+                <div class="form-group">
+                    {{ form.referral_code.label(text="رقم الإحالة") }}
+                    {{ form.referral_code(class="form-control", placeholder="IPI000123") }}
+                    {% if form.referral_code.errors %}
+                    <div class="text-danger">{{ form.referral_code.errors[0] }}</div>
+                    {% endif %}
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        إذا كان لديك رقم إحالة من مستثمر آخر، أدخله هنا (مثال: IPI000123)
+                    </small>
+                    {% if referrer %}
+                    <div class="alert alert-success" style="margin-top: 0.5rem;">
+                        <i class="fas fa-check-circle"></i>
+                        تم الإحالة من: <strong>{{ referrer.name }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <hr style="margin: 2rem 0; border-color: var(--gold);">
+
+                <h3 class="text-gold" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-file-upload"></i> المستندات المطلوبة
+                </h3>
+
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    يرجى تحميل صور واضحة للمستندات (PDF أو صور JPG/PNG - حجم أقصى 5 ميجا)
+                </div>
+
+                <div class="form-group">
+                    {{ form.id_document_front.label }}
+                    <div class="file-input-wrapper">
+                        {{ form.id_document_front(class="form-control", accept=".jpg,.jpeg,.png,.pdf") }}
+                        <small class="text-muted">صورة وجه البطاقة الشخصية</small>
+                    </div>
+                    {% if form.id_document_front.errors %}
+                    <div class="text-danger">{{ form.id_document_front.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.id_document_back.label }}
+                    <div class="file-input-wrapper">
+                        {{ form.id_document_back(class="form-control", accept=".jpg,.jpeg,.png,.pdf") }}
+                        <small class="text-muted">صورة ظهر البطاقة الشخصية</small>
+                    </div>
+                    {% if form.id_document_back.errors %}
+                    <div class="text-danger">{{ form.id_document_back.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.proof_of_address.label }}
+                    <div class="file-input-wrapper">
+                        {{ form.proof_of_address(class="form-control", accept=".jpg,.jpeg,.png,.pdf") }}
+                        <small class="text-muted">فاتورة كهرباء أو مياه أو غاز حديثة</small>
+                    </div>
+                    {% if form.proof_of_address.errors %}
+                    <div class="text-danger">{{ form.proof_of_address.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <hr style="margin: 2rem 0; border-color: var(--gold);">
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        {{ form.agree_terms(style="width: auto;") }}
+                        <span>أوافق على <a href="#" class="text-gold">الشروط والأحكام</a> و <a href="#" class="text-gold">سياسة الخصوصية</a></span>
+                    </label>
+                    {% if form.agree_terms.errors %}
+                    <div class="text-danger">{{ form.agree_terms.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary" id="submitBtn" style="flex: 1;">
+                        <i class="fas fa-paper-plane"></i> إرسال الطلب
+                    </button>
+                    {% if asset_type == 'apartment' %}
+                    <a href="{{ url_for('main.apartment_detail', apartment_id=asset.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('main.car_detail', car_id=asset.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Beautiful Loading Overlay -->
+<div class="upload-overlay" id="uploadOverlay">
+    <div class="upload-container">
+        <div class="upload-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+        </div>
+        <div class="upload-text">جاري معالجة الملفات</div>
+        <div class="upload-subtext">يرجى الانتظار... لا تغلق النافذة</div>
+        <div class="upload-progress">
+            <div class="upload-progress-bar"></div>
+        </div>
+        <div class="upload-dots">
+            <div class="upload-dot"></div>
+            <div class="upload-dot"></div>
+            <div class="upload-dot"></div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadOverlay = document.getElementById('uploadOverlay');
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+
+        // File preview functionality
+        fileInputs.forEach(input => {
+            input.addEventListener('change', function () {
+                const wrapper = this.closest('.file-input-wrapper');
+                let preview = wrapper.querySelector('.file-preview');
+
+                if (!preview) {
+                    preview = document.createElement('div');
+                    preview.className = 'file-preview';
+                    wrapper.appendChild(preview);
+                }
+
+                if (this.files[0]) {
+                    const file = this.files[0];
+                    const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                    preview.innerHTML = `
+                        <i class="fas fa-file-check"></i>
+                        تم اختيار: ${file.name} (${sizeInMB} ميجا)
+                    `;
+                    preview.style.display = 'block';
+
+                    // Check file size
+                    if (file.size > 5 * 1024 * 1024) {
+                        preview.innerHTML = `
+                            <i class="fas fa-exclamation-triangle text-danger"></i>
+                            حجم الملف كبير جداً (${sizeInMB} ميجا). الحد الأقصى 5 ميجا
+                        `;
+                        preview.style.color = 'var(--danger)';
+                        this.value = '';
+                    } else {
+                        preview.style.color = 'var(--gold)';
+                    }
+                } else {
+                    preview.style.display = 'none';
+                }
+            });
+        });
+
+        // Form submission with loading animation
+        form.addEventListener('submit', function (e) {
+            // Validate files are selected
+            let allFilesSelected = true;
+            const requiredFileInputs = document.querySelectorAll('input[type="file"][required]');
+
+            requiredFileInputs.forEach(input => {
+                if (!input.files[0]) {
+                    allFilesSelected = false;
+                }
+            });
+
+            if (!allFilesSelected) {
+                alert('يرجى اختيار جميع الملفات المطلوبة');
+                e.preventDefault();
+                return;
+            }
+
+            // Check file sizes
+            let validSizes = true;
+            fileInputs.forEach(input => {
+                if (input.files[0] && input.files[0].size > 5 * 1024 * 1024) {
+                    validSizes = false;
+                }
+            });
+
+            if (!validSizes) {
+                alert('حجم بعض الملفات كبير جداً. يرجى اختيار ملفات أصغر من 5 ميجا');
+                e.preventDefault();
+                return;
+            }
+
+            // Show loading animation
+            uploadOverlay.style.display = 'flex';
+            form.classList.add('form-uploading');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+
+            // Prevent multiple submissions
+            setTimeout(() => {
+                const newSubmitBtn = submitBtn.cloneNode(true);
+                newSubmitBtn.disabled = true;
+                submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+            }, 100);
+        });
+
+        // Handle form validation errors
+        window.addEventListener('beforeunload', function () {
+            if (uploadOverlay.style.display === 'flex') {
+                return 'يتم حالياً رفع الملفات. هل أنت متأكد من إغلاق الصفحة؟';
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -22,6 +22,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    email_verified = db.Column(db.Boolean, default=False)  # Email verification status
     password_hash = db.Column(db.String(200), nullable=True)  # Nullable for social auth users
     wallet_balance = db.Column(db.Float, default=0.0)
     rewards_balance = db.Column(db.Float, default=0.0)  # Separate balance for referral rewards
@@ -642,9 +643,10 @@ class CarInvestmentRequest(db.Model):
     reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'))
 
     # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='car_investment_requests')
     car = db.relationship('Car', backref='investment_requests')
     reviewer = db.relationship('User', foreign_keys=[reviewed_by])
-    referrer = db.relationship('User', foreign_keys=[referred_by_user_id], backref='referred_car_investments')
+    referred_by = db.relationship('User', foreign_keys=[referred_by_user_id], backref='referred_car_investments')
 
     @property
     def status_arabic(self):
@@ -817,3 +819,32 @@ class WithdrawalRequest(db.Model):
     
     def __repr__(self):
         return f'<WithdrawalRequest User:{self.user_id} Amount:{self.amount} Status:{self.status}>'
+
+
+class EmailVerification(db.Model):
+    """
+    Email verification OTP model
+    Stores temporary OTP codes for email verification
+    """
+    __tablename__ = 'email_verifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), nullable=False, index=True)
+    otp_code = db.Column(db.String(10), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    is_verified = db.Column(db.Boolean, default=False)
+    attempts = db.Column(db.Integer, default=0)  # Track verification attempts
+    
+    # Temporary registration data (stored until email is verified)
+    temp_name = db.Column(db.String(100))
+    temp_password_hash = db.Column(db.String(200))
+    temp_phone = db.Column(db.String(20))
+    
+    def is_valid(self):
+        """Check if OTP is still valid"""
+        return not self.is_verified and datetime.utcnow() < self.expires_at and self.attempts < 5
+    
+    def __repr__(self):
+        return f'<EmailVerification {self.email} OTP:{self.otp_code} Valid:{self.is_valid()}>'
+

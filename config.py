@@ -48,6 +48,18 @@ class Config:
     
     # Admin credentials (in production, use environment variables)
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL') or 'amsprog2022@gmail.com'
+    
+    # Email configuration for OTP verification
+    MAIL_SERVER = 'smtp.gmail.com'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'ibrahimfakhreyams@gmail.com'
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'lzyr svkj mynb gtsa'
+    MAIL_DEFAULT_SENDER = ('i pillars i', os.environ.get('MAIL_USERNAME') or 'ibrahimfakhreyams@gmail.com')
+    
+    # OTP configuration
+    OTP_EXPIRY_MINUTES = 10  # OTP expires after 10 minutes
+    OTP_LENGTH = 6  # 6-digit OTP
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') or 'Zo2lot@123'
     
     # Social Authentication Configuration
@@ -56,12 +68,11 @@ class Config:
     GOOGLE_CLIENT_ID_IOS = '7685982458-280u9fp7fk62230mikv3hl1asacieon0.apps.googleusercontent.com'
     GOOGLE_CLIENT_ID_ANDROID = '7685982458-7hdh31pb18cgcaiedkd9dg9onidefvid.apps.googleusercontent.com'
     
-    # Apple Sign-In
-    APPLE_CLIENT_ID = os.environ.get('APPLE_CLIENT_ID') or 'international.ipi.investment.signin'
-    APPLE_TEAM_ID = os.environ.get('APPLE_TEAM_ID') or '52D8TDFTXN'
-    APPLE_KEY_ID = os.environ.get('APPLE_KEY_ID') or '37XJXQAPKL'
-    APPLE_PRIVATE_KEY_PATH = os.environ.get('APPLE_PRIVATE_KEY_PATH') or os.path.join(basedir, 'AuthKey_37XJXQAPKL.p8')
-
+    # Apple Sign-In (Bundle ID must match for iOS native apps)
+    APPLE_CLIENT_ID = 'international.ipi.investment'
+    APPLE_TEAM_ID = '52D8TDFTXN'
+    APPLE_KEY_ID = '37XJXQAPKL'
+    APPLE_PRIVATE_KEY_PATH = '/home/amsfiles/ipi/AuthKey_37XJXQAPKL.p8'
 
 class DevelopmentConfig(Config):
     """Development environment configuration"""

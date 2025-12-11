@@ -9,11 +9,12 @@ from flask_jwt_extended import (
     create_access_token, create_refresh_token,
     jwt_required, get_jwt_identity, get_jwt
 )
-from app.models import db, User, Apartment, Share, Transaction, ApartmentImage, Car, CarShare, InvestmentRequest, ReferralTree
+from app.models import db, User, Apartment, Share, Transaction, ApartmentImage, Car, CarShare, InvestmentRequest, ReferralTree, CarInvestmentRequest, CarReferralTree, EmailVerification
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 import os
+import random
 
 # Create API blueprint
 api_bp = Blueprint('api', __name__, url_prefix='/api/v1')
@@ -134,11 +135,11 @@ def serialize_withdrawal_request(request):
 
 # ==================== Authentication Endpoints ====================
 
-@api_bp.route('/auth/register', methods=['POST'])
-def register():
+@api_bp.route('/auth/send-otp', methods=['POST'])
+def send_otp():
     """
-    Register new user account
-    POST /api/v1/auth/register
+    Send OTP to email for verification
+    POST /api/v1/auth/send-otp
     Body: {
         "name": "أحمد محمد",
         "email": "ahmed@example.com",
@@ -147,6 +148,9 @@ def register():
     }
     """
     try:
+        from app.utils.email_service import send_otp_email, generate_otp
+        from flask import current_app
+        
         data = request.get_json()
         
         # Validate required fields
@@ -156,8 +160,136 @@ def register():
                 code="MISSING_FIELDS"
             )
         
+        email = data['email'].lower().strip()
+        
         # Check if user already exists
-        if User.query.filter_by(email=data['email']).first():
+        if User.query.filter_by(email=email).first():
+            return error_response(
+                message="البريد الإلكتروني مستخدم بالفعل",
+                code="EMAIL_EXISTS",
+                status=409
+            )
+        
+        # Delete any existing unverified OTP for this email
+        EmailVerification.query.filter_by(email=email, is_verified=False).delete()
+        
+        # Generate 6-digit OTP
+        otp_code = generate_otp(6)
+        
+        # Create expiry time (10 minutes from now)
+        expiry_time = datetime.utcnow() + timedelta(
+            minutes=current_app.config.get('OTP_EXPIRY_MINUTES', 10)
+        )
+        
+        # Hash password for temporary storage
+        temp_password_hash = generate_password_hash(data['password'])
+        
+        # Create email verification record
+        verification = EmailVerification(
+            email=email,
+            otp_code=otp_code,
+            expires_at=expiry_time,
+            temp_name=data['name'],
+            temp_password_hash=temp_password_hash,
+            temp_phone=data.get('phone')
+        )
+        
+        db.session.add(verification)
+        db.session.commit()
+        
+        # Send OTP email
+        email_sent = send_otp_email(email, otp_code, data['name'])
+        
+        if not email_sent:
+            return error_response(
+                message="فشل إرسال رمز التحقق. يرجى المحاولة مرة أخرى",
+                code="EMAIL_SEND_FAILED",
+                status=500
+            )
+        
+        return success_response(
+            data={
+                "email": email,
+                "expires_in_minutes": current_app.config.get('OTP_EXPIRY_MINUTES', 10)
+            },
+            message="تم إرسال رمز التحقق إلى بريدك الإلكتروني",
+            status=200
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ أثناء إرسال رمز التحقق",
+            code="OTP_SEND_ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@api_bp.route('/auth/verify-otp', methods=['POST'])
+def verify_otp():
+    """
+    Verify OTP and complete registration
+    POST /api/v1/auth/verify-otp
+    Body: {
+        "email": "ahmed@example.com",
+        "otp": "123456"
+    }
+    """
+    try:
+        from app.utils.email_service import send_welcome_email
+        
+        data = request.get_json()
+        
+        if not data or not data.get('email') or not data.get('otp'):
+            return error_response(
+                message="البريد الإلكتروني ورمز التحقق مطلوبان",
+                code="MISSING_FIELDS"
+            )
+        
+        email = data['email'].lower().strip()
+        otp_code = data['otp'].strip()
+        
+        # Find verification record
+        verification = EmailVerification.query.filter_by(
+            email=email,
+            is_verified=False
+        ).order_by(EmailVerification.created_at.desc()).first()
+        
+        if not verification:
+            return error_response(
+                message="لم يتم العثور على رمز تحقق لهذا البريد الإلكتروني",
+                code="OTP_NOT_FOUND",
+                status=404
+            )
+        
+        # Check if OTP is valid
+        if not verification.is_valid():
+            return error_response(
+                message="رمز التحقق منتهي الصلاحية أو تم استخدامه. يرجى طلب رمز جديد",
+                code="OTP_EXPIRED"
+            )
+        
+        # Check if too many attempts
+        if verification.attempts >= 5:
+            return error_response(
+                message="تم تجاوز عدد المحاولات المسموحة. يرجى طلب رمز جديد",
+                code="TOO_MANY_ATTEMPTS"
+            )
+        
+        # Increment attempts
+        verification.attempts += 1
+        db.session.commit()
+        
+        # Verify OTP
+        if verification.otp_code != otp_code:
+            return error_response(
+                message=f"رمز التحقق غير صحيح. المحاولات المتبقية: {5 - verification.attempts}",
+                code="INVALID_OTP"
+            )
+        
+        # Check if user already exists (double check)
+        if User.query.filter_by(email=email).first():
             return error_response(
                 message="البريد الإلكتروني مستخدم بالفعل",
                 code="EMAIL_EXISTS",
@@ -166,15 +298,29 @@ def register():
         
         # Create new user
         user = User(
-            name=data['name'],
-            email=data['email'],
-            phone=data.get('phone'),
-            wallet_balance=0.0  # Start with zero balance
+            name=verification.temp_name,
+            email=email,
+            phone=verification.temp_phone,
+            password_hash=verification.temp_password_hash,
+            email_verified=True,
+            wallet_balance=0.0
         )
-        user.set_password(data['password'])
         
+        # Generate referral number
         db.session.add(user)
+        db.session.flush()  # Get user ID
+        user.generate_referral_number()
+        
+        # Mark verification as completed
+        verification.is_verified = True
+        
         db.session.commit()
+        
+        # Send welcome email (async, don't wait)
+        try:
+            send_welcome_email(email, user.name)
+        except:
+            pass  # Don't fail registration if welcome email fails
         
         # Create JWT tokens
         access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=7))
@@ -186,18 +332,118 @@ def register():
                 "access_token": access_token,
                 "refresh_token": refresh_token
             },
-            message="تم إنشاء الحساب بنجاح",
+            message="تم تفعيل حسابك بنجاح! مرحباً بك في i pillars i",
             status=201
         )
         
     except Exception as e:
         db.session.rollback()
         return error_response(
-            message="حدث خطأ أثناء إنشاء الحساب",
-            code="REGISTRATION_ERROR",
+            message="حدث خطأ أثناء التحقق من الرمز",
+            code="VERIFICATION_ERROR",
             details=str(e),
             status=500
         )
+
+
+@api_bp.route('/auth/resend-otp', methods=['POST'])
+def resend_otp():
+    """
+    Resend OTP to email
+    POST /api/v1/auth/resend-otp
+    Body: {
+        "email": "ahmed@example.com"
+    }
+    """
+    try:
+        from app.utils.email_service import send_otp_email, generate_otp
+        from flask import current_app
+        
+        data = request.get_json()
+        
+        if not data or not data.get('email'):
+            return error_response(
+                message="البريد الإلكتروني مطلوب",
+                code="MISSING_EMAIL"
+            )
+        
+        email = data['email'].lower().strip()
+        
+        # Find latest unverified verification record
+        verification = EmailVerification.query.filter_by(
+            email=email,
+            is_verified=False
+        ).order_by(EmailVerification.created_at.desc()).first()
+        
+        if not verification:
+            return error_response(
+                message="لم يتم العثور على طلب تسجيل لهذا البريد الإلكتروني",
+                code="NO_PENDING_REGISTRATION",
+                status=404
+            )
+        
+        # Check if user already exists
+        if User.query.filter_by(email=email).first():
+            return error_response(
+                message="البريد الإلكتروني مستخدم بالفعل",
+                code="EMAIL_EXISTS",
+                status=409
+            )
+        
+        # Generate new OTP
+        otp_code = generate_otp(6)
+        expiry_time = datetime.utcnow() + timedelta(
+            minutes=current_app.config.get('OTP_EXPIRY_MINUTES', 10)
+        )
+        
+        # Update verification record
+        verification.otp_code = otp_code
+        verification.expires_at = expiry_time
+        verification.attempts = 0  # Reset attempts
+        verification.created_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        # Send OTP email
+        email_sent = send_otp_email(email, otp_code, verification.temp_name)
+        
+        if not email_sent:
+            return error_response(
+                message="فشل إرسال رمز التحقق. يرجى المحاولة مرة أخرى",
+                code="EMAIL_SEND_FAILED",
+                status=500
+            )
+        
+        return success_response(
+            data={
+                "email": email,
+                "expires_in_minutes": current_app.config.get('OTP_EXPIRY_MINUTES', 10)
+            },
+            message="تم إعادة إرسال رمز التحقق بنجاح"
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ أثناء إعادة إرسال الرمز",
+            code="RESEND_ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@api_bp.route('/auth/register', methods=['POST'])
+def register():
+    """
+    DEPRECATED: Use /auth/send-otp and /auth/verify-otp instead
+    Legacy endpoint for backward compatibility
+    """
+    return error_response(
+        message="يرجى استخدام نظام التحقق بالبريد الإلكتروني الجديد. استخدم /auth/send-otp أولاً",
+        code="DEPRECATED_ENDPOINT",
+        details="Use /auth/send-otp to send OTP, then /auth/verify-otp to complete registration",
+        status=410
+    )
 
 
 @api_bp.route('/auth/login', methods=['POST'])
@@ -1404,6 +1650,36 @@ def get_car_details(car_id):
     except Exception as e:
         return error_response(message="حدث خطأ", details=str(e), status=500)
 
+@api_bp.route('/shares/purchase-car', methods=['POST'])
+@jwt_required()
+def purchase_car_shares_fake():
+    """
+    FAKE endpoint for purchasing car shares (for testing only)
+    POST /api/v1/shares/purchase-car
+    Headers: Authorization: Bearer <token>
+    Body: {
+        "car_id": 1,
+        "num_shares": 5
+    }
+    
+    Returns fake success response without any database operations.
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('car_id') or not data.get('num_shares'):
+            return error_response(message="البيانات ناقصة")
+        
+        num_shares = data['num_shares']
+        
+        # Return fake success response
+        return success_response(
+            message=f"تم شراء {num_shares} حصة بنجاح"
+        )
+    except Exception as e:
+        return error_response(message="حدث خطأ أثناء الشراء", details=str(e), status=500)
+
+
 @api_bp.route('/cars/purchase', methods=['POST'])
 @jwt_required()
 def purchase_car_shares():
@@ -1787,3 +2063,267 @@ def get_user_investment_requests():
         )
     except Exception as e:
         return error_response(message='حدث خطأ', details=str(e), status=500)
+
+
+# ==================== Car Investment Request Endpoints ====================
+
+@api_bp.route('/cars/investment-request', methods=['POST'])
+@jwt_required()
+def create_car_investment_request():
+    """
+    Create a new car investment request with KYC documents.
+    
+    Requires multipart/form-data with:
+    - car_id: int (required)
+    - shares_requested: int (required)
+    - full_name: string (required)
+    - phone: string (required)
+    - national_id: string (required)
+    - address: string (required)
+    - date_of_birth: string (required) - format: YYYY-MM-DD
+    - nationality: string (required)
+    - occupation: string (required)
+    - referred_by_code: string (optional) - referral code
+    - id_document_front: file (required) - front of ID document
+    - id_document_back: file (required) - back of ID document
+    - proof_of_address: file (required) - proof of address document
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id))
+        
+        # Check if request is multipart/form-data
+        if not request.files and not request.form:
+            return error_response(message='يجب إرسال البيانات بصيغة multipart/form-data', code='INVALID_CONTENT_TYPE')
+
+        data = request.form
+        files = request.files
+        
+        # Validate required fields
+        required_fields = ['car_id', 'shares_requested', 'full_name', 'phone', 
+                          'national_id', 'address', 'date_of_birth', 'nationality', 'occupation']
+        
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(message=f'الحقل {field} مطلوب', code='MISSING_FIELDS')
+        
+        # Validate files
+        required_files = ['id_document_front', 'id_document_back', 'proof_of_address']
+        for file_field in required_files:
+            if file_field not in files or files[file_field].filename == '':
+                return error_response(message=f'الملف {file_field} مطلوب', code='MISSING_FILES')
+
+        # Validate car exists
+        car = Car.query.get(data['car_id'])
+        if not car:
+            return error_response(message='السيارة غير موجودة', code='CAR_NOT_FOUND', status=404)
+        
+        # Validate shares availability
+        shares_requested = int(data['shares_requested'])
+        if shares_requested <= 0:
+            return error_response(message='عدد الحصص يجب أن يكون أكبر من صفر', code='INVALID_SHARES')
+        
+        if car.shares_available < shares_requested:
+            return error_response(
+                message=f'عدد الحصص المطلوبة ({shares_requested}) غير متاح. المتاح: {car.shares_available}',
+                code='INSUFFICIENT_SHARES'
+            )
+        
+        # Check for existing pending request
+        existing_request = CarInvestmentRequest.query.filter_by(
+            user_id=user.id,
+            car_id=car.id,
+            status='pending'
+        ).first()
+        
+        if existing_request:
+            return error_response(
+                message='لديك طلب استثمار قيد الانتظار لهذه السيارة',
+                code='DUPLICATE_REQUEST'
+            )
+        
+        # Handle referral code
+        referred_by_user_id = None
+        if data.get('referred_by_code'):
+            referral = CarReferralTree.query.filter_by(
+                referral_code=data['referred_by_code'],
+                car_id=car.id
+            ).first()
+            if referral:
+                referred_by_user_id = referral.user_id
+        
+        # Save uploaded files
+        from flask import current_app
+        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'documents')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Save ID front
+        front_file = files['id_document_front']
+        front_filename = secure_filename(f"car_{timestamp}_front_{user.id}_{front_file.filename}")
+        front_file.save(os.path.join(upload_dir, front_filename))
+        
+        # Save ID back
+        back_file = files['id_document_back']
+        back_filename = secure_filename(f"car_{timestamp}_back_{user.id}_{back_file.filename}")
+        back_file.save(os.path.join(upload_dir, back_filename))
+        
+        # Save proof of address
+        address_file = files['proof_of_address']
+        address_filename = secure_filename(f"car_{timestamp}_address_{user.id}_{address_file.filename}")
+        address_file.save(os.path.join(upload_dir, address_filename))
+
+        # Create car investment request
+        car_inv_request = CarInvestmentRequest(
+            user_id=user.id,
+            car_id=car.id,
+            shares_requested=shares_requested,
+            referred_by_user_id=referred_by_user_id,
+            full_name=data['full_name'],
+            phone=data['phone'],
+            national_id=data['national_id'],
+            address=data['address'],
+            date_of_birth=data['date_of_birth'],
+            nationality=data['nationality'],
+            occupation=data['occupation'],
+            id_document_front=front_filename,
+            id_document_back=back_filename,
+            proof_of_address=address_filename,
+            status='pending'
+        )
+        
+        db.session.add(car_inv_request)
+        db.session.commit()
+        
+        return success_response(
+            data={
+                'request_id': car_inv_request.id,
+                'car_id': car_inv_request.car_id,
+                'car_title': car.title,
+                'shares_requested': car_inv_request.shares_requested,
+                'total_amount': car_inv_request.total_amount,
+                'status': car_inv_request.status,
+                'status_arabic': car_inv_request.status_arabic,
+                'date_submitted': car_inv_request.date_submitted.isoformat()
+            },
+            message='تم إرسال طلب الاستثمار في السيارة بنجاح',
+            status=201
+        )
+    except ValueError as e:
+        db.session.rollback()
+        return error_response(message='قيمة غير صالحة للحقول الرقمية', code='INVALID_VALUE', details=str(e))
+    except Exception as e:
+        db.session.rollback()
+        return error_response(message='حدث خطأ أثناء إنشاء الطلب', code='SERVER_ERROR', details=str(e), status=500)
+
+
+@api_bp.route('/cars/investment-requests', methods=['GET'])
+@jwt_required()
+def get_user_car_investment_requests():
+    """
+    Get all car investment requests for the authenticated user.
+    
+    Query Parameters:
+    - status: string (optional) - filter by status: pending, under_review, approved, rejected, documents_missing
+    
+    Returns list of car investment requests with details.
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id))
+        
+        query = CarInvestmentRequest.query.filter_by(user_id=user.id)
+        
+        # Optional status filter
+        status_filter = request.args.get('status')
+        if status_filter:
+            query = query.filter_by(status=status_filter)
+        
+        requests = query.order_by(CarInvestmentRequest.date_submitted.desc()).all()
+        
+        requests_list = []
+        for req in requests:
+            requests_list.append({
+                'id': req.id,
+                'car_id': req.car_id,
+                'car_title': req.car.title if req.car else None,
+                'car_image': req.car.image if req.car else None,
+                'shares_requested': req.shares_requested,
+                'total_amount': req.total_amount,
+                'status': req.status,
+                'status_arabic': req.status_arabic,
+                'date_submitted': req.date_submitted.isoformat() if req.date_submitted else None,
+                'date_reviewed': req.date_reviewed.isoformat() if req.date_reviewed else None,
+                'admin_notes': req.admin_notes if req.status in ['rejected', 'documents_missing'] else None,
+                'missing_documents': req.missing_documents if req.status == 'documents_missing' else None,
+                'contract_pdf': req.contract_pdf if req.status == 'approved' else None
+            })
+        
+        return success_response(
+            data={'requests': requests_list},
+            message='تم جلب طلبات استثمار السيارات بنجاح'
+        )
+    except Exception as e:
+        return error_response(message='حدث خطأ', code='SERVER_ERROR', details=str(e), status=500)
+
+
+@api_bp.route('/cars/investment-requests/<int:request_id>', methods=['GET'])
+@jwt_required()
+def get_car_investment_request_detail(request_id):
+    """
+    Get detailed information about a specific car investment request.
+    
+    Path Parameters:
+    - request_id: int (required) - ID of the investment request
+    
+    Returns full details of the investment request including KYC data.
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id))
+        
+        inv_request = CarInvestmentRequest.query.filter_by(
+            id=request_id,
+            user_id=user.id
+        ).first()
+        
+        if not inv_request:
+            return error_response(
+                message='طلب الاستثمار غير موجود',
+                code='REQUEST_NOT_FOUND',
+                status=404
+            )
+        
+        return success_response(
+            data={
+                'id': inv_request.id,
+                'car_id': inv_request.car_id,
+                'car_title': inv_request.car.title if inv_request.car else None,
+                'car_image': inv_request.car.image if inv_request.car else None,
+                'car_location': inv_request.car.location if inv_request.car else None,
+                'shares_requested': inv_request.shares_requested,
+                'share_price': inv_request.car.share_price if inv_request.car else None,
+                'total_amount': inv_request.total_amount,
+                'monthly_income': (inv_request.car.monthly_rent / inv_request.car.total_shares) * inv_request.shares_requested if inv_request.car else 0,
+                'status': inv_request.status,
+                'status_arabic': inv_request.status_arabic,
+                'date_submitted': inv_request.date_submitted.isoformat() if inv_request.date_submitted else None,
+                'date_reviewed': inv_request.date_reviewed.isoformat() if inv_request.date_reviewed else None,
+                'admin_notes': inv_request.admin_notes,
+                'missing_documents': inv_request.missing_documents,
+                'contract_pdf': inv_request.contract_pdf,
+                'kyc_data': {
+                    'full_name': inv_request.full_name,
+                    'phone': inv_request.phone,
+                    'national_id': inv_request.national_id,
+                    'address': inv_request.address,
+                    'date_of_birth': inv_request.date_of_birth,
+                    'nationality': inv_request.nationality,
+                    'occupation': inv_request.occupation
+                }
+            },
+            message='تم جلب تفاصيل طلب الاستثمار بنجاح'
+        )
+    except Exception as e:
+        return error_response(message='حدث خطأ', code='SERVER_ERROR', details=str(e), status=500)
