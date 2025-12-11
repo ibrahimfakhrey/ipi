@@ -180,8 +180,11 @@ def verify_email():
         # Clear session
         session.pop('pending_email', None)
         
-        flash('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول', 'success')
-        return redirect(url_for('auth.login'))
+        # Auto-login the user
+        login_user(user, remember=True)
+        
+        flash('مرحباً بك! تم إنشاء حسابك بنجاح', 'success')
+        return redirect(url_for('user_views.dashboard'))
     
     return render_template('user/verify_email.html', email=pending_email)
 
