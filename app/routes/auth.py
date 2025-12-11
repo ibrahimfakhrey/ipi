@@ -49,16 +49,18 @@ def register():
         # Delete any existing OTP for this email
         EmailVerification.query.filter_by(email=email).delete()
         
+        # Hash password for temporary storage
+        from werkzeug.security import generate_password_hash
+        temp_password_hash = generate_password_hash(password)
+        
         # Store OTP in database
         email_verification = EmailVerification(
             email=email,
             otp_code=otp_code,
             expires_at=datetime.utcnow() + timedelta(minutes=10),
-            user_data={
-                'name': name,
-                'password': password,
-                'phone': phone
-            }
+            temp_name=name,
+            temp_password_hash=temp_password_hash,
+            temp_phone=phone
         )
         db.session.add(email_verification)
         db.session.commit()
@@ -147,7 +149,7 @@ def verify_email():
         email_verification = EmailVerification.query.filter_by(
             email=pending_email,
             otp_code=otp_code,
-            is_used=False
+            is_verified=False
         ).first()
         
         if not email_verification:
@@ -159,21 +161,18 @@ def verify_email():
             flash('انتهت صلاحية رمز التحقق. الرجاء طلب رمز جديد', 'error')
             return render_template('user/verify_email.html', email=pending_email)
         
-        # Get user data from OTP record
-        user_data = email_verification.user_data
-        
         # Create user
         user = User(
-            name=user_data['name'],
+            name=email_verification.temp_name,
             email=pending_email,
-            phone=user_data.get('phone'),
+            phone=email_verification.temp_phone,
             wallet_balance=0.0,
             email_verified=True
         )
-        user.set_password(user_data['password'])
+        user.password_hash = email_verification.temp_password_hash
         
-        # Mark OTP as used
-        email_verification.is_used = True
+        # Mark OTP as verified
+        email_verification.is_verified = True
         
         db.session.add(user)
         db.session.commit()
@@ -199,7 +198,7 @@ def resend_otp():
     # Find existing OTP record
     email_verification = EmailVerification.query.filter_by(
         email=pending_email,
-        is_used=False
+        is_verified=False
     ).first()
     
     if not email_verification:
@@ -215,7 +214,7 @@ def resend_otp():
     
     # Send new OTP
     try:
-        user_name = email_verification.user_data.get('name', 'المستخدم')
+        user_name = email_verification.temp_name or 'المستخدم'
         send_otp_email(pending_email, new_otp, user_name)
         flash('تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني', 'success')
     except Exception as e:
