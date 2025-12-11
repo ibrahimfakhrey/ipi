@@ -2,17 +2,19 @@
 Authentication routes
 Handles user registration, login, and logout
 """
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, current_user
 from werkzeug.security import check_password_hash
-from app.models import db, User
+from app.models import db, User, EmailVerification
+from app.utils.email_service import generate_otp, send_otp_email
+from datetime import datetime, timedelta
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
-    """User registration page"""
+    """User registration page - Step 1: Collect info and send OTP"""
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
     
@@ -21,6 +23,7 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
+        phone = request.form.get('phone')
         
         # Validation
         if not all([name, email, password, confirm_password]):
@@ -40,15 +43,39 @@ def register():
             flash('البريد الإلكتروني مستخدم بالفعل', 'error')
             return render_template('user/register.html')
         
-        # Create new user
-        user = User(name=name, email=email, wallet_balance=0.0)  # Start with zero balance
-        user.set_password(password)
+        # Generate OTP
+        otp_code = generate_otp()
         
-        db.session.add(user)
+        # Delete any existing OTP for this email
+        EmailVerification.query.filter_by(email=email).delete()
+        
+        # Store OTP in database
+        email_verification = EmailVerification(
+            email=email,
+            otp_code=otp_code,
+            expires_at=datetime.utcnow() + timedelta(minutes=10),
+            user_data={
+                'name': name,
+                'password': password,
+                'phone': phone
+            }
+        )
+        db.session.add(email_verification)
         db.session.commit()
         
-        flash('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول', 'success')
-        return redirect(url_for('auth.login'))
+        # Send OTP email
+        try:
+            send_otp_email(email, otp_code, name)
+            
+            # Store email in session for verification page
+            session['pending_email'] = email
+            
+            flash('تم إرسال رمز التحقق إلى بريدك الإلكتروني', 'success')
+            return redirect(url_for('auth.verify_email'))
+        except Exception as e:
+            flash('حدث خطأ أثناء إرسال البريد الإلكتروني. يرجى المحاولة مرة أخرى', 'error')
+            print(f"Email error: {str(e)}")
+            return render_template('user/register.html')
     
     return render_template('user/register.html')
 
@@ -98,6 +125,104 @@ def login():
             flash('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error')
     
     return render_template('user/login.html')
+
+
+@bp.route('/verify-email', methods=['GET', 'POST'])
+def verify_email():
+    """Step 2: Verify OTP and create account"""
+    pending_email = session.get('pending_email')
+    
+    if not pending_email:
+        flash('الرجاء التسجيل أولاً', 'error')
+        return redirect(url_for('auth.register'))
+    
+    if request.method == 'POST':
+        otp_code = request.form.get('otp_code')
+        
+        if not otp_code:
+            flash('الرجاء إدخال رمز التحقق', 'error')
+            return render_template('user/verify_email.html', email=pending_email)
+        
+        # Find OTP record
+        email_verification = EmailVerification.query.filter_by(
+            email=pending_email,
+            otp_code=otp_code,
+            is_used=False
+        ).first()
+        
+        if not email_verification:
+            flash('رمز التحقق غير صحيح', 'error')
+            return render_template('user/verify_email.html', email=pending_email)
+        
+        # Check if expired
+        if email_verification.expires_at < datetime.utcnow():
+            flash('انتهت صلاحية رمز التحقق. الرجاء طلب رمز جديد', 'error')
+            return render_template('user/verify_email.html', email=pending_email)
+        
+        # Get user data from OTP record
+        user_data = email_verification.user_data
+        
+        # Create user
+        user = User(
+            name=user_data['name'],
+            email=pending_email,
+            phone=user_data.get('phone'),
+            wallet_balance=0.0,
+            email_verified=True
+        )
+        user.set_password(user_data['password'])
+        
+        # Mark OTP as used
+        email_verification.is_used = True
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Clear session
+        session.pop('pending_email', None)
+        
+        flash('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول', 'success')
+        return redirect(url_for('auth.login'))
+    
+    return render_template('user/verify_email.html', email=pending_email)
+
+
+@bp.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    """Resend OTP for web registration"""
+    pending_email = session.get('pending_email')
+    
+    if not pending_email:
+        flash('الرجاء التسجيل أولاً', 'error')
+        return redirect(url_for('auth.register'))
+    
+    # Find existing OTP record
+    email_verification = EmailVerification.query.filter_by(
+        email=pending_email,
+        is_used=False
+    ).first()
+    
+    if not email_verification:
+        flash('الرجاء التسجيل مرة أخرى', 'error')
+        return redirect(url_for('auth.register'))
+    
+    # Generate new OTP
+    new_otp = generate_otp()
+    email_verification.otp_code = new_otp
+    email_verification.expires_at = datetime.utcnow() + timedelta(minutes=10)
+    email_verification.created_at = datetime.utcnow()
+    db.session.commit()
+    
+    # Send new OTP
+    try:
+        user_name = email_verification.user_data.get('name', 'المستخدم')
+        send_otp_email(pending_email, new_otp, user_name)
+        flash('تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني', 'success')
+    except Exception as e:
+        flash('حدث خطأ أثناء إرسال البريد الإلكتروني', 'error')
+        print(f"Email error: {str(e)}")
+    
+    return redirect(url_for('auth.verify_email'))
 
 
 @bp.route('/logout')

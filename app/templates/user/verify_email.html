@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}التحقق من البريد الإلكتروني{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h2 class="text-center mb-4" style="color: #D4AF37;">التحقق من البريد الإلكتروني</h2>
+                    
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-envelope mb-3" style="font-size: 3rem; color: #D4AF37;"></i>
+                        <p class="mb-2">تم إرسال رمز التحقق إلى:</p>
+                        <strong>{{ email }}</strong>
+                        <p class="mt-3 mb-0 small">يرجى التحقق من بريدك الإلكتروني وإدخال الرمز المكون من 6 أرقام</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('auth.verify_email') }}">
+                        <div class="form-group mb-4">
+                            <label for="otp_code">رمز التحقق</label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg text-center" 
+                                id="otp_code" 
+                                name="otp_code" 
+                                placeholder="000000"
+                                maxlength="6"
+                                pattern="[0-9]{6}"
+                                required
+                                autofocus
+                                style="letter-spacing: 0.5rem; font-size: 1.5rem; font-weight: bold;"
+                            >
+                            <small class="form-text text-muted">أدخل الرمز المكون من 6 أرقام</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-lg btn-block mb-3" style="background-color: #D4AF37; color: white; border: none;">
+                            <i class="fas fa-check-circle"></i> تأكيد الرمز
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-4">
+                        <p class="mb-2">لم يصلك الرمز؟</p>
+                        <form method="POST" action="{{ url_for('auth.resend_otp') }}" class="d-inline">
+                            <button type="submit" class="btn btn-link" style="color: #D4AF37;">
+                                <i class="fas fa-redo"></i> إعادة إرسال الرمز
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-link text-muted">
+                            <i class="fas fa-arrow-right"></i> العودة للتسجيل
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        background: linear-gradient(135deg, #0A1128 0%, #1e3a5f 100%);
+        min-height: 100vh;
+        padding-top: 50px;
+    }
+    
+    .card {
+        border-radius: 15px;
+        border: 2px solid #D4AF37;
+    }
+    
+    .form-control:focus {
+        border-color: #D4AF37;
+        box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
+    }
+    
+    .btn-link:hover {
+        text-decoration: none;
+        opacity: 0.8;
+    }
+</style>
+{% endblock %}
