@@ -435,15 +435,70 @@ def resend_otp():
 @api_bp.route('/auth/register', methods=['POST'])
 def register():
     """
-    DEPRECATED: Use /auth/send-otp and /auth/verify-otp instead
-    Legacy endpoint for backward compatibility
+    User registration (Legacy endpoint for backward compatibility)
+    POST /api/v1/auth/register
+    Body: {
+        "name": "Ahmed Ali",
+        "email": "ahmed@example.com",
+        "password": "password123",
+        "phone": "1234567890" (optional)
+    }
+    
+    Note: For new apps, use /auth/send-otp and /auth/verify-otp for email verification
     """
-    return error_response(
-        message="يرجى استخدام نظام التحقق بالبريد الإلكتروني الجديد. استخدم /auth/send-otp أولاً",
-        code="DEPRECATED_ENDPOINT",
-        details="Use /auth/send-otp to send OTP, then /auth/verify-otp to complete registration",
-        status=410
-    )
+    try:
+        data = request.get_json()
+        
+        # Validation
+        if not data or not data.get('name') or not data.get('email') or not data.get('password'):
+            return error_response(
+                message="الاسم والبريد الإلكتروني وكلمة المرور مطلوبة",
+                code="MISSING_FIELDS"
+            )
+        
+        # Check if email exists
+        if User.query.filter_by(email=data['email']).first():
+            return error_response(
+                message="البريد الإلكتروني مستخدم بالفعل",
+                code="EMAIL_EXISTS",
+                status=409
+            )
+        
+        # Create new user
+        user = User(
+            name=data['name'],
+            email=data['email'],
+            phone=data.get('phone'),
+            wallet_balance=0.0,
+            email_verified=True  # Auto-verify for legacy endpoint
+        )
+        user.set_password(data['password'])
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Create JWT tokens
+        access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=7))
+        refresh_token = create_refresh_token(identity=str(user.id), expires_delta=timedelta(days=30))
+        
+        return success_response(
+            data={
+                "user": serialize_user(user),
+                "access_token": access_token,
+                "refresh_token": refresh_token
+            },
+            message="تم إنشاء الحساب بنجاح",
+            status=201
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ أثناء إنشاء الحساب",
+            code="REGISTRATION_ERROR",
+            details=str(e),
+            status=500
+        )
 
 
 @api_bp.route('/auth/login', methods=['POST'])
