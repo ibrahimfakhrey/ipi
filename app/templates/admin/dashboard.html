@@ -102,6 +102,10 @@
 
     <!-- Additional Quick Action Row -->
     <div class="grid grid-4" style="margin-bottom: 3rem;">
+        <a href="{{ url_for('fleet.dashboard') }}" class="btn"
+            style="text-decoration: none; background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%); color: #000; font-weight: bold;">
+            <i class="fas fa-car"></i> إدارة الأسطول
+        </a>
         <a href="{{ url_for('admin.referrals_analytics') }}" class="btn"
             style="text-decoration: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
             <i class="fas fa-chart-line"></i> تحليلات الإحالات
@@ -110,9 +114,13 @@
             style="text-decoration: none; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
             <i class="fas fa-money-bill-wave"></i> طلبات السحب
         </a>
-        <a href="{{ url_for('admin.payouts') }}" class="btn btn-secondary" style="text-decoration: none;">
+        <a href="{{ url_for('admin.payouts') }})" class="btn btn-secondary" style="text-decoration: none;">
             <i class="fas fa-money-bill-wave"></i> توزيع الأرباح
         </a>
+    </div>
+
+    <!-- Transactions Row -->
+    <div class="grid grid-1" style="margin-bottom: 3rem;">
         <a href="{{ url_for('admin.transactions') }}" class="btn btn-secondary" style="text-decoration: none;">
             <i class="fas fa-exchange-alt"></i> المعاملات المالية
         </a>

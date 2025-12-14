@@ -848,3 +848,177 @@ class EmailVerification(db.Model):
     def __repr__(self):
         return f'<EmailVerification {self.email} OTP:{self.otp_code} Valid:{self.is_valid()}>'
 
+
+# ===================== FLEET MANAGEMENT MODELS =====================
+
+class FleetCar(db.Model):
+    """
+    Fleet Car model for company operational vehicles
+    Separate from investment cars - used for day-to-day operations
+    """
+    __tablename__ = 'fleet_cars'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    brand = db.Column(db.String(100), nullable=False)  # e.g., "Toyota"
+    model = db.Column(db.String(100), nullable=False)  # e.g., "Corolla"
+    plate_number = db.Column(db.String(50), unique=True, nullable=False, index=True)  # License plate
+    year = db.Column(db.Integer, nullable=False)  # Manufacturing year
+    color = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(20), default='available')  # available, in_mission, maintenance
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    missions = db.relationship('Mission', backref='fleet_car', lazy='dynamic', cascade='all, delete-orphan')
+    
+    @property
+    def total_missions(self):
+        """Get total number of missions for this car"""
+        return self.missions.count()
+    
+    @property
+    def completed_missions(self):
+        """Get number of completed missions"""
+        return self.missions.filter_by(status='completed').count()
+    
+    @property
+    def total_distance(self):
+        """Calculate total distance traveled across all missions"""
+        total = db.session.query(db.func.sum(Mission.distance_km))\
+            .filter(Mission.fleet_car_id == self.id, Mission.status == 'completed')\
+            .scalar()
+        return total or 0
+    
+    @property
+    def status_arabic(self):
+        """Get status in Arabic"""
+        statuses = {
+            'available': 'متاحة',
+            'in_mission': 'في مهمة',
+            'maintenance': 'صيانة'
+        }
+        return statuses.get(self.status, self.status)
+    
+    def __repr__(self):
+        return f'<FleetCar {self.brand} {self.model} - {self.plate_number}>'
+
+
+class Driver(db.Model):
+    """
+    Driver model for managing company drivers
+    Includes documents, approval status, and performance tracking
+    """
+    __tablename__ = 'drivers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+    email = db.Column(db.String(120))
+    national_id = db.Column(db.String(50), nullable=False, unique=True, index=True)
+    
+    # Document uploads
+    photo_filename = db.Column(db.String(300))  # Driver photo
+    license_filename = db.Column(db.String(300))  # Driving license document
+    
+    # Performance tracking
+    rating = db.Column(db.Float, default=0.0)  # For future use
+    completed_missions = db.Column(db.Integer, default=0)  # Auto-incremented
+    
+    # Approval status
+    is_approved = db.Column(db.Boolean, default=False, index=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    missions = db.relationship('Mission', backref='driver', lazy='dynamic', cascade='all, delete-orphan')
+    
+    @property
+    def total_earnings(self):
+        """Calculate total earnings from all completed missions"""
+        total = db.session.query(db.func.sum(Mission.driver_fees))\
+            .filter(Mission.driver_id == self.id, Mission.status == 'completed')\
+            .scalar()
+        return total or 0
+    
+    @property
+    def approval_status_arabic(self):
+        """Get approval status in Arabic"""
+        return 'معتمد' if self.is_approved else 'غير معتمد'
+    
+    def __repr__(self):
+        return f'<Driver {self.name} - {self.phone}>'
+
+
+class Mission(db.Model):
+    """
+    Mission model for tracking car trips/missions
+    Includes route, costs, and profit calculations
+    """
+    __tablename__ = 'missions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Foreign keys
+    fleet_car_id = db.Column(db.Integer, db.ForeignKey('fleet_cars.id'), nullable=False, index=True)
+    driver_id = db.Column(db.Integer, db.ForeignKey('drivers.id'), nullable=False, index=True)
+    
+    # Route details
+    from_location = db.Column(db.String(200), nullable=False)
+    to_location = db.Column(db.String(200), nullable=False)
+    distance_km = db.Column(db.Float, nullable=False)
+    
+    # Timing
+    mission_date = db.Column(db.Date, nullable=False, index=True)
+    start_time = db.Column(db.Time)
+    end_time = db.Column(db.Time)
+    
+    # Financial details
+    total_revenue = db.Column(db.Float, nullable=False)  # Total money for the mission
+    fuel_cost = db.Column(db.Float, nullable=False)  # Fuel expenses
+    driver_fees = db.Column(db.Float, nullable=False)  # Driver payment
+    company_profit = db.Column(db.Float, nullable=False)  # Calculated: revenue - fuel - fees
+    
+    # Status
+    status = db.Column(db.String(20), default='pending', index=True)  # pending, in_progress, completed, cancelled
+    notes = db.Column(db.Text)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)  # When marked as completed
+    
+    @property
+    def status_arabic(self):
+        """Get status in Arabic"""
+        statuses = {
+            'pending': 'قيد الانتظار',
+            'in_progress': 'جارية',
+            'completed': 'مكتملة',
+            'cancelled': 'ملغاة'
+        }
+        return statuses.get(self.status, self.status)
+    
+    @property
+    def route_description(self):
+        """Get formatted route description"""
+        return f"{self.from_location} ← {self.to_location}"
+    
+    def calculate_profit(self):
+        """Calculate and update company profit"""
+        self.company_profit = self.total_revenue - self.fuel_cost - self.driver_fees
+        return self.company_profit
+    
+    def complete_mission(self):
+        """Mark mission as completed and update driver stats"""
+        if self.status != 'completed':
+            self.status = 'completed'
+            self.completed_at = datetime.utcnow()
+            
+            # Increment driver's completed missions count
+            if self.driver:
+                self.driver.completed_missions += 1
+            
+            # Update car status to available
+            if self.fleet_car:
+                self.fleet_car.status = 'available'
+    
+    def __repr__(self):
+        return f'<Mission {self.from_location} → {self.to_location} ({self.mission_date})>'
+

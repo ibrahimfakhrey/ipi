@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}تفاصيل المهمة{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 20px;">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 style="color: #FFD700;"><i class="fas fa-clipboard-list"></i> تفاصيل المهمة</h2>
+        </div>
+        <div class="col-md-4 text-left">
+            <a href="{{ url_for('fleet.edit_mission', id=mission.id) }}" class="btn btn-warning"
+                style="background: #FFD700; color: #000;">
+                <i class="fas fa-edit"></i> تعديل
+            </a>
+            <a href="{{ url_for('fleet.missions_list') }}" class="btn btn-outline-warning"
+                style="color: #FFD700; border-color: #FFD700;">
+                <i class="fas fa-arrow-right"></i> العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3" style="background: #1A1A1A; border: 1px solid #FFD700;">
+                <div class="card-header" style="background: #000; border-bottom: 1px solid #FFD700;">
+                    <h5 style="color: #FFD700; margin: 0;">المعلومات الأساسية</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong style="color: #FFD700;">السيارة:</strong> {{ mission.fleet_car.brand }} {{
+                        mission.fleet_car.model }} ({{ mission.fleet_car.plate_number }})</p>
+                    <p><strong style="color: #FFD700;">السائق:</strong> {{ mission.driver.name }}</p>
+                    <p><strong style="color: #FFD700;">التاريخ:</strong> {{ mission.mission_date.strftime('%Y-%m-%d') }}
+                    </p>
+                    <p><strong style="color: #FFD700;">من:</strong> {{ mission.from_location }}</p>
+                    <p><strong style="color: #FFD700;">إلى:</strong> {{ mission.to_location }}</p>
+                    <p><strong style="color: #FFD700;">المسافة:</strong> {{ "{:,.0f}".format(mission.distance_km) }} كم
+                    </p>
+                    <p><strong style="color: #FFD700;">الحالة:</strong>
+                        {% if mission.status == 'completed' %}
+                        <span class="badge" style="background: #10B981;">{{ mission.status_arabic }}</span>
+                        {% elif mission.status == 'in_progress' %}
+                        <span class="badge" style="background: #3B82F6;">{{ mission.status_arabic }}</span>
+                        {% elif mission.status == 'pending' %}
+                        <span class="badge" style="background: #F59E0B;">{{ mission.status_arabic }}</span>
+                        {% else %}
+                        <span class="badge" style="background: #EF4444;">{{ mission.status_arabic }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-3" style="background: #1A1A1A; border: 1px solid #FFD700;">
+                <div class="card-header" style="background: #000; border-bottom: 1px solid #FFD700;">
+                    <h5 style="color: #FFD700; margin: 0;">التكاليف والإيرادات</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong style="color: #3B82F6;">إيرادات المهمة:</strong> {{
+                        "{:,.2f}".format(mission.total_revenue) }} ج.م</p>
+                    <p><strong style="color: #F59E0B;">تكلفة الوقود:</strong> {{ "{:,.2f}".format(mission.fuel_cost) }}
+                        ج.م</p>
+                    <p><strong style="color: #EF4444;">أجر السائق:</strong> {{ "{:,.2f}".format(mission.driver_fees) }}
+                        ج.م</p>
+                    <hr style="border-color: #FFD700;">
+                    <h4><strong style="color: #10B981;">صافي ربح الشركة:</strong> {{
+                        "{:,.2f}".format(mission.company_profit) }} ج.م</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if mission.notes %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-3" style="background: #1A1A1A; border: 1px solid #FFD700;">
+                <div class="card-header" style="background: #000; border-bottom: 1px solid #FFD700;">
+                    <h5 style="color: #FFD700; margin: 0;">ملاحظات</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ mission.notes }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-12">
+            {% if mission.status != 'completed' %}
+            <form method="POST" action="{{ url_for('fleet.complete_mission', id=mission.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-check"></i> تم الإكمال
+                </button>
+            </form>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('fleet.delete_mission', id=mission.id) }}" class="d-inline"
+                onsubmit="return confirm('هل أنت متأكد من حذف هذه المهمة؟');">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> حذف المهمة
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

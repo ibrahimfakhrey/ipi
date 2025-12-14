@@ -1,0 +1,562 @@
+"""
+Fleet Management Routes
+Admin-only routes for managing company cars, drivers, and missions
+"""
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
+from datetime import datetime, date, time
+import os
+
+from app import db
+from app.models import FleetCar, Driver, Mission
+from config import Config
+
+# Create blueprint
+fleet = Blueprint('fleet', __name__, url_prefix='/admin/fleet')
+
+
+def admin_required(f):
+    """Decorator to require admin access"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('يجب أن تكون مسؤولاً للوصول إلى هذه الصفحة', 'error')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in Config.ALLOWED_EXTENSIONS
+
+
+def save_driver_file(file, driver_id, file_type='photo'):
+    """Save uploaded driver file and return filename"""
+    if file and allowed_file(file.filename):
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = f"driver_{driver_id}_{file_type}.{ext}"
+        filepath = os.path.join(Config.UPLOAD_FOLDER.replace('apartments', 'drivers'), filename)
+        
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        
+        file.save(filepath)
+        return filename
+    return None
+
+
+# ==================== FLEET DASHBOARD ====================
+
+@fleet.route('/')
+@login_required
+@admin_required
+def dashboard():
+    """Fleet management dashboard with statistics"""
+    # Get statistics
+    total_cars = FleetCar.query.count()
+    available_cars = FleetCar.query.filter_by(status='available').count()
+    total_drivers = Driver.query.count()
+    approved_drivers = Driver.query.filter_by(is_approved=True).count()
+    
+    total_missions = Mission.query.count()
+    completed_missions = Mission.query.filter_by(status='completed').count()
+    active_missions = Mission.query.filter(Mission.status.in_(['pending', 'in_progress'])).count()
+    
+    # Calculate total revenue and profit
+    completed = Mission.query.filter_by(status='completed').all()
+    total_revenue = sum(m.total_revenue for m in completed)
+    total_fuel_cost = sum(m.fuel_cost for m in completed)
+    total_driver_fees = sum(m.driver_fees for m in completed)
+    total_profit = sum(m.company_profit for m in completed)
+    
+    # Recent missions
+    recent_missions = Mission.query.order_by(Mission.created_at.desc()).limit(10).all()
+    
+    return render_template('admin/fleet/dashboard.html',
+                         total_cars=total_cars,
+                         available_cars=available_cars,
+                         total_drivers=total_drivers,
+                         approved_drivers=approved_drivers,
+                         total_missions=total_missions,
+                         completed_missions=completed_missions,
+                        active_missions=active_missions,
+                         total_revenue=total_revenue,
+                         total_fuel_cost=total_fuel_cost,
+                         total_driver_fees=total_driver_fees,
+                         total_profit=total_profit,
+                         recent_missions=recent_missions)
+
+
+# ==================== FLEET CARS ====================
+
+@fleet.route('/cars')
+@login_required
+@admin_required
+def cars_list():
+    """List all fleet cars"""
+    status_filter = request.args.get('status', '')
+    
+    query = FleetCar.query
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    
+    cars = query.order_by(FleetCar.created_at.desc()).all()
+    
+    return render_template('admin/fleet/cars.html', cars=cars, status_filter=status_filter)
+
+
+@fleet.route('/cars/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def add_car():
+    """Add new fleet car"""
+    if request.method == 'POST':
+        try:
+            car = FleetCar(
+                brand=request.form.get('brand'),
+                model=request.form.get('model'),
+                plate_number=request.form.get('plate_number'),
+                year=int(request.form.get('year')),
+                color=request.form.get('color'),
+                status=request.form.get('status', 'available')
+            )
+            
+            db.session.add(car)
+            db.session.commit()
+            
+            flash('تم إضافة السيارة بنجاح', 'success')
+            return redirect(url_for('fleet.cars_list'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    return render_template('admin/fleet/car_form.html', car=None)
+
+
+@fleet.route('/cars/<int:id>')
+@login_required
+@admin_required
+def car_details(id):
+    """View fleet car details and mission history"""
+    car = FleetCar.query.get_or_404(id)
+    missions = car.missions.order_by(Mission.mission_date.desc()).all()
+    
+    return render_template('admin/fleet/car_details.html', car=car, missions=missions)
+
+
+@fleet.route('/cars/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_car(id):
+    """Edit fleet car"""
+    car = FleetCar.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            car.brand = request.form.get('brand')
+            car.model = request.form.get('model')
+            car.plate_number = request.form.get('plate_number')
+            car.year = int(request.form.get('year'))
+            car.color = request.form.get('color')
+            car.status = request.form.get('status')
+            
+            db.session.commit()
+            
+            flash('تم تحديث السيارة بنجاح', 'success')
+            return redirect(url_for('fleet.car_details', id=car.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    return render_template('admin/fleet/car_form.html', car=car)
+
+
+@fleet.route('/cars/<int:id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_car(id):
+    """Delete fleet car"""
+    car = FleetCar.query.get_or_404(id)
+    
+    # Check if car has missions
+    if car.missions.count() > 0:
+        flash('لا يمكن حذف السيارة لأنها مرتبطة بمهام', 'error')
+        return redirect(url_for('fleet.car_details', id=id))
+    
+    try:
+        db.session.delete(car)
+        db.session.commit()
+        flash('تم حذف السيارة بنجاح', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    return redirect(url_for('fleet.cars_list'))
+
+
+# ==================== DRIVERS ====================
+
+@fleet.route('/drivers')
+@login_required
+@admin_required
+def drivers_list():
+    """List all drivers"""
+    approval_filter = request.args.get('approved', '')
+    
+    query = Driver.query
+    if approval_filter == 'yes':
+        query = query.filter_by(is_approved=True)
+    elif approval_filter == 'no':
+        query = query.filter_by(is_approved=False)
+    
+    drivers = query.order_by(Driver.created_at.desc()).all()
+    
+    return render_template('admin/fleet/drivers.html', drivers=drivers, approval_filter=approval_filter)
+
+
+@fleet.route('/drivers/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def add_driver():
+    """Add new driver"""
+    if request.method == 'POST':
+        try:
+            driver = Driver(
+                name=request.form.get('name'),
+                phone=request.form.get('phone'),
+                email=request.form.get('email'),
+                national_id=request.form.get('national_id'),
+                rating=float(request.form.get('rating', 0)),
+                is_approved=request.form.get('is_approved') == 'on'
+            )
+            
+            db.session.add(driver)
+            db.session.flush()  # Get driver ID
+            
+            # Handle file uploads
+            if 'photo' in request.files:
+                photo_file = request.files['photo']
+                if photo_file.filename:
+                    driver.photo_filename = save_driver_file(photo_file, driver.id, 'photo')
+            
+            if 'license' in request.files:
+                license_file = request.files['license']
+                if license_file.filename:
+                    driver.license_filename = save_driver_file(license_file, driver.id, 'license')
+            
+            db.session.commit()
+            
+            flash('تم إضافة السائق بنجاح', 'success')
+            return redirect(url_for('fleet.drivers_list'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    return render_template('admin/fleet/driver_form.html', driver=None)
+
+
+@fleet.route('/drivers/<int:id>')
+@login_required
+@admin_required
+def driver_details(id):
+    """View driver details and mission history"""
+    driver = Driver.query.get_or_404(id)
+    missions = driver.missions.order_by(Mission.mission_date.desc()).all()
+    
+    return render_template('admin/fleet/driver_details.html', driver=driver, missions=missions)
+
+
+@fleet.route('/drivers/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_driver(id):
+    """Edit driver"""
+    driver = Driver.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            driver.name = request.form.get('name')
+            driver.phone = request.form.get('phone')
+            driver.email = request.form.get('email')
+            driver.national_id = request.form.get('national_id')
+            driver.rating = float(request.form.get('rating', driver.rating))
+            driver.is_approved = request.form.get('is_approved') == 'on'
+            
+            # Handle file uploads
+            if 'photo' in request.files:
+                photo_file = request.files['photo']
+                if photo_file.filename:
+                    driver.photo_filename = save_driver_file(photo_file, driver.id, 'photo')
+            
+            if 'license' in request.files:
+                license_file = request.files['license']
+                if license_file.filename:
+                    driver.license_filename = save_driver_file(license_file, driver.id, 'license')
+            
+            db.session.commit()
+            
+            flash('تم تحديث السائق بنجاح', 'success')
+            return redirect(url_for('fleet.driver_details', id=driver.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    return render_template('admin/fleet/driver_form.html', driver=driver)
+
+
+@fleet.route('/drivers/<int:id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def toggle_driver_approval(id):
+    """Toggle driver approval status"""
+    driver = Driver.query.get_or_404(id)
+    
+    try:
+        driver.is_approved = not driver.is_approved
+        db.session.commit()
+        
+        status = 'تم اعتماد' if driver.is_approved else 'تم إلغاء اعتماد'
+        flash(f'{status} السائق بنجاح', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    return redirect(url_for('fleet.driver_details', id=id))
+
+
+@fleet.route('/drivers/<int:id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_driver(id):
+    """Delete driver"""
+    driver = Driver.query.get_or_404(id)
+    
+    # Check if driver has missions
+    if driver.missions.count() > 0:
+        flash('لا يمكن حذف السائق لأنه مرتبط بمهام', 'error')
+        return redirect(url_for('fleet.driver_details', id=id))
+    
+    try:
+        # Delete uploaded files
+        if driver.photo_filename:
+            photo_path = os.path.join(Config.UPLOAD_FOLDER.replace('apartments', 'drivers'), driver.photo_filename)
+            if os.path.exists(photo_path):
+                os.remove(photo_path)
+        
+        if driver.license_filename:
+            license_path = os.path.join(Config.UPLOAD_FOLDER.replace('apartments', 'drivers'), driver.license_filename)
+            if os.path.exists(license_path):
+                os.remove(license_path)
+        
+        db.session.delete(driver)
+        db.session.commit()
+        flash('تم حذف السائق بنجاح', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    return redirect(url_for('fleet.drivers_list'))
+
+
+# ==================== MISSIONS ====================
+
+@fleet.route('/missions')
+@login_required
+@admin_required
+def missions_list():
+    """List all missions"""
+    status_filter = request.args.get('status', '')
+    car_filter = request.args.get('car_id', '')
+    driver_filter = request.args.get('driver_id', '')
+    
+    query = Mission.query
+    
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    if car_filter:
+        query = query.filter_by(fleet_car_id=int(car_filter))
+    if driver_filter:
+        query = query.filter_by(driver_id=int(driver_filter))
+    
+    missions = query.order_by(Mission.mission_date.desc(), Mission.created_at.desc()).all()
+    
+    # Get all cars and drivers for filter dropdowns
+    all_cars = FleetCar.query.order_by(FleetCar.brand, FleetCar.model).all()
+    all_drivers = Driver.query.order_by(Driver.name).all()
+    
+    return render_template('admin/fleet/missions.html',
+                         missions=missions,
+                         all_cars=all_cars,
+                         all_drivers=all_drivers,
+                         status_filter=status_filter,
+                         car_filter=car_filter,
+                         driver_filter=driver_filter)
+
+
+@fleet.route('/missions/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def add_mission():
+    """Create new mission"""
+    if request.method == 'POST':
+        try:
+            # Parse date and time
+            mission_date_str = request.form.get('mission_date')
+            start_time_str = request.form.get('start_time')
+            end_time_str = request.form.get('end_time')
+            
+            mission_date = datetime.strptime(mission_date_str, '%Y-%m-%d').date() if mission_date_str else date.today()
+            start_time = datetime.strptime(start_time_str, '%H:%M').time() if start_time_str else None
+            end_time = datetime.strptime(end_time_str, '%H:%M').time() if end_time_str else None
+            
+            # Calculate profit
+            total_revenue = float(request.form.get('total_revenue', 0))
+            fuel_cost = float(request.form.get('fuel_cost', 0))
+            driver_fees = float(request.form.get('driver_fees', 0))
+            company_profit = total_revenue - fuel_cost - driver_fees
+            
+            mission = Mission(
+                fleet_car_id=int(request.form.get('fleet_car_id')),
+                driver_id=int(request.form.get('driver_id')),
+                from_location=request.form.get('from_location'),
+                to_location=request.form.get('to_location'),
+                distance_km=float(request.form.get('distance_km')),
+                mission_date=mission_date,
+                start_time=start_time,
+                end_time=end_time,
+                total_revenue=total_revenue,
+                fuel_cost=fuel_cost,
+                driver_fees=driver_fees,
+                company_profit=company_profit,
+                status=request.form.get('status', 'pending'),
+                notes=request.form.get('notes')
+            )
+            
+            # Update car status to in_mission if status is in_progress
+            if mission.status == 'in_progress':
+                car = FleetCar.query.get(mission.fleet_car_id)
+                if car:
+                    car.status = 'in_mission'
+            
+            db.session.add(mission)
+            db.session.commit()
+            
+            flash('تم إنشاء المهمة بنجاح', 'success')
+            return redirect(url_for('fleet.missions_list'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    # Get available cars and approved drivers
+    cars = FleetCar.query.order_by(FleetCar.brand, FleetCar.model).all()
+    drivers = Driver.query.filter_by(is_approved=True).order_by(Driver.name).all()
+    
+    return render_template('admin/fleet/mission_form.html',
+                         mission=None,
+                         cars=cars,
+                         drivers=drivers)
+
+
+@fleet.route('/missions/<int:id>')
+@login_required
+@admin_required
+def mission_details(id):
+    """View mission details"""
+    mission = Mission.query.get_or_404(id)
+    
+    return render_template('admin/fleet/mission_details.html', mission=mission)
+
+
+@fleet.route('/missions/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_mission(id):
+    """Edit mission"""
+    mission = Mission.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            # Parse date and time
+            mission_date_str = request.form.get('mission_date')
+            start_time_str = request.form.get('start_time')
+            end_time_str = request.form.get('end_time')
+            
+            mission.mission_date = datetime.strptime(mission_date_str, '%Y-%m-%d').date() if mission_date_str else mission.mission_date
+            mission.start_time = datetime.strptime(start_time_str, '%H:%M').time() if start_time_str else None
+            mission.end_time = datetime.strptime(end_time_str, '%H:%M').time() if end_time_str else None
+            
+            mission.fleet_car_id = int(request.form.get('fleet_car_id'))
+            mission.driver_id = int(request.form.get('driver_id'))
+            mission.from_location = request.form.get('from_location')
+            mission.to_location = request.form.get('to_location')
+            mission.distance_km = float(request.form.get('distance_km'))
+            mission.total_revenue = float(request.form.get('total_revenue'))
+            mission.fuel_cost = float(request.form.get('fuel_cost'))
+            mission.driver_fees = float(request.form.get('driver_fees'))
+            mission.company_profit = mission.total_revenue - mission.fuel_cost - mission.driver_fees
+            mission.status = request.form.get('status')
+            mission.notes = request.form.get('notes')
+            
+            db.session.commit()
+            
+            flash('تم تحديث المهمة بنجاح', 'success')
+            return redirect(url_for('fleet.mission_details', id=mission.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    # Get all cars and approved drivers
+    cars = FleetCar.query.order_by(FleetCar.brand, FleetCar.model).all()
+    drivers = Driver.query.filter_by(is_approved=True).order_by(Driver.name).all()
+    
+    return render_template('admin/fleet/mission_form.html',
+                         mission=mission,
+                         cars=cars,
+                         drivers=drivers)
+
+
+@fleet.route('/missions/<int:id>/complete', methods=['POST'])
+@login_required
+@admin_required
+def complete_mission(id):
+    """Mark mission as completed"""
+    mission = Mission.query.get_or_404(id)
+    
+    try:
+        mission.complete_mission()  # Uses the model method
+        db.session.commit()
+        
+        flash('تم إكمال المهمة بنجاح', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    return redirect(url_for('fleet.mission_details', id=id))
+
+
+@fleet.route('/missions/<int:id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_mission(id):
+    """Delete mission"""
+    mission = Mission.query.get_or_404(id)
+    
+    try:
+        db.session.delete(mission)
+        db.session.commit()
+        flash('تم حذف المهمة بنجاح', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+    
+    return redirect(url_for('fleet.missions_list'))

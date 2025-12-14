@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}تفاصيل السائق{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding: 20px;">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 style="color: #FFD700;"><i class="fas fa-user-tie"></i> {{ driver.name }}</h2>
+        </div>
+        <div class="col-md-4 text-left">
+            <a href="{{ url_for('fleet.edit_driver', id=driver.id) }}" class="btn btn-warning"
+                style="background: #FFD700; color: #000;">
+                <i class="fas fa-edit"></i> تعديل
+            </a>
+            <a href="{{ url_for('fleet.drivers_list') }}" class="btn btn-outline-warning"
+                style="color: #FFD700; border-color: #FFD700;">
+                <i class="fas fa-arrow-right"></i> العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
+                <div class="card-header" style="background: #000; border-bottom: 1px solid #FFD700;">
+                    <h5 style="color: #FFD700; margin: 0;">معلومات السائق</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if driver.photo_filename %}
+                    <img src="{{ url_for('static', filename='images/drivers/' + driver.photo_filename) }}"
+                        class="img-fluid rounded mb-3" style="max-width: 200px; border: 2px solid #FFD700;">
+                    {% else %}
+                    <i class="fas fa-user-circle fa-5x" style="color: #FFD700;"></i>
+                    {% endif %}
+                    <h4 style="color: #FFD700;">{{ driver.name }}</h4>
+                    <p><i class="fas fa-phone" style="color: #FFD700;"></i> {{ driver.phone }}</p>
+                    <p><i class="fas fa-envelope" style="color: #FFD700;"></i> {{ driver.email or '-' }}</p>
+                    <p><i class="fas fa-id-card" style="color: #FFD700;"></i> {{ driver.national_id }}</p>
+                    <p>
+                        {% if driver.is_approved %}
+                        <span class="badge badge-lg" style="background: #10B981; font-size: 16px;">{{
+                            driver.approval_status_arabic }}</span>
+                        {% else %}
+                        <span class="badge badge-lg" style="background: #F59E0B; font-size: 16px;">{{
+                            driver.approval_status_arabic }}</span>
+                        {% endif %}
+                    </p>
+
+                    <form method="POST" action="{{ url_for('fleet.toggle_driver_approval', id=driver.id) }}"
+                        class="mt-2">
+                        {% if driver.is_approved %}
+                        <button type="submit" class="btn btn-warning btn-block">
+                            <i class="fas fa-times-circle"></i> إلغاء الاعتماد
+                        </button>
+                        {% else %}
+                        <button type="submit" class="btn btn-success btn-block">
+                            <i class="fas fa-check-circle"></i> اعتماد السائق
+                        </button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3" style="background: #1A1A1A; border: 1px solid #FFD700;">
+                        <div class="card-body text-center">
+                            <h4 style="color: #FFD700;">{{ driver.completed_missions }}</h4>
+                            <p style="color: #999;">مهام مكتملة</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-3" style="background: #1A1A1A; border: 1px solid #FFD700;">
+                        <div class="card-body text-center">
+                            <h4 style="color: #10B981;">{{ "{:,.2f}".format(driver.total_earnings) }} ج.م</h4>
+                            <p style="color: #999;">إجمالي الأرباح</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
+                <div class="card-header" style="background: #000; border-bottom: 1px solid #FFD700;">
+                    <h5 style="color: #FFD700; margin: 0;">المهام</h5>
+                </div>
+                <div class="card-body">
+                    {% if missions %}
+                    <div class="table-responsive">
+                        <table class="table" style="color: #fff;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #FFD700;">
+                                    <th>التاريخ</th>
+                                    <th>السيارة</th>
+                                    <th>المسار</th>
+                                    <th>الأجر</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mission in missions %}
+                                <tr style="border-bottom: 1px solid #333;">
+                                    <td>{{ mission.mission_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ mission.fleet_car.brand }} {{ mission.fleet_car.model }}</td>
+                                    <td>{{ mission.route_description }}</td>
+                                    <td style="color: #10B981;">{{ "{:,.2f}".format(mission.driver_fees) }}</td>
+                                    <td><span class="badge"
+                                            style="background: {% if mission.status == 'completed' %}#10B981{% else %}#F59E0B{% endif %};">{{
+                                            mission.status_arabic }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p style="color: #999; text-align: center;">لا توجد مهام</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

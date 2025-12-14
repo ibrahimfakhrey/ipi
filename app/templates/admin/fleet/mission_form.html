@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if mission %}تعديل مهمة{% else %}إنشاء مهمة{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 20px; max-width: 900px;">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 style="color: #FFD700;">
+                {% if mission %}<i class="fas fa-edit"></i> تعديل مهمة{% else %}<i class="fas fa-plus"></i> إنشاء مهمة
+                جديدة{% endif %}
+            </h2>
+        </div>
+    </div>
+
+    <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
+        <div class="card-body">
+            <form method="POST" id="missionForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">السيارة <span style="color: red;">*</span></label>
+                            <select name="fleet_car_id" class="form-control" required
+                                style="background: #000; color: #fff; border-color: #FFD700;">
+                                <option value="">اختر سيارة</option>
+                                {% for car in cars %}
+                                <option value="{{ car.id }}" {% if mission and mission.fleet_car_id==car.id %}selected{%
+                                    endif %}>
+                                    {{ car.brand }} {{ car.model }} - {{ car.plate_number }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">السائق (معتمد فقط) <span style="color: red;">*</span></label>
+                            <select name="driver_id" class="form-control" required
+                                style="background: #000; color: #fff; border-color: #FFD700;">
+                                <option value="">اختر سائق</option>
+                                {% for driver in drivers %}
+                                <option value="{{ driver.id }}" {% if mission and mission.driver_id==driver.id
+                                    %}selected{% endif %}>
+                                    {{ driver.name }} - {{ driver.phone }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if not drivers %}
+                            <small style="color: #EF4444;">لا يوجد سائقون معتمدون!</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">من <span style="color: red;">*</span></label>
+                            <input type="text" name="from_location" class="form-control" required
+                                value="{% if mission %}{{ mission.from_location }}{% endif %}"
+                                style="background: #000; color: #fff; border-color: #FFD700;">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">إلى <span style="color: red;">*</span></label>
+                            <input type="text" name="to_location" class="form-control" required
+                                value="{% if mission %}{{ mission.to_location }}{% endif %}"
+                                style="background: #000; color: #fff; border-color: #FFD700;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">المسافة (كم) <span style="color: red;">*</span></label>
+                            <input type="number" name="distance_km" class="form-control" step="0.1" required
+                                value="{% if mission %}{{ mission.distance_km }}{% endif %}"
+                                style="background: #000; color: #fff; border-color: #FFD700;">
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">تاريخ المهمة <span style="color: red;">*</span></label>
+                            <input type="date" name="mission_date" class="form-control" required
+                                value="{% if mission %}{{ mission.mission_date }}{% endif %}"
+                                style="background: #000; color: #fff; border-color: #FFD700;">
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">الحالة</label>
+                            <select name="status" class="form-control"
+                                style="background: #000; color: #fff; border-color: #FFD700;">
+                                <option value="pending" {% if mission and mission.status=='pending' %}selected{% endif
+                                    %}>قيد الانتظار</option>
+                                <option value="in_progress" {% if mission and mission.status=='in_progress' %}selected{%
+                                    endif %}>جارية</option>
+                                <option value="completed" {% if mission and mission.status=='completed' %}selected{%
+                                    endif %}>مكتملة</option>
+                                <option value="cancelled" {% if mission and mission.status=='cancelled' %}selected{%
+                                    endif %}>ملغاة</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">وقت البدء</label>
+                            <input type="time" name="start_time" class="form-control"
+                                value="{% if mission and mission.start_time %}{{ mission.start_time.strftime('%H:%M') }}{% endif %}"
+                                style="background: #000; color: #fff; border-color: #FFD700;">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">وقت الانتهاء</label>
+                            <input type="time" name="end_time" class="form-control"
+                                value="{% if mission and mission.end_time %}{{ mission.end_time.strftime('%H:%M') }}{% endif %}"
+                                style="background: #000; color: #fff; border-color: #FFD700;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">إيرادات المهمة (ج.م) <span
+                                    style="color: red;">*</span></label>
+                            <input type="number" name="total_revenue" id="total_revenue" class="form-control"
+                                step="0.01" required value="{% if mission %}{{ mission.total_revenue }}{% endif %}"
+                                style="background: #000; color: #fff; border-color: #FFD700;"
+                                onchange="calculateProfit()">
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">تكلفة الوقود (ج.م) <span style="color: red;">*</span></label>
+                            <input type="number" name="fuel_cost" id="fuel_cost" class="form-control" step="0.01"
+                                required value="{% if mission %}{{ mission.fuel_cost }}{% endif %}"
+                                style="background: #000; color: #fff; border-color: #FFD700;"
+                                onchange="calculateProfit()">
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="color: #FFD700;">أجر السائق (ج.م) <span style="color: red;">*</span></label>
+                            <input type="number" name="driver_fees" id="driver_fees" class="form-control" step="0.01"
+                                required value="{% if mission %}{{ mission.driver_fees }}{% endif %}"
+                                style="background: #000; color: #fff; border-color: #FFD700;"
+                                onchange="calculateProfit()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="alert" id="profitDisplay"
+                            style="background: #1A1A1A; border: 2px solid #10B981; color: #10B981; font-size: 18px; text-align: center;">
+                            صافي ربح الشركة: <strong id="profitValue">0.00</strong> ج.م
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="color: #FFD700;">ملاحظات</label>
+                    <textarea name="notes" class="form-control" rows="3"
+                        style="background: #000; color: #fff; border-color: #FFD700;">{% if mission %}{{ mission.notes }}{% endif %}</textarea>
+                </div>
+
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-warning" style="background: #FFD700; color: #000;">
+                        <i class="fas fa-save"></i> {% if mission %}تحديث{% else %}حفظ{% endif %}
+                    </button>
+                    <a href="{{ url_for('fleet.missions_list') }}" class="btn btn-outline-warning"
+                        style="color: #FFD700; border-color: #FFD700;">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function calculateProfit() {
+        const revenue = parseFloat(document.getElementById('total_revenue').value) || 0;
+        const fuel = parseFloat(document.getElementById('fuel_cost').value) || 0;
+        const fees = parseFloat(document.getElementById('driver_fees').value) || 0;
+
+        const profit = revenue - fuel - fees;
+        document.getElementById('profitValue').textContent = profit.toFixed(2);
+
+        const profitDisplay = document.getElementById('profitDisplay');
+        if (profit < 0) {
+            profitDisplay.style.borderColor = '#EF4444';
+            profitDisplay.style.color = '#EF4444';
+        } else {
+            profitDisplay.style.borderColor = '#10B981';
+            profitDisplay.style.color = '#10B981';
+        }
+    }
+
+    // Calculate on page load
+    window.addEventListener('DOMContentLoaded', calculateProfit);
+</script>
+{% endblock %}
