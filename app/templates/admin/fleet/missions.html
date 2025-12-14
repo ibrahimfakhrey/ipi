@@ -6,15 +6,13 @@
 <div class="container-fluid" style="padding: 20px;">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h2 style="color: #FFD700;"><i class="fas fa-tasks"></i> قائمة المهام</h2>
+            <h2><i class="fas fa-tasks"></i> قائمة المهام</h2>
         </div>
         <div class="col-md-4 text-left">
-            <a href="{{ url_for('fleet.add_mission') }}" class="btn btn-warning"
-                style="background: #FFD700; color: #000;">
+            <a href="{{ url_for('fleet.add_mission') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> إنشاء مهمة
             </a>
-            <a href="{{ url_for('fleet.dashboard') }}" class="btn btn-outline-warning"
-                style="color: #FFD700; border-color: #FFD700;">
+            <a href="{{ url_for('fleet.dashboard') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-right"></i> العودة
             </a>
         </div>
@@ -23,13 +21,13 @@
     <!-- Missions Table -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
+            <div class="card">
                 <div class="card-body">
                     {% if missions %}
                     <div class="table-responsive">
-                        <table class="table table-striped" style="color: #fff;">
+                        <table class="table">
                             <thead>
-                                <tr style="border-bottom: 2px solid #FFD700;">
+                                <tr>
                                     <th>التاريخ</th>
                                     <th>السيارة</th>
                                     <th>السائق</th>
@@ -45,35 +43,31 @@
                             </thead>
                             <tbody>
                                 {% for mission in missions %}
-                                <tr style="border-bottom: 1px solid #333;">
+                                <tr>
                                     <td>{{ mission.mission_date.strftime('%Y-%m-%d') }}</td>
                                     <td>{{ mission.fleet_car.brand }} {{ mission.fleet_car.model }}</td>
                                     <td>{{ mission.driver.name }}</td>
                                     <td>{{ mission.route_description }}</td>
                                     <td>{{ "{:,.0f}".format(mission.distance_km) }} كم</td>
-                                    <td style="color: #3B82F6;">{{ "{:,.2f}".format(mission.total_revenue) }}</td>
-                                    <td style="color: #F59E0B;">{{ "{:,.2f}".format(mission.fuel_cost) }}</td>
-                                    <td style="color: #EF4444;">{{ "{:,.2f}".format(mission.driver_fees) }}</td>
-                                    <td style="color: #10B981; font-weight: bold;">{{
+                                    <td class="text-info">{{ "{:,.2f}".format(mission.total_revenue) }}</td>
+                                    <td class="text-warning">{{ "{:,.2f}".format(mission.fuel_cost) }}</td>
+                                    <td class="text-error">{{ "{:,.2f}".format(mission.driver_fees) }}</td>
+                                    <td class="text-success" style="font-weight: bold;">{{
                                         "{:,.2f}".format(mission.company_profit) }}</td>
                                     <td>
                                         {% if mission.status == 'completed' %}
-                                        <span class="badge" style="background: #10B981;">{{ mission.status_arabic
-                                            }}</span>
+                                        <span class="badge badge-success">{{ mission.status_arabic }}</span>
                                         {% elif mission.status == 'in_progress' %}
-                                        <span class="badge" style="background: #3B82F6;">{{ mission.status_arabic
-                                            }}</span>
+                                        <span class="badge badge-info">{{ mission.status_arabic }}</span>
                                         {% elif mission.status == 'pending' %}
-                                        <span class="badge" style="background: #F59E0B;">{{ mission.status_arabic
-                                            }}</span>
+                                        <span class="badge badge-warning">{{ mission.status_arabic }}</span>
                                         {% else %}
-                                        <span class="badge" style="background: #EF4444;">{{ mission.status_arabic
-                                            }}</span>
+                                        <span class="badge badge-danger">{{ mission.status_arabic }}</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         <a href="{{ url_for('fleet.mission_details', id=mission.id) }}"
-                                            class="btn btn-sm" style="background: #FFD700; color: #000;">
+                                            class="btn btn-primary btn-sm">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </td>
@@ -83,7 +77,7 @@
                         </table>
                     </div>
                     {% else %}
-                    <p style="color: #999; text-align: center; padding: 20px;">لا توجد مهام</p>
+                    <p class="text-muted" style="text-align: center; padding: 20px;">لا توجد مهام</p>
                     {% endif %}
                 </div>
             </div>

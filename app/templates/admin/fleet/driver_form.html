@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if driver %}تعديل سائق{% else %}إضافة سائق{% endif %}{% endblock %}
+{% block title%}{% if driver %}تعديل سائق{% else %}إضافة سائق{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container" style="padding: 20px; max-width: 800px;">
     <div class="row mb-4">
         <div class="col-md-12">
-            <h2 style="color: #FFD700;">
+            <h2>
                 {% if driver %}
                 <i class="fas fa-edit"></i> تعديل سائق
                 {% else %}
@@ -16,80 +16,73 @@
         </div>
     </div>
 
-    <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
+    <div class="card">
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label style="color: #FFD700;">الاسم <span style="color: red;">*</span></label>
+                    <label class="form-label">الاسم <span style="color: var(--error);">*</span></label>
                     <input type="text" name="name" class="form-control" required
-                        value="{% if driver %}{{ driver.name }}{% endif %}"
-                        style="background: #000; color: #fff; border-color: #FFD700;">
+                        value="{% if driver %}{{ driver.name }}{% endif %}">
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">رقم الهاتف <span style="color: red;">*</span></label>
+                    <label class="form-label">رقم الهاتف <span style="color: var(--error);">*</span></label>
                     <input type="tel" name="phone" class="form-control" required
-                        value="{% if driver %}{{ driver.phone }}{% endif %}"
-                        style="background: #000; color: #fff; border-color: #FFD700;">
+                        value="{% if driver %}{{ driver.phone }}{% endif %}">
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">البريد الإلكتروني</label>
+                    <label class="form-label">البريد الإلكتروني</label>
                     <input type="email" name="email" class="form-control"
-                        value="{% if driver %}{{ driver.email }}{% endif %}"
-                        style="background: #000; color: #fff; border-color: #FFD700;">
+                        value="{% if driver %}{{ driver.email }}{% endif %}">
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">الرقم القومي <span style="color: red;">*</span></label>
+                    <label class="form-label">الرقم القومي <span style="color: var(--error);">*</span></label>
                     <input type="text" name="national_id" class="form-control" required
-                        value="{% if driver %}{{ driver.national_id }}{% endif %}"
-                        style="background: #000; color: #fff; border-color: #FFD700;">
+                        value="{% if driver %}{{ driver.national_id }}{% endif %}">
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">صورة السائق</label>
+                    <label class="form-label">صورة السائق</label>
                     {% if driver and driver.photo_filename %}
-                    <p style="color: #999;">الصورة الحالية: {{ driver.photo_filename }}</p>
+                    <p class="text-muted">الصورة الحالية: {{ driver.photo_filename }}</p>
                     {% endif %}
-                    <input type="file" name="photo" class="form-control-file" accept="image/*" style="color: #fff;">
-                    <small style="color: #999;">الصيغ المسموحة: PNG, JPG, JPEG</small>
+                    <input type="file" name="photo" class="form-control-file" accept="image/*">
+                    <small class="text-muted">الصيغ المسموحة: PNG, JPG, JPEG</small>
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">رخصة القيادة</label>
+                    <label class="form-label">رخصة القيادة</label>
                     {% if driver and driver.license_filename %}
-                    <p style="color: #999;">الرخصة الحالية: {{ driver.license_filename }}</p>
+                    <p class="text-muted">الرخصة الحالية: {{ driver.license_filename }}</p>
                     {% endif %}
-                    <input type="file" name="license" class="form-control-file" accept="image/*,application/pdf"
-                        style="color: #fff;">
-                    <small style="color: #999;">الصيغ المسموحة: PNG, JPG, PDF</small>
+                    <input type="file" name="license" class="form-control-file" accept="image/*,application/pdf">
+                    <small class="text-muted">الصيغ المسموحة: PNG, JPG, PDF</small>
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">التقييم</label>
+                    <label class="form-label">التقييم</label>
                     <input type="number" name="rating" class="form-control" step="0.1" min="0" max="5"
-                        value="{% if driver %}{{ driver.rating }}{% else %}0{% endif %}"
-                        style="background: #000; color: #fff; border-color: #FFD700;" disabled>
-                    <small style="color: #999;">سيتم استخدامه لاحقاً</small>
+                        value="{% if driver %}{{ driver.rating }}{% else %}0{% endif %}" disabled>
+                    <small class="text-muted">سيتم استخدامه لاحقاً</small>
                 </div>
 
                 <div class="form-group">
                     <div class="custom-control custom-checkbox">
                         <input type="checkbox" class="custom-control-input" id="is_approved" name="is_approved" {% if
                             driver and driver.is_approved %}checked{% endif %}>
-                        <label class="custom-control-label" for="is_approved" style="color: #FFD700;">
+                        <label class="custom-control-label" for="is_approved" style="color: var(--primary-gold);">
                             اعتماد السائق (السائقون المعتمدون فقط يمكنهم القيادة)
                         </label>
                     </div>
                 </div>
 
                 <div class="form-group mt-4">
-                    <button type="submit" class="btn btn-warning" style="background: #FFD700; color: #000;">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> {% if driver %}تحديث{% else %}حفظ{% endif %}
                     </button>
-                    <a href="{{ url_for('fleet.drivers_list') }}" class="btn btn-outline-warning"
-                        style="color: #FFD700; border-color: #FFD700;">
+                    <a href="{{ url_for('fleet.drivers_list') }}" class="btn btn-secondary">
                         <i class="fas fa-times"></i> إلغاء
                     </a>
                 </div>

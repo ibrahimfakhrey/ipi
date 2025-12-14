@@ -10,93 +10,89 @@
 
     <!-- Statistics Cards -->
     <div class="grid grid-4" style="margin-bottom: 3rem;">
-        <div class="card text-center" style="background: #1A1A1A; border: 1px solid #FFD700;">
+        <div class="card text-center">
             <div style="padding: 20px;">
-                <i class="fas fa-car fa-2x" style="color: #FFD700; margin-bottom: 10px;"></i>
-                <h3 style="color: #FFD700;">{{ total_cars }}</h3>
-                <p style="color: #fff;">إجمالي السيارات</p>
-                <small style="color: #999;">متاحة: {{ available_cars }}</small>
+                <i class="fas fa-car fa-2x" style="color: var(--primary-gold); margin-bottom: 10px;"></i>
+                <h3 style="color: var(--primary-gold);">{{ total_cars }}</h3>
+                <p style="color: var(--text-light);">إجمالي السيارات</p>
+                <small style="color: var(--text-muted);">متاحة: {{ available_cars }}</small>
             </div>
         </div>
 
-        <div class="card text-center" style="background: #1A1A1A; border: 1px solid #FFD700;">
+        <div class="card text-center">
             <div style="padding: 20px;">
-                <i class="fas fa-user-tie fa-2x" style="color: #FFD700; margin-bottom: 10px;"></i>
-                <h3 style="color: #FFD700;">{{ total_drivers }}</h3>
-                <p style="color: #fff;">إجمالي السائقين</p>
-                <small style="color: #999;">معتمد: {{ approved_drivers }}</small>
+                <i class="fas fa-user-tie fa-2x" style="color: var(--primary-gold); margin-bottom: 10px;"></i>
+                <h3 style="color: var(--primary-gold);">{{ total_drivers }}</h3>
+                <p style="color: var(--text-light);">إجمالي السائقين</p>
+                <small style="color: var(--text-muted);">معتمد: {{ approved_drivers }}</small>
             </div>
         </div>
 
-        <div class="card text-center" style="background: #1A1A1A; border: 1px solid #FFD700;">
+        <div class="card text-center">
             <div style="padding: 20px;">
-                <i class="fas fa-tasks fa-2x" style="color: #FFD700; margin-bottom: 10px;"></i>
-                <h3 style="color: #FFD700;">{{ total_missions }}</h3>
-                <p style="color: #fff;">إجمالي المهام</p>
-                <small style="color: #999;">نشطة: {{ active_missions }}</small>
+                <i class="fas fa-tasks fa-2x" style="color: var(--primary-gold); margin-bottom: 10px;"></i>
+                <h3 style="color: var(--primary-gold);">{{ total_missions }}</h3>
+                <p style="color: var(--text-light);">إجمالي المهام</p>
+                <small style="color: var(--text-muted);">نشطة: {{ active_missions }}</small>
             </div>
         </div>
 
-        <div class="card text-center" style="background: #1A1A1A; border: 1px solid #10B981;">
+        <div class="card text-center">
             <div style="padding: 20px;">
-                <i class="fas fa-check-circle fa-2x" style="color: #10B981; margin-bottom: 10px;"></i>
-                <h3 style="color: #10B981;">{{ completed_missions }}</h3>
-                <p style="color: #fff;">مهام مكتملة</p>
+                <i class="fas fa-check-circle fa-2x" style="color: var(--success); margin-bottom: 10px;"></i>
+                <h3 style="color: var(--success);">{{ completed_missions }}</h3>
+                <p style="color: var(--text-light);">مهام مكتملة</p>
             </div>
         </div>
     </div>
 
     <!-- Financial Statistics -->
     <div class="grid grid-4" style="margin-bottom: 3rem;">
-        <div class="card text-center" style="background: #1A1A1A; border: 1px solid #3B82F6;">
+        <div class="card text-center">
             <div style="padding: 20px;">
-                <h6 style="color: #999;">إجمالي الإيرادات</h6>
-                <h4 style="color: #3B82F6;">{{ "{:,.2f}".format(total_revenue) }} ج.م</h4>
+                <h6 style="color: var(--text-muted);">إجمالي الإيرادات</h6>
+                <h4 style="color: var(--info);">{{ "{:,.2f}".format(total_revenue) }} ج.م</h4>
             </div>
         </div>
 
-        <div class="card text-center" style="background: #1A1A1A; border: 1px solid #F59E0B;">
+        <div class="card text-center">
             <div style="padding: 20px;">
-                <h6 style="color: #999;">تكاليف الوقود</h6>
-                <h4 style="color: #F59E0B;">{{ "{:,.2f}".format(total_fuel_cost) }} ج.م</h4>
+                <h6 style="color: var(--text-muted);">تكاليف الوقود</h6>
+                <h4 style="color: var(--warning);">{{ "{:,.2f}".format(total_fuel_cost) }} ج.م</h4>
             </div>
         </div>
 
-        <div class="card text-center" style="background: #1A1A1A; border: 1px solid #EF4444;">
+        <div class="card text-center">
             <div style="padding: 20px;">
-                <h6 style="color: #999;">أجور السائقين</h6>
-                <h4 style="color: #EF4444;">{{ "{:,.2f}".format(total_driver_fees) }} ج.م</h4>
+                <h6 style="color: var(--text-muted);">أجور السائقين</h6>
+                <h4 style="color: var(--error);">{{ "{:,.2f}".format(total_driver_fees) }} ج.م</h4>
             </div>
         </div>
 
-        <div class="card text-center" style="background: #1A1A1A; border: 1px solid #10B981;">
+        <div class="card text-center">
             <div style="padding: 20px;">
-                <h6 style="color: #999;">صافي الربح</h6>
-                <h4 style="color: #10B981;">{{ "{:,.2f}".format(total_profit) }} ج.م</h4>
+                <h6 style="color: var(--text-muted);">صافي الربح</h6>
+                <h4 style="color: var(--success);">{{ "{:,.2f}".format(total_profit) }} ج.م</h4>
             </div>
         </div>
     </div>
 
     <!-- Quick Actions -->
     <div class="grid grid-1" style="margin-bottom: 3rem;">
-        <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
+        <div class="card">
             <div style="padding: 20px;">
-                <h5 style="color: #FFD700; margin-bottom: 20px;">إجراءات سريعة</h5>
+                <h5 style="color: var(--primary-gold); margin-bottom: 20px;">إجراءات سريعة</h5>
                 <div class="grid grid-4" style="gap: 1rem;">
-                    <a href="{{ url_for('fleet.add_car') }}" class="btn btn-primary"
-                        style="text-decoration: none; background: #FFD700; color: #000;">
+                    <a href="{{ url_for('fleet.add_car') }}" class="btn btn-primary">
                         <i class="fas fa-plus"></i> إضافة سيارة
                     </a>
-                    <a href="{{ url_for('fleet.add_driver') }}" class="btn btn-primary"
-                        style="text-decoration: none; background: #FFD700; color: #000;">
+                    <a href="{{ url_for('fleet.add_driver') }}" class="btn btn-primary">
                         <i class="fas fa-user-plus"></i> إضافة سائق
                     </a>
-                    <a href="{{ url_for('fleet.add_mission') }}" class="btn btn-primary"
-                        style="text-decoration: none; background: #FFD700; color: #000;">
+                    <a href="{{ url_for('fleet.add_mission') }}" class="btn btn-primary">
                         <i class="fas fa-clipboard-list"></i> إنشاء مهمة
                     </a>
-                    <a href="{{ url_for('fleet.missions_list') }}" class="btn btn-secondary"
-                        style="text-decoration: none;">
+                    <a href="{{ url_for('fleet.missions_list') }}" class="btn btn-secondary">
                         <i class="fas fa-list"></i> عرض جميع المهام
                     </a>
                 </div>
@@ -106,16 +102,16 @@
 
     <!-- Recent Missions -->
     <div class="grid grid-1">
-        <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
-            <div class="card-header" style="background: #000; border-bottom: 1px solid #FFD700;">
-                <h5 style="color: #FFD700; margin: 0;">المهام الأخيرة</h5>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">المهام الأخيرة</h5>
             </div>
             <div style="padding: 20px;">
                 {% if recent_missions %}
                 <div class="table-responsive">
-                    <table class="table" style="color: #fff;">
+                    <table class="table">
                         <thead>
-                            <tr style="border-bottom: 2px solid #FFD700;">
+                            <tr>
                                 <th>التاريخ</th>
                                 <th>السيارة</th>
                                 <th>السائق</th>
@@ -134,21 +130,21 @@
                                 <td>{{ mission.driver.name }}</td>
                                 <td>{{ mission.route_description }}</td>
                                 <td>{{ "{:,.0f}".format(mission.distance_km) }} كم</td>
-                                <td style="color: #10B981;">{{ "{:,.2f}".format(mission.company_profit) }} ج.م</td>
+                                <td class="text-success">{{ "{:,.2f}".format(mission.company_profit) }} ج.م</td>
                                 <td>
                                     {% if mission.status == 'completed' %}
-                                    <span class="badge" style="background: #10B981;">{{ mission.status_arabic }}</span>
+                                    <span class="badge badge-success">{{ mission.status_arabic }}</span>
                                     {% elif mission.status == 'in_progress' %}
-                                    <span class="badge" style="background: #3B82F6;">{{ mission.status_arabic }}</span>
+                                    <span class="badge badge-info">{{ mission.status_arabic }}</span>
                                     {% elif mission.status == 'pending' %}
-                                    <span class="badge" style="background: #F59E0B;">{{ mission.status_arabic }}</span>
+                                    <span class="badge badge-warning">{{ mission.status_arabic }}</span>
                                     {% else %}
-                                    <span class="badge" style="background: #EF4444;">{{ mission.status_arabic }}</span>
+                                    <span class="badge badge-danger">{{ mission.status_arabic }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('fleet.mission_details', id=mission.id) }}" class="btn btn-sm"
-                                        style="background: #FFD700; color: #000;">
+                                    <a href="{{ url_for('fleet.mission_details', id=mission.id) }}"
+                                        class="btn btn-primary btn-sm">
                                         <i class="fas fa-eye"></i> عرض
                                     </a>
                                 </td>
@@ -158,7 +154,7 @@
                     </table>
                 </div>
                 {% else %}
-                <p style="color: #999; text-align: center; padding: 20px;">لا توجد مهام بعد</p>
+                <p class="text-muted" style="text-align: center; padding: 20px;">لا توجد مهام بعد</p>
                 {% endif %}
             </div>
         </div>

@@ -3,77 +3,57 @@
 {% block title %}تفاصيل السيارة{% endblock %}
 
 {% block content %}
-<div class="container-fluid" style="padding: 20px;">
+<div class="container" style="padding: 20px;">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h2 style="color: #FFD700;">
-                <i class="fas fa-car"></i> {{ car.brand }} {{ car.model }} - {{ car.plate_number }}
-            </h2>
+            <h2><i class="fas fa-car"></i> {{ car.brand }} {{ car.model }}</h2>
         </div>
         <div class="col-md-4 text-left">
-            <a href="{{ url_for('fleet.edit_car', id=car.id) }}" class="btn btn-warning"
-                style="background: #FFD700; color: #000;">
+            <a href="{{ url_for('fleet.edit_car', id=car.id) }}" class="btn btn-primary">
                 <i class="fas fa-edit"></i> تعديل
             </a>
-            <a href="{{ url_for('fleet.cars_list') }}" class="btn btn-outline-warning"
-                style="color: #FFD700; border-color: #FFD700;">
+            <a href="{{ url_for('fleet.cars_list') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-right"></i> العودة
             </a>
         </div>
     </div>
 
-    <!-- Car Details Card -->
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
-                <div class="card-header" style="background: #000; border-bottom: 1px solid #FFD700;">
-                    <h5 style="color: #FFD700; margin: 0;">معلومات السيارة</h5>
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="card-title">معلومات السيارة</h5>
                 </div>
                 <div class="card-body">
-                    <p><strong style="color: #FFD700;">الماركة:</strong> {{ car.brand }}</p>
-                    <p><strong style="color: #FFD700;">الموديل:</strong> {{ car.model }}</p>
-                    <p><strong style="color: #FFD700;">رقم اللوحة:</strong> {{ car.plate_number }}</p>
-                    <p><strong style="color: #FFD700;">السنة:</strong> {{ car.year }}</p>
-                    <p><strong style="color: #FFD700;">اللون:</strong> {{ car.color }}</p>
-                    <p><strong style="color: #FFD700;">الحالة:</strong>
+                    <p><strong style="color: var(--primary-gold);">الماركة:</strong> {{ car.brand }}</p>
+                    <p><strong style="color: var(--primary-gold);">الموديل:</strong> {{ car.model }}</p>
+                    <p><strong style="color: var(--primary-gold);">رقم اللوحة:</strong> {{ car.plate_number }}</p>
+                    <p><strong style="color: var(--primary-gold);">السنة:</strong> {{ car.year }}</p>
+                    <p><strong style="color: var(--primary-gold);">اللون:</strong> {{ car.color }}</p>
+                    <p><strong style="color: var(--primary-gold);">الحالة:</strong>
                         {% if car.status == 'available' %}
-                        <span class="badge" style="background: #10B981;">{{ car.status_arabic }}</span>
+                        <span class="badge badge-success">{{ car.status_arabic }}</span>
                         {% elif car.status == 'in_mission' %}
-                        <span class="badge" style="background: #3B82F6;">{{ car.status_arabic }}</span>
+                        <span class="badge badge-info">{{ car.status_arabic }}</span>
                         {% else %}
-                        <span class="badge" style="background: #F59E0B;">{{ car.status_arabic }}</span>
+                        <span class="badge badge-warning">{{ car.status_arabic }}</span>
                         {% endif %}
                     </p>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-8">
-            <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
-                <div class="card-header" style="background: #000; border-bottom: 1px solid #FFD700;">
-                    <h5 style="color: #FFD700; margin: 0;">إحصائيات</h5>
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="card-title">الإحصائيات</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 text-center">
-                            <h4 style="color: #FFD700;">{{ car.total_missions }}</h4>
-                            <p style="color: #999;">إجمالي المهام</p>
-                        </div>
-                        <div class="col-md-4 text-center">
-                            <h4 style="color: #10B981;">{{ car.completed_missions }}</h4>
-                            <p style="color: #999;">مهام مكتملة</p>
-                        </div>
-                        <div class="col-md-4 text-center">
-                            <h4 style="color: #3B82F6;">{{ "{:,.0f}".format(car.total_distance) }} كم</h4>
-                            <p style="color: #999;">إجمالي المسافة</p>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <a href="{{ url_for('fleet.add_mission') }}?car_id={{ car.id }}"
-                            class="btn btn-block btn-warning" style="background: #FFD700; color: #000;">
-                            <i class="fas fa-plus"></i> إنشاء مهمة جديدة لهذه السيارة
-                        </a>
-                    </div>
+                    <p><strong style="color: var(--primary-gold);">إجمالي المهام:</strong> {{ car.total_missions }}</p>
+                    <p><strong style="color: var(--primary-gold);">المهام المكتملة:</strong> {{ car.completed_missions
+                        }}</p>
+                    <p><strong style="color: var(--primary-gold);">المسافة الإجمالية:</strong> {{
+                        "{:,.0f}".format(car.total_distance) }} كم</p>
                 </div>
             </div>
         </div>
@@ -82,53 +62,40 @@
     <!-- Mission History -->
     <div class="row">
         <div class="col-md-12">
-            <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
-                <div class="card-header" style="background: #000; border-bottom: 1px solid #FFD700;">
-                    <h5 style="color: #FFD700; margin: 0;">سجل المهام</h5>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">سجل المهام</h5>
                 </div>
                 <div class="card-body">
                     {% if missions %}
                     <div class="table-responsive">
-                        <table class="table" style="color: #fff;">
+                        <table class="table">
                             <thead>
-                                <tr style="border-bottom: 2px solid #FFD700;">
+                                <tr>
                                     <th>التاريخ</th>
                                     <th>السائق</th>
                                     <th>المسار</th>
                                     <th>المسافة</th>
                                     <th>الربح</th>
                                     <th>الحالة</th>
-                                    <th>إجراءات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for mission in missions %}
-                                <tr style="border-bottom: 1px solid #333;">
+                                <tr>
                                     <td>{{ mission.mission_date.strftime('%Y-%m-%d') }}</td>
                                     <td>{{ mission.driver.name }}</td>
                                     <td>{{ mission.route_description }}</td>
                                     <td>{{ "{:,.0f}".format(mission.distance_km) }} كم</td>
-                                    <td style="color: #10B981;">{{ "{:,.2f}".format(mission.company_profit) }} ج.م</td>
+                                    <td class="text-success">{{ "{:,.2f}".format(mission.company_profit) }} ج.م</td>
                                     <td>
                                         {% if mission.status == 'completed' %}
-                                        <span class="badge" style="background: #10B981;">{{ mission.status_arabic
-                                            }}</span>
+                                        <span class="badge badge-success">{{ mission.status_arabic }}</span>
                                         {% elif mission.status == 'in_progress' %}
-                                        <span class="badge" style="background: #3B82F6;">{{ mission.status_arabic
-                                            }}</span>
-                                        {% elif mission.status == 'pending' %}
-                                        <span class="badge" style="background: #F59E0B;">{{ mission.status_arabic
-                                            }}</span>
+                                        <span class="badge badge-info">{{ mission.status_arabic }}</span>
                                         {% else %}
-                                        <span class="badge" style="background: #EF4444;">{{ mission.status_arabic
-                                            }}</span>
+                                        <span class="badge badge-warning">{{ mission.status_arabic }}</span>
                                         {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('fleet.mission_details', id=mission.id) }}"
-                                            class="btn btn-sm" style="background: #FFD700; color: #000;">
-                                            <i class="fas fa-eye"></i> عرض
-                                        </a>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -136,17 +103,20 @@
                         </table>
                     </div>
                     {% else %}
-                    <p style="color: #999; text-align: center; padding: 20px;">لا توجد مهام لهذه السيارة بعد</p>
+                    <p class="text-muted" style="text-align: center;">لا توجد مهام</p>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Delete Button -->
+    <!-- Actions -->
     <div class="row mt-4">
         <div class="col-md-12">
-            <form method="POST" action="{{ url_for('fleet.delete_car', id=car.id) }}"
+            <a href="{{ url_for('fleet.add_mission') }}?car_id={{ car.id }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> إنشاء مهمة لهذه السيارة
+            </a>
+            <form method="POST" action="{{ url_for('fleet.delete_car', id=car.id) }}" class="d-inline"
                 onsubmit="return confirm('هل أنت متأكد من حذف هذه السيارة؟');">
                 <button type="submit" class="btn btn-danger">
                     <i class="fas fa-trash"></i> حذف السيارة

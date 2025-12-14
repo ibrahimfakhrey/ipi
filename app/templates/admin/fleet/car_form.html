@@ -6,7 +6,7 @@
 <div class="container" style="padding: 20px; max-width: 800px;">
     <div class="row mb-4">
         <div class="col-md-12">
-            <h2 style="color: #FFD700;">
+            <h2>
                 {% if car %}
                 <i class="fas fa-edit"></i> تعديل سيارة
                 {% else %}
@@ -16,48 +16,42 @@
         </div>
     </div>
 
-    <div class="card" style="background: #1A1A1A; border: 1px solid #FFD700;">
+    <div class="card">
         <div class="card-body">
-            <form method="POST" id="carForm">
+            <form method="POST">
                 <div class="form-group">
-                    <label style="color: #FFD700;">الماركة <span style="color: red;">*</span></label>
+                    <label class="form-label">الماركة <span style="color: var(--error);">*</span></label>
                     <input type="text" name="brand" class="form-control" required
-                        value="{% if car %}{{ car.brand }}{% endif %}"
-                        style="background: #000; color: #fff; border-color: #FFD700;" placeholder="مثال: تويوتا">
+                        value="{% if car %}{{ car.brand }}{% endif %}">
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">الموديل <span style="color: red;">*</span></label>
+                    <label class="form-label">الموديل <span style="color: var(--error);">*</span></label>
                     <input type="text" name="model" class="form-control" required
-                        value="{% if car %}{{ car.model }}{% endif %}"
-                        style="background: #000; color: #fff; border-color: #FFD700;" placeholder="مثال: كورولا">
+                        value="{% if car %}{{ car.model }}{% endif %}">
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">رقم اللوحة <span style="color: red;">*</span></label>
+                    <label class="form-label">رقم اللوحة <span style="color: var(--error);">*</span></label>
                     <input type="text" name="plate_number" class="form-control" required
-                        value="{% if car %}{{ car.plate_number }}{% endif %}"
-                        style="background: #000; color: #fff; border-color: #FFD700;" placeholder="مثال: ABC 1234">
+                        value="{% if car %}{{ car.plate_number }}{% endif %}">
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">السنة <span style="color: red;">*</span></label>
-                    <input type="number" name="year" class="form-control" required
-                        value="{% if car %}{{ car.year }}{% endif %}"
-                        style="background: #000; color: #fff; border-color: #FFD700;" min="1990" max="2030">
+                    <label class="form-label">السنة <span style="color: var(--error);">*</span></label>
+                    <input type="number" name="year" class="form-control" required min="1990" max="2030"
+                        value="{% if car %}{{ car.year }}{% endif %}">
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">اللون <span style="color: red;">*</span></label>
+                    <label class="form-label">اللون <span style="color: var(--error);">*</span></label>
                     <input type="text" name="color" class="form-control" required
-                        value="{% if car %}{{ car.color }}{% endif %}"
-                        style="background: #000; color: #fff; border-color: #FFD700;" placeholder="مثال: أبيض">
+                        value="{% if car %}{{ car.color }}{% endif %}">
                 </div>
 
                 <div class="form-group">
-                    <label style="color: #FFD700;">الحالة <span style="color: red;">*</span></label>
-                    <select name="status" class="form-control" required
-                        style="background: #000; color: #fff; border-color: #FFD700;">
+                    <label class="form-label">الحالة</label>
+                    <select name="status" class="form-control">
                         <option value="available" {% if car and car.status=='available' %}selected{% endif %}>متاحة
                         </option>
                         <option value="in_mission" {% if car and car.status=='in_mission' %}selected{% endif %}>في مهمة
@@ -68,11 +62,10 @@
                 </div>
 
                 <div class="form-group mt-4">
-                    <button type="submit" class="btn btn-warning" style="background: #FFD700; color: #000;">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> {% if car %}تحديث{% else %}حفظ{% endif %}
                     </button>
-                    <a href="{{ url_for('fleet.cars_list') }}" class="btn btn-outline-warning"
-                        style="color: #FFD700; border-color: #FFD700;">
+                    <a href="{{ url_for('fleet.cars_list') }}" class="btn btn-secondary">
                         <i class="fas fa-times"></i> إلغاء
                     </a>
                 </div>
