@@ -73,6 +73,11 @@ class Config:
     APPLE_TEAM_ID = '52D8TDFTXN'
     APPLE_KEY_ID = '37XJXQAPKL'
     APPLE_PRIVATE_KEY_PATH = '/home/amsfiles/ipi/AuthKey_37XJXQAPKL.p8'
+    
+    # Firebase Admin SDK (NEW - Legacy Server Key is deprecated)
+    # This should be the path to your service account JSON file
+    # Or the JSON content as a string (for PythonAnywhere/Heroku)
+    FIREBASE_SERVICE_ACCOUNT = os.environ.get('FIREBASE_SERVICE_ACCOUNT') or 'firebase-service-account.json'
 
 class DevelopmentConfig(Config):
     """Development environment configuration"""

@@ -446,6 +446,17 @@ def change_password():
     current_user.set_password(new_password)
     db.session.commit()
     
+    # Send push notification
+    from app.utils.notification_service import send_push_notification, NotificationTemplates
+    if current_user.fcm_token:
+        notification = NotificationTemplates.password_changed()
+        send_push_notification(
+            user_id=current_user.id,
+            title=notification["title"],
+            body=notification["body"],
+            data=notification.get("data")
+        )
+    
     flash('تم تغيير كلمة المرور بنجاح', 'success')
     return redirect(url_for('user_views.profile'))
 

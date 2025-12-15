@@ -10,6 +10,7 @@ from wtforms import StringField, TextAreaField, SelectField
 from wtforms.validators import Optional
 from werkzeug.utils import secure_filename
 from app.models import db, Apartment, ApartmentImage, User, Share, Transaction, InvestmentRequest, Car, CarShare, CarInvestmentRequest, CarReferralTree, ReferralUsage, WithdrawalRequest
+from app.utils.notification_service import send_push_notification, NotificationTemplates
 from datetime import datetime
 from sqlalchemy import func
 import os
@@ -60,8 +61,8 @@ def dashboard():
     total_users = User.query.filter_by(is_admin=False).count()
     total_apartments = Apartment.query.count()
     total_cars = Car.query.count()
-    total_shares_sold = db.session.query(db.func.count(Share.id)).scalar()
-    total_revenue = db.session.query(db.func.sum(Share.share_price)).scalar() or 0
+    total_shares_sold = db.func.count(Share.id).scalar()
+    total_revenue = db.func.sum(Share.share_price).scalar() or 0
     
     # Investment request statistics
     pending_requests = InvestmentRequest.query.filter_by(status='pending').count()
@@ -154,6 +155,15 @@ def add_car():
 
         db.session.add(car)
         db.session.commit()
+        
+        # Broadcast new car notification to all users
+        from app.utils.notification_service import send_notification_to_all_users
+        notification = NotificationTemplates.new_asset(car.title, 'car')
+        send_notification_to_all_users(
+            title=notification["title"],
+            body=notification["body"],
+            data=notification.get("data")
+        )
 
         flash('تم إضافة السيارة بنجاح', 'success')
         return redirect(url_for('admin.cars_list'))
@@ -212,6 +222,18 @@ def close_car(car_id):
     car = Car.query.get_or_404(car_id)
     car.is_closed = True
     db.session.commit()
+    
+    # Notify all car shareholders
+    from app.models import CarShare
+    notification = NotificationTemplates.asset_closed(car.title)
+    for share in CarShare.query.filter_by(car_id=car_id).all():
+        send_push_notification(
+            user_id=share.user_id,
+            title=notification["title"],
+            body=notification["body"],
+            data=notification.get("data")
+        )
+    
     flash(f'تم إغلاق السيارة: {car.title}', 'success')
     return redirect(url_for('admin.cars_list'))
 
@@ -290,6 +312,15 @@ def add_apartment():
                     order += 1
 
         db.session.commit()
+        
+        # Broadcast new asset notification to all users
+        from app.utils.notification_service import send_notification_to_all_users
+        notification = NotificationTemplates.new_asset(apartment.title, 'apartment')
+        send_notification_to_all_users(
+            title=notification["title"],
+            body=notification["body"],
+            data=notification.get("data")
+        )
         
         flash('تم إضافة الشقة بنجاح', 'success')
         return redirect(url_for('admin.apartments'))
@@ -386,6 +417,20 @@ def close_apartment(apartment_id):
     apartment = Apartment.query.get_or_404(apartment_id)
     apartment.is_closed = True
     db.session.commit()
+    
+    # Notify all shareholders that asset is closed
+    from app.models import Share
+    from app.utils.notification_service import send_push_notification
+    shares = Share.query.filter_by(apartment_id=apartment_id).all()
+    notification = NotificationTemplates.asset_closed(apartment.title)
+    
+    for share in shares:
+        send_push_notification(
+            user_id=share.user_id,
+            title=notification["title"],
+            body=notification["body"],
+            data=notification.get("data")
+        )
     
     flash(f'تم إغلاق الشقة: {apartment.title}', 'success')
     return redirect(url_for('admin.apartments'))
@@ -518,6 +563,20 @@ def distribute_payout(apartment_id):
     payouts = apartment.distribute_monthly_rent()
     db.session.commit()
     
+    # Send notifications to all shareholders
+    from app.models import Share
+    shares = Share.query.filter_by(apartment_id=apartment_id).all()
+    rent_per_share = apartment.monthly_rent / apartment.total_shares
+    
+    for share in shares:
+        notification = NotificationTemplates.rental_income(rent_per_share, apartment.title)
+        send_push_notification(
+            user_id=share.user_id,
+            title=notification["title"],
+            body=notification["body"],
+            data=notification.get("data")
+        )
+    
     flash(f'تم توزيع {payouts} دفعة بنجاح للشقة: {apartment.title}', 'success')
     return redirect(url_for('admin.payouts'))
 
@@ -532,7 +591,19 @@ def distribute_car_payout(car_id):
         return redirect(url_for('admin.payouts'))
     payouts = car.distribute_monthly_rent()
     db.session.commit()
-    flash(f'تم توزيع {payouts} دفعة بنجاح للسيارة: {car.title}', 'success')
+    
+    # Send notifications to all shareholders
+    rent_per_share = car.monthly_rent / car.total_shares
+    for share in car.shares:
+        notification = NotificationTemplates.car_income(rent_per_share, car.title)
+        send_push_notification(
+            user_id=share.user_id,
+            title=notification["title"],
+            body=notification["body"],
+            data=notification.get("data")
+        )
+    
+    flash(f'تم  توزيع {payouts} دفعة بنجاح للسيارة: {car.title}', 'success')
     return redirect(url_for('admin.payouts'))
 
 
@@ -702,6 +773,15 @@ def approve_car_investment_request(request_id):
                         f'إحالة سيارة من {inv_request.user.name} - {car.title}'
                     )
                     node.total_rewards_earned += reward_amount
+                    
+                    # Send referral reward notification
+                    ref_notification = NotificationTemplates.referral_reward(reward_amount)
+                    send_push_notification(
+                        user_id=node.user_id,
+                        title=ref_notification["title"],
+                        body=ref_notification["body"],
+                        data=ref_notification.get("data")
+                    )
 
     # NEW SIMPLE REFERRAL SYSTEM: Create ReferralUsage record
     if inv_request.referred_by_user_id:
@@ -721,6 +801,16 @@ def approve_car_investment_request(request_id):
         print(f"✅ Created ReferralUsage record for car referrer user #{inv_request.referred_by_user_id}")
 
     db.session.commit()
+    
+    # Send push notification to user
+    notification = NotificationTemplates.investment_approved(car.title, inv_request.shares_requested)
+    send_push_notification(
+        user_id=inv_request.user_id,
+        title=notification["title"],
+        body=notification["body"],
+        data=notification.get("data")
+    )
+    
     flash(f'تمت الموافقة على الطلب #{request_id}', 'success')
     if inv_request.referred_by_user_id:
         flash('تم توزيع مكافآت الإحالة على السلسلة', 'info')
@@ -735,6 +825,16 @@ def reject_car_investment_request(request_id):
     inv_request.date_reviewed = datetime.utcnow()
     inv_request.reviewed_by = current_user.id
     db.session.commit()
+    
+    # Send push notification to user
+    notification = NotificationTemplates.investment_rejected()
+    send_push_notification(
+        user_id=inv_request.user_id,
+        title=notification["title"],
+        body=notification["body"],
+        data=notification.get("data")
+    )
+    
     flash(f'تم رفض الطلب #{request_id}', 'success')
     return redirect(url_for('admin.review_car_investment_request', request_id=request_id))
 
@@ -803,6 +903,24 @@ def update_investment_request_status(request_id):
         inv_request.reviewed_by = current_user.id
         
         db.session.commit()
+        
+        # Send appropriate notification based on status
+        if form.status.data == 'under_review':
+            notification = NotificationTemplates.investment_under_review()
+            send_push_notification(
+                user_id=inv_request.user_id,
+                title=notification["title"],
+                body=notification["body"],
+                data=notification.get("data")
+            )
+        elif form.status.data == 'documents_missing':
+            notification = NotificationTemplates.documents_missing()
+            send_push_notification(
+                user_id=inv_request.user_id,
+                title=notification["title"],
+                body=notification["body"],
+                data=notification.get("data")
+            )
         
         flash('تم تحديث حالة الطلب بنجاح', 'success')
     else:
@@ -928,6 +1046,15 @@ def approve_investment_request(request_id):
 
                     # Update tree node's total rewards
                     node.total_rewards_earned += reward_amount
+                    
+                    # Send referral reward notification
+                    ref_notification = NotificationTemplates.referral_reward(reward_amount)
+                    send_push_notification(
+                        user_id=node.user_id,
+                        title=ref_notification["title"],
+                        body=ref_notification["body"],
+                        data=ref_notification.get("data")
+                    )
     
     # NEW SIMPLE REFERRAL SYSTEM: Create ReferralUsage record
     if inv_request.referred_by_user_id:
@@ -948,6 +1075,15 @@ def approve_investment_request(request_id):
     
     db.session.commit()
     
+    # Send push notification to user
+    notification = NotificationTemplates.investment_approved(apartment.title, inv_request.shares_requested)
+    send_push_notification(
+        user_id=inv_request.user_id,
+        title=notification["title"],
+        body=notification["body"],
+        data=notification.get("data")
+    )
+    
     flash(f'تمت الموافقة على الطلب #{request_id}', 'success')
     if inv_request.referred_by_user_id:
         flash(f'تم توزيع مكافآت الإحالة على السلسلة', 'info')
@@ -966,6 +1102,15 @@ def reject_investment_request(request_id):
     inv_request.reviewed_by = current_user.id
     
     db.session.commit()
+    
+    # Send push notification to user
+    notification = NotificationTemplates.investment_rejected()
+    send_push_notification(
+        user_id=inv_request.user_id,
+        title=notification["title"],
+        body=notification["body"],
+        data=notification.get("data")
+    )
     
     flash(f'تم رفض الطلب #{request_id}', 'success')
     return redirect(url_for('admin.review_investment_request', request_id=request_id))
@@ -1007,6 +1152,15 @@ def payout_rewards(user_id):
     )
     db.session.add(transaction)
     db.session.commit()
+    
+    # Send push notification to user
+    notification = NotificationTemplates.rewards_payout(amount)
+    send_push_notification(
+        user_id=user.id,
+        title=notification["title"],
+        body=notification["body"],
+        data=notification.get("data")
+    )
     
     flash(f'تم صرف {amount:.2f} جنيه من مكافآت الإحالة إلى محفظة {user.name}', 'success')
     return redirect(url_for('admin.users_with_rewards'))
@@ -1269,6 +1423,15 @@ def approve_withdrawal(request_id):
         
         db.session.commit()
         
+        # Send push notification to user
+        notification = NotificationTemplates.withdrawal_approved(withdrawal.amount)
+        send_push_notification(
+            user_id=withdrawal.user_id,
+            title=notification["title"],
+            body=notification["body"],
+            data=notification.get("data")
+        )
+        
         flash(f'تم الموافقة على طلب السحب وخصم {withdrawal.amount:,.0f} جنيه من محفظة {user.name}', 'success')
         return redirect(url_for('admin.withdrawal_requests'))
     
@@ -1300,8 +1463,16 @@ def reject_withdrawal(request_id):
     withdrawal.processed_date = datetime.utcnow()
     withdrawal.processed_by = current_user.id
     withdrawal.admin_notes = admin_notes
-    
     db.session.commit()
     
-    flash('تم رفض طلب السحب', 'info')
+    # Send push notification to user
+    notification = NotificationTemplates.withdrawal_rejected()
+    send_push_notification(
+        user_id=withdrawal.user_id,
+        title=notification["title"],
+        body=notification["body"],
+        data=notification.get("data")
+    )
+    
+    flash(f'تم رفض طلب السحب', 'success')
     return redirect(url_for('admin.withdrawal_requests'))

@@ -326,6 +326,17 @@ def verify_otp():
         access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(days=7))
         refresh_token = create_refresh_token(identity=str(user.id), expires_delta=timedelta(days=30))
         
+        # Send welcome notification
+        from app.utils.notification_service import send_push_notification, NotificationTemplates
+        if user.fcm_token:  # Only send if user has FCM token
+            notification = NotificationTemplates.welcome(user.name)
+            send_push_notification(
+                user_id=user.id,
+                title=notification["title"],
+                body=notification["body"],
+                data=notification.get("data")
+            )
+        
         return success_response(
             data={
                 "user": serialize_user(user),
@@ -1601,14 +1612,6 @@ def update_profile():
     }
     """
     try:
-        data = request.get_json()
-        
-        if not data or not data.get('name'):
-            return error_response(
-                message="الاسم مطلوب",
-                code="MISSING_FIELDS"
-            )
-        
         user_id = get_jwt_identity()
         user = User.query.get(int(user_id))
         
@@ -1619,10 +1622,14 @@ def update_profile():
                 status=404
             )
         
-        user.name = data['name']
+        data = request.get_json()
+        
+        # Update fields if provided
+        if data.get('name'):
+            user.name = data['name']
         if data.get('phone'):
             user.phone = data['phone']
-            
+        
         db.session.commit()
         
         return success_response(
@@ -1633,8 +1640,57 @@ def update_profile():
     except Exception as e:
         db.session.rollback()
         return error_response(
-            message="حدث خطأ أثناء تحديث الملف الشخصي",
+            message="حدث خطأ أثناء التحديث",
             code="UPDATE_ERROR",
+            details=str(e),
+            status=500
+        )
+
+
+@api_bp.route('/user/update-fcm-token', methods=['POST'])
+@jwt_required()
+def update_fcm_token():
+    """
+    Update user's FCM token for push notifications
+    POST /api/v1/user/update-fcm-token
+    Headers: Authorization: Bearer <token>
+    Body: {
+        "fcm_token": "device_token_here"
+    }
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id))
+        
+        if not user:
+            return error_response(
+                message="المستخدم غير موجود",
+                code="USER_NOT_FOUND",
+                status=404
+            )
+        
+        data = request.get_json()
+        
+        if not data or not data.get('fcm_token'):
+            return error_response(
+                message="FCM token مطلوب",
+                code="MISSING_TOKEN"
+            )
+        
+        # Update FCM token
+        user.fcm_token = data['fcm_token']
+        db.session.commit()
+        
+        return success_response(
+            data={"fcm_token_updated": True},
+            message="تم تحديث رمز الإشعارات بنجاح"
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response(
+            message="حدث خطأ أثناء تحديث الرمز",
+            code="TOKEN_UPDATE_ERROR",
             details=str(e),
             status=500
         )

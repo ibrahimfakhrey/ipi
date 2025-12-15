@@ -46,6 +46,9 @@ class User(UserMixin, db.Model):
     occupation = db.Column(db.String(100))
     id_document_path = db.Column(db.String(300))  # Path to uploaded ID document
     
+    # Firebase Cloud Messaging
+    fcm_token = db.Column(db.String(255), index=True)  # Device token for push notifications
+    
     # Relationships
     shares = db.relationship('Share', backref='investor', lazy='dynamic', cascade='all, delete-orphan')
     transactions = db.relationship('Transaction', backref='user', lazy='dynamic', cascade='all, delete-orphan')

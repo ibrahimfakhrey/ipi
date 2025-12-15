@@ -1,0 +1,291 @@
+"""
+Firebase Cloud Messaging (FCM) Push Notification Service
+Uses Firebase Admin SDK (NEW METHOD - Legacy Server Key is deprecated)
+"""
+import os
+import json
+from flask import current_app
+
+# Initialize Firebase Admin SDK
+firebase_app = None
+
+def initialize_firebase():
+    """Initialize Firebase Admin SDK with service account credentials"""
+    global firebase_app
+    
+    if firebase_app is not None:
+        return True
+    
+    try:
+        import firebase_admin
+        from firebase_admin import credentials
+        
+        # Get service account path from config or environment
+        service_account_path = os.environ.get('FIREBASE_SERVICE_ACCOUNT') or \
+                              current_app.config.get('FIREBASE_SERVICE_ACCOUNT')
+        
+        if not service_account_path:
+            current_app.logger.error("FIREBASE_SERVICE_ACCOUNT path not configured")
+            return False
+        
+        # Check if it's a path to JSON file or the JSON content itself
+        if os.path.exists(service_account_path):
+            cred = credentials.Certificate(service_account_path)
+        else:
+            # Try parsing as JSON string
+            try:
+                service_account_info = json.loads(service_account_path)
+                cred = credentials.Certificate(service_account_info)
+            except json.JSONDecodeError:
+                current_app.logger.error("Invalid FIREBASE_SERVICE_ACCOUNT - not a valid path or JSON")
+                return False
+        
+        firebase_app = firebase_admin.initialize_app(cred)
+        current_app.logger.info("Firebase Admin SDK initialized successfully")
+        return True
+        
+    except ImportError:
+        current_app.logger.error("firebase-admin package not installed. Run: pip install firebase-admin")
+        return False
+    except Exception as e:
+        current_app.logger.error(f"Failed to initialize Firebase: {str(e)}")
+        return False
+
+
+def send_push_notification(user_id, title, body, data=None, badge=None):
+    """
+    Send FCM push notification to a specific user using Firebase Admin SDK
+    
+    Args:
+        user_id (int): User ID to send notification to
+        title (str): Notification title (max 65 chars)
+        body (str): Notification body (max 240 chars)
+        data (dict): Additional data payload for deep linking
+        badge (int): Badge count for iOS (optional)
+    
+    Returns:
+        bool: True if sent successfully, False otherwise
+    """
+    try:
+        from app.models import User
+        from firebase_admin import messaging
+        
+        # Initialize Firebase if not already done
+        if not initialize_firebase():
+            return False
+        
+        # Get user's FCM token
+        user = User.query.get(user_id)
+        if not user or not hasattr(user, 'fcm_token') or not user.fcm_token:
+            current_app.logger.warning(f"No FCM token for user {user_id}")
+            return False
+        
+        # Convert data values to strings (FCM requirement)
+        string_data = None
+        if data:
+            string_data = {k: str(v) for k, v in data.items()}
+        
+        # Create message
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title=title,
+                body=body,
+            ),
+            data=string_data,
+            token=user.fcm_token,
+            android=messaging.AndroidConfig(
+                priority='high',
+                notification=messaging.AndroidNotification(
+                    sound='default',
+                    click_action='FLUTTER_NOTIFICATION_CLICK',
+                ),
+            ),
+            apns=messaging.APNSConfig(
+                payload=messaging.APNSPayload(
+                    aps=messaging.Aps(
+                        sound='default',
+                        badge=badge or 1,
+                    ),
+                ),
+            ),
+        )
+        
+        # Send message
+        response = messaging.send(message)
+        current_app.logger.info(f"Notification sent to user {user_id}: {response}")
+        return True
+        
+    except Exception as e:
+        current_app.logger.error(f"Failed to send notification to user {user_id}: {str(e)}")
+        return False
+
+
+def send_bulk_notification(user_ids, title, body, data=None):
+    """
+    Send notification to multiple users
+    
+    Args:
+        user_ids (list): List of user IDs
+        title (str): Notification title
+        body (str): Notification body
+        data (dict): Additional data payload
+    
+    Returns:
+        dict: {"success": int, "failed": int}
+    """
+    success_count = 0
+    failed_count = 0
+    
+    for user_id in user_ids:
+        if send_push_notification(user_id, title, body, data):
+            success_count += 1
+        else:
+            failed_count += 1
+    
+    return {"success": success_count, "failed": failed_count}
+
+
+def send_notification_to_all_users(title, body, data=None):
+    """
+    Send notification to all users with FCM tokens
+    
+    Args:
+        title (str): Notification title
+        body (str): Notification body
+        data (dict): Additional data payload
+    
+    Returns:
+        dict: {"success": int, "failed": int}
+    """
+    from app.models import User
+    
+    # Get all users with FCM tokens
+    users = User.query.filter(User.fcm_token.isnot(None)).all()
+    user_ids = [user.id for user in users]
+    
+    return send_bulk_notification(user_ids, title, body, data)
+
+
+# Notification templates for common events
+class NotificationTemplates:
+    """Pre-defined notification templates in Arabic"""
+    
+    @staticmethod
+    def investment_approved(asset_name, shares_count):
+        return {
+            "title": "✅ تمت الموافقة على طلب استثمارك",
+            "body": f"تم اعتماد استثمارك في {asset_name}. تم شراء {shares_count} حصة بنجاح!",
+            "data": {"type": "investment_approved", "screen": "investments"}
+        }
+    
+    @staticmethod
+    def investment_rejected():
+        return {
+            "title": "❌ تم رفض طلب الاستثمار",
+            "body": "عذراً، لم تتم الموافقة على طلبك. يرجى التواصل معنا للمزيد من المعلومات.",
+            "data": {"type": "investment_rejected", "screen": "requests"}
+        }
+    
+    @staticmethod
+    def investment_under_review():
+        return {
+            "title": "🔍 طلبك قيد المراجعة",
+            "body": "جاري مراجعة طلب الاستثمار الخاص بك. سنبلغك قريباً!",
+            "data": {"type": "investment_under_review", "screen": "requests"}
+        }
+    
+    @staticmethod
+    def documents_missing():
+        return {
+            "title": "⚠️ مستندات ناقصة",
+            "body": "يرجى تحميل المستندات المطلوبة لإكمال طلب الاستثمار.",
+            "data": {"type": "documents_missing", "screen": "requests"}
+        }
+    
+    @staticmethod
+    def withdrawal_approved(amount):
+        return {
+            "title": "✅ تمت الموافقة على طلب السحب",
+            "body": f"تم تحويل {amount:,.0f} جنيه إلى حسابك. شكراً لثقتك!",
+            "data": {"type": "withdrawal_approved", "screen": "wallet"}
+        }
+    
+    @staticmethod
+    def withdrawal_rejected():
+        return {
+            "title": "❌ تم رفض طلب السحب",
+            "body": "لم تتم الموافقة على طلب السحب. يرجى مراجعة التفاصيل.",
+            "data": {"type": "withdrawal_rejected", "screen": "wallet"}
+        }
+    
+    @staticmethod
+    def rental_income(amount, asset_name):
+        return {
+            "title": "💰 تم إضافة الإيجار الشهري",
+            "body": f"تم إضافة {amount:,.0f} جنيه من إيجار {asset_name} إلى محفظتك!",
+            "data": {"type": "rental_income", "screen": "wallet"}
+        }
+    
+    @staticmethod
+    def car_income(amount, car_name):
+        return {
+            "title": "💰 تم إضافة دخل السيارة",
+            "body": f"تم إضافة {amount:,.0f} جنيه من دخل {car_name} إلى محفظتك!",
+            "data": {"type": "car_income", "screen": "wallet"}
+        }
+    
+    @staticmethod
+    def rewards_payout(amount):
+        return {
+            "title": "🎁 تم تحويل مكافآتك",
+            "body": f"تم تحويل {amount:,.0f} جنيه من رصيد المكافآت إلى محفظتك!",
+            "data": {"type": "rewards_payout", "screen": "wallet"}
+        }
+    
+    @staticmethod
+    def referral_used(referee_name, asset_name):
+        return {
+            "title": "🎉 شخص استخدم رمز الإحالة الخاص بك!",
+            "body": f"{referee_name} استخدم رمزك للاستثمار في {asset_name}!",
+            "data": {"type": "referral_used", "screen": "referrals"}
+        }
+    
+    @staticmethod
+    def referral_reward(amount):
+        return {
+            "title": "💎 ربحت مكافأة إحالة!",
+            "body": f"تم إضافة {amount:,.0f} جنيه إلى رصيد مكافآتك!",
+            "data": {"type": "referral_reward", "screen": "wallet"}
+        }
+    
+    @staticmethod
+    def welcome(user_name):
+        return {
+            "title": "🎊 مرحباً بك في i pillars i!",
+            "body": f"مرحباً {user_name}، تم تفعيل حسابك بنجاح. ابدأ الاستثمار الآن!",
+            "data": {"type": "welcome", "screen": "dashboard"}
+        }
+    
+    @staticmethod
+    def password_changed():
+        return {
+            "title": "🔐 تم تغيير كلمة المرور",
+            "body": "تم تغيير كلمة المرور الخاصة بك بنجاح.",
+            "data": {"type": "password_changed", "screen": "profile"}
+        }
+    
+    @staticmethod
+    def asset_closed(asset_name):
+        return {
+            "title": f"ℹ️ تم إغلاق {asset_name}",
+            "body": f"تم إغلاق {asset_name} الذي استثمرت فيه. سيتم توزيع الأرباح كالمعتاد.",
+            "data": {"type": "asset_closed", "screen": "investments"}
+        }
+    
+    @staticmethod
+    def new_asset(asset_name, asset_type):
+        return {
+            "title": "🆕 فرصة استثمار جديدة!",
+            "body": f"تم إضافة {asset_name} - ابدأ الاستثمار الآن!",
+            "data": {"type": "new_asset", "asset_type": asset_type, "screen": "market"}
+        }
