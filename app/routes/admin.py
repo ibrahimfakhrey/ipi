@@ -61,8 +61,8 @@ def dashboard():
     total_users = User.query.filter_by(is_admin=False).count()
     total_apartments = Apartment.query.count()
     total_cars = Car.query.count()
-    total_shares_sold = db.func.count(Share.id).scalar()
-    total_revenue = db.func.sum(Share.share_price).scalar() or 0
+    total_shares_sold = db.session.query(func.count(Share.id)).scalar() or 0
+    total_revenue = db.session.query(func.sum(Share.share_price)).scalar() or 0
     
     # Investment request statistics
     pending_requests = InvestmentRequest.query.filter_by(status='pending').count()
