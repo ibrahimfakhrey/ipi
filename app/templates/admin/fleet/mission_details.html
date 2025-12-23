@@ -18,6 +18,29 @@
         </div>
     </div>
 
+    <!-- Mission Type Badge -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            {% if mission.mission_type == 'driver_reported' %}
+            <span class="badge badge-info" style="font-size: 16px; padding: 10px;">
+                <i class="fas fa-mobile-alt"></i> مهمة من السائق
+                {% if mission.app_name %}
+                - {{ mission.app_name_arabic }}
+                {% endif %}
+            </span>
+            {% if mission.expected_cost %}
+            <span class="badge badge-warning" style="font-size: 14px; padding: 8px; margin-right: 10px;">
+                التكلفة المتوقعة: {{ "{:,.0f}".format(mission.expected_cost) }} ج.م
+            </span>
+            {% endif %}
+            {% else %}
+            <span class="badge badge-secondary" style="font-size: 16px; padding: 10px;">
+                <i class="fas fa-user-tie"></i> مهمة من الإدارة
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-6">
             <div class="card mb-3">
@@ -38,13 +61,51 @@
                         {% if mission.status == 'completed' %}
                         <span class="badge badge-success">{{ mission.status_arabic }}</span>
                         {% elif mission.status == 'in_progress' %}
+                        <span class="badge badge-primary">{{ mission.status_arabic }}</span>
+                        {% elif mission.status == 'approved' %}
                         <span class="badge badge-info">{{ mission.status_arabic }}</span>
                         {% elif mission.status == 'pending' %}
                         <span class="badge badge-warning">{{ mission.status_arabic }}</span>
-                        {% else %}
+                        {% elif mission.status == 'rejected' %}
                         <span class="badge badge-danger">{{ mission.status_arabic }}</span>
+                        {% else %}
+                        <span class="badge badge-secondary">{{ mission.status_arabic }}</span>
                         {% endif %}
                     </p>
+
+                    <!-- Workflow Status -->
+                    {% if mission.mission_type == 'driver_reported' or mission.is_approved is not none %}
+                    <hr style="border-color: var(--primary-gold);">
+                    <p><strong style="color: var(--primary-gold);">موافقة الإدارة:</strong>
+                        {% if mission.is_approved %}
+                        <span class="text-success"><i class="fas fa-check-circle"></i> تمت الموافقة</span>
+                        {% if mission.approved_at %}
+                        <br><small class="text-muted">{{ mission.approved_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        {% endif %}
+                        {% else %}
+                        <span class="text-warning"><i class="fas fa-clock"></i> في الانتظار</span>
+                        {% endif %}
+                    </p>
+                    <p><strong style="color: var(--primary-gold);">إذن البدء:</strong>
+                        {% if mission.can_start %}
+                        <span class="text-success"><i class="fas fa-play-circle"></i> مسموح</span>
+                        {% else %}
+                        <span class="text-warning"><i class="fas fa-pause-circle"></i> غير مسموح</span>
+                        {% endif %}
+                    </p>
+                    {% endif %}
+
+                    <!-- Timestamps -->
+                    {% if mission.started_at %}
+                    <p><strong style="color: var(--primary-gold);">بدأت في:</strong>
+                        {{ mission.started_at.strftime('%Y-%m-%d %H:%M') }}
+                    </p>
+                    {% endif %}
+                    {% if mission.ended_at %}
+                    <p><strong style="color: var(--primary-gold);">انتهت في:</strong>
+                        {{ mission.ended_at.strftime('%Y-%m-%d %H:%M') }}
+                    </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -84,22 +145,67 @@
     </div>
     {% endif %}
 
-    <div class="row">
+    <!-- Workflow Actions -->
+    <div class="row mb-3">
         <div class="col-md-12">
-            {% if mission.status != 'completed' %}
-            <form method="POST" action="{{ url_for('fleet.complete_mission', id=mission.id) }}" class="d-inline">
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-check"></i> تم الإكمال
-                </button>
-            </form>
-            {% endif %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="fas fa-cogs"></i> إجراءات المهمة</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Driver-Reported Mission Approval -->
+                    {% if mission.mission_type == 'driver_reported' and mission.status == 'pending' %}
+                    <form method="POST" action="{{ url_for('fleet.approve_mission', id=mission.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-success"
+                                onclick="return confirm('هل تريد الموافقة على هذه المهمة؟')">
+                            <i class="fas fa-check"></i> موافقة على المهمة
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('fleet.reject_mission', id=mission.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-danger"
+                                onclick="return confirm('هل تريد رفض هذه المهمة؟')">
+                            <i class="fas fa-times"></i> رفض المهمة
+                        </button>
+                    </form>
+                    {% endif %}
 
-            <form method="POST" action="{{ url_for('fleet.delete_mission', id=mission.id) }}" class="d-inline"
-                onsubmit="return confirm('هل أنت متأكد من حذف هذه المهمة؟');">
-                <button type="submit" class="btn btn-danger">
-                    <i class="fas fa-trash"></i> حذف المهمة
-                </button>
-            </form>
+                    <!-- Allow Start Permission -->
+                    {% if (mission.status == 'approved' or (mission.mission_type == 'admin_assigned' and mission.status == 'pending')) and not mission.can_start %}
+                    <form method="POST" action="{{ url_for('fleet.allow_mission_start', id=mission.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-primary"
+                                onclick="return confirm('هل تريد السماح للسائق ببدء المهمة؟')">
+                            <i class="fas fa-play"></i> السماح بالبدء
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    <!-- Complete Mission -->
+                    {% if mission.status == 'in_progress' %}
+                    <form method="POST" action="{{ url_for('fleet.complete_mission', id=mission.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-success"
+                                onclick="return confirm('هل تريد إكمال هذه المهمة؟')">
+                            <i class="fas fa-check-circle"></i> إكمال المهمة
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    <!-- Delete Mission -->
+                    {% if mission.status not in ['in_progress', 'completed'] %}
+                    <form method="POST" action="{{ url_for('fleet.delete_mission', id=mission.id) }}" class="d-inline"
+                          onsubmit="return confirm('هل أنت متأكد من حذف هذه المهمة؟');">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-trash"></i> حذف المهمة
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if mission.status == 'completed' %}
+                    <p class="text-success mb-0"><i class="fas fa-check-circle"></i> المهمة مكتملة</p>
+                    {% elif mission.status == 'rejected' %}
+                    <p class="text-danger mb-0"><i class="fas fa-times-circle"></i> المهمة مرفوضة</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

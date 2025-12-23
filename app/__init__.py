@@ -69,7 +69,7 @@ def create_app(config_name='development'):
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
     # Register blueprints
-    from app.routes import auth, main, admin, user_views, api, admin_api, fleet
+    from app.routes import auth, main, admin, user_views, api, admin_api, fleet, driver_api
     app.register_blueprint(auth.bp)
     app.register_blueprint(main.bp)
     app.register_blueprint(admin.bp)
@@ -77,6 +77,7 @@ def create_app(config_name='development'):
     app.register_blueprint(api.api_bp)  # Register API blueprint
     app.register_blueprint(admin_api.bp)  # Register Admin API blueprint
     app.register_blueprint(fleet.fleet)  # Register Fleet Management blueprint
+    app.register_blueprint(driver_api.driver_api_bp)  # Register Driver API blueprint
     
     # Create database tables
     with app.app_context():

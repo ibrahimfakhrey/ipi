@@ -908,32 +908,65 @@ class FleetCar(db.Model):
 class Driver(db.Model):
     """
     Driver model for managing company drivers
-    Includes documents, approval status, and performance tracking
+    Includes documents, approval status, authentication, and performance tracking
     """
     __tablename__ = 'drivers'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
     email = db.Column(db.String(120))
     national_id = db.Column(db.String(50), nullable=False, unique=True, index=True)
-    
+
+    # Authentication fields for driver mobile app
+    driver_number = db.Column(db.String(20), unique=True, index=True)  # IPI-DRV-001 format
+    password_hash = db.Column(db.String(256))  # For driver login
+    fcm_token = db.Column(db.String(500))  # Push notifications token
+    is_verified = db.Column(db.Boolean, default=False, index=True)  # Can login to mobile app
+
     # Document uploads
     photo_filename = db.Column(db.String(300))  # Driver photo
     license_filename = db.Column(db.String(300))  # Driving license document
-    
+
     # Performance tracking
     rating = db.Column(db.Float, default=0.0)  # For future use
     completed_missions = db.Column(db.Integer, default=0)  # Auto-incremented
-    
-    # Approval status
+
+    # Approval status (for mission assignment)
     is_approved = db.Column(db.Boolean, default=False, index=True)
-    
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     missions = db.relationship('Mission', backref='driver', lazy='dynamic', cascade='all, delete-orphan')
-    
+
+    def set_password(self, password):
+        """Set password hash for driver authentication"""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        """Verify password for driver authentication"""
+        if not self.password_hash:
+            return False
+        return check_password_hash(self.password_hash, password)
+
+    @staticmethod
+    def generate_driver_number():
+        """Generate next unique driver number in format IPI-DRV-XXX"""
+        last_driver = Driver.query.filter(Driver.driver_number.isnot(None))\
+            .order_by(Driver.id.desc()).first()
+
+        if last_driver and last_driver.driver_number:
+            try:
+                last_num = int(last_driver.driver_number.split('-')[-1])
+                next_num = last_num + 1
+            except (ValueError, IndexError):
+                next_num = 1
+        else:
+            next_num = 1
+
+        return f"IPI-DRV-{next_num:03d}"
+
     @property
     def total_earnings(self):
         """Calculate total earnings from all completed missions"""
@@ -941,12 +974,17 @@ class Driver(db.Model):
             .filter(Mission.driver_id == self.id, Mission.status == 'completed')\
             .scalar()
         return total or 0
-    
+
     @property
     def approval_status_arabic(self):
         """Get approval status in Arabic"""
         return 'معتمد' if self.is_approved else 'غير معتمد'
-    
+
+    @property
+    def verification_status_arabic(self):
+        """Get verification status in Arabic"""
+        return 'مفعّل' if self.is_verified else 'غير مفعّل'
+
     def __repr__(self):
         return f'<Driver {self.name} - {self.phone}>'
 
@@ -954,74 +992,153 @@ class Driver(db.Model):
 class Mission(db.Model):
     """
     Mission model for tracking car trips/missions
-    Includes route, costs, and profit calculations
+    Includes route, costs, profit calculations, and workflow management
+    Supports both admin-assigned and driver-reported missions
     """
     __tablename__ = 'missions'
-    
+
     id = db.Column(db.Integer, primary_key=True)
-    
+
     # Foreign keys
     fleet_car_id = db.Column(db.Integer, db.ForeignKey('fleet_cars.id'), nullable=False, index=True)
     driver_id = db.Column(db.Integer, db.ForeignKey('drivers.id'), nullable=False, index=True)
-    
+
+    # Mission type and source
+    mission_type = db.Column(db.String(20), default='admin_assigned', index=True)  # 'admin_assigned' or 'driver_reported'
+    app_name = db.Column(db.String(50))  # For driver-reported: 'uber', 'indriver', 'didi', 'other'
+    expected_cost = db.Column(db.Float)  # Driver's estimated cost before completion
+
     # Route details
     from_location = db.Column(db.String(200), nullable=False)
     to_location = db.Column(db.String(200), nullable=False)
-    distance_km = db.Column(db.Float, nullable=False)
-    
+    distance_km = db.Column(db.Float, default=0)  # Can be 0 for driver-reported until completion
+
     # Timing
     mission_date = db.Column(db.Date, nullable=False, index=True)
     start_time = db.Column(db.Time)
     end_time = db.Column(db.Time)
-    
-    # Financial details
-    total_revenue = db.Column(db.Float, nullable=False)  # Total money for the mission
-    fuel_cost = db.Column(db.Float, nullable=False)  # Fuel expenses
-    driver_fees = db.Column(db.Float, nullable=False)  # Driver payment
-    company_profit = db.Column(db.Float, nullable=False)  # Calculated: revenue - fuel - fees
-    
-    # Status
-    status = db.Column(db.String(20), default='pending', index=True)  # pending, in_progress, completed, cancelled
+
+    # Financial details (can be 0 for driver-reported until completion)
+    total_revenue = db.Column(db.Float, default=0)  # Total money for the mission
+    fuel_cost = db.Column(db.Float, default=0)  # Fuel expenses
+    driver_fees = db.Column(db.Float, default=0)  # Driver payment
+    company_profit = db.Column(db.Float, default=0)  # Calculated: revenue - fuel - fees
+
+    # Status and workflow
+    status = db.Column(db.String(20), default='pending', index=True)  # pending, approved, in_progress, completed, cancelled, rejected
     notes = db.Column(db.Text)
-    
+
+    # Approval workflow for driver-reported missions
+    is_approved = db.Column(db.Boolean, default=False)  # Admin approved the mission request
+    approved_at = db.Column(db.DateTime)  # When admin approved
+    can_start = db.Column(db.Boolean, default=False)  # Admin gave permission to start
+
+    # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime)  # When marked as completed
-    
+    started_at = db.Column(db.DateTime)  # When driver actually started
+    ended_at = db.Column(db.DateTime)  # When driver ended
+    completed_at = db.Column(db.DateTime)  # When marked as completed (legacy, same as ended_at)
+
     @property
     def status_arabic(self):
         """Get status in Arabic"""
         statuses = {
             'pending': 'قيد الانتظار',
+            'approved': 'تمت الموافقة',
             'in_progress': 'جارية',
             'completed': 'مكتملة',
-            'cancelled': 'ملغاة'
+            'cancelled': 'ملغاة',
+            'rejected': 'مرفوضة'
         }
         return statuses.get(self.status, self.status)
-    
+
+    @property
+    def mission_type_arabic(self):
+        """Get mission type in Arabic"""
+        types = {
+            'admin_assigned': 'من الإدارة',
+            'driver_reported': 'من السائق'
+        }
+        return types.get(self.mission_type, self.mission_type)
+
+    @property
+    def app_name_arabic(self):
+        """Get app name in Arabic"""
+        apps = {
+            'uber': 'أوبر',
+            'indriver': 'إن درايفر',
+            'didi': 'ديدي',
+            'other': 'أخرى'
+        }
+        return apps.get(self.app_name, self.app_name) if self.app_name else None
+
     @property
     def route_description(self):
         """Get formatted route description"""
         return f"{self.from_location} ← {self.to_location}"
-    
+
     def calculate_profit(self):
         """Calculate and update company profit"""
         self.company_profit = self.total_revenue - self.fuel_cost - self.driver_fees
         return self.company_profit
-    
+
+    def approve_mission(self):
+        """Admin approves a driver-reported mission"""
+        self.is_approved = True
+        self.approved_at = datetime.utcnow()
+        self.status = 'approved'
+
+    def reject_mission(self, reason=None):
+        """Admin rejects a driver-reported mission"""
+        self.status = 'rejected'
+        if reason:
+            self.notes = reason
+
+    def allow_start(self):
+        """Admin gives permission for driver to start the mission"""
+        self.can_start = True
+
+    def start_mission(self):
+        """Driver starts the mission"""
+        if not self.can_start:
+            return False
+        self.status = 'in_progress'
+        self.started_at = datetime.utcnow()
+        # Update car status
+        if self.fleet_car:
+            self.fleet_car.status = 'in_mission'
+        return True
+
+    def end_mission(self, total_revenue=None, fuel_cost=None, driver_fees=None, distance_km=None):
+        """Driver ends the mission with actual costs"""
+        if total_revenue is not None:
+            self.total_revenue = total_revenue
+        if fuel_cost is not None:
+            self.fuel_cost = fuel_cost
+        if driver_fees is not None:
+            self.driver_fees = driver_fees
+        if distance_km is not None:
+            self.distance_km = distance_km
+
+        self.calculate_profit()
+        self.ended_at = datetime.utcnow()
+
     def complete_mission(self):
         """Mark mission as completed and update driver stats"""
         if self.status != 'completed':
             self.status = 'completed'
             self.completed_at = datetime.utcnow()
-            
+            if not self.ended_at:
+                self.ended_at = self.completed_at
+
             # Increment driver's completed missions count
             if self.driver:
                 self.driver.completed_missions += 1
-            
+
             # Update car status to available
             if self.fleet_car:
                 self.fleet_car.status = 'available'
-    
+
     def __repr__(self):
         return f'<Mission {self.from_location} → {self.to_location} ({self.mission_date})>'
 

@@ -1,16 +1,25 @@
 """
 Fleet Management Routes
 Admin-only routes for managing company cars, drivers, and missions
+Includes driver verification and mission approval workflows
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from datetime import datetime, date, time
 import os
+import secrets
+import string
 
 from app import db
 from app.models import FleetCar, Driver, Mission
 from config import Config
+
+
+def generate_random_password(length=8):
+    """Generate a random password for driver accounts"""
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 # Create blueprint
 fleet = Blueprint('fleet', __name__, url_prefix='/admin/fleet')
@@ -318,18 +327,98 @@ def edit_driver(id):
 def toggle_driver_approval(id):
     """Toggle driver approval status"""
     driver = Driver.query.get_or_404(id)
-    
+
     try:
         driver.is_approved = not driver.is_approved
         db.session.commit()
-        
+
         status = 'تم اعتماد' if driver.is_approved else 'تم إلغاء اعتماد'
         flash(f'{status} السائق بنجاح', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'حدث خطأ: {str(e)}', 'error')
-    
+
     return redirect(url_for('fleet.driver_details', id=id))
+
+
+@fleet.route('/drivers/<int:id>/verify', methods=['POST'])
+@login_required
+@admin_required
+def verify_driver(id):
+    """
+    Verify driver and generate login credentials for mobile app
+    Creates driver_number and password
+    """
+    driver = Driver.query.get_or_404(id)
+
+    if driver.is_verified:
+        flash('السائق مفعّل بالفعل', 'warning')
+        return redirect(url_for('fleet.driver_details', id=id))
+
+    try:
+        # Generate unique driver number
+        driver_number = Driver.generate_driver_number()
+
+        # Generate random password
+        password = generate_random_password(8)
+
+        # Update driver
+        driver.driver_number = driver_number
+        driver.set_password(password)
+        driver.is_verified = True
+
+        # Also approve the driver if not already approved
+        if not driver.is_approved:
+            driver.is_approved = True
+
+        db.session.commit()
+
+        # Return credentials via flash message (admin should note these down)
+        flash(f'تم تفعيل السائق بنجاح! رقم السائق: {driver_number} - كلمة المرور: {password}', 'success')
+
+        # Also return as JSON for modal display
+        return jsonify({
+            'success': True,
+            'driver_number': driver_number,
+            'password': password,
+            'message': 'تم تفعيل السائق بنجاح'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@fleet.route('/drivers/<int:id>/reset-password', methods=['POST'])
+@login_required
+@admin_required
+def reset_driver_password(id):
+    """Reset driver password and generate a new one"""
+    driver = Driver.query.get_or_404(id)
+
+    if not driver.is_verified:
+        flash('السائق غير مفعّل. قم بتفعيله أولاً', 'warning')
+        return redirect(url_for('fleet.driver_details', id=id))
+
+    try:
+        # Generate new password
+        new_password = generate_random_password(8)
+        driver.set_password(new_password)
+        db.session.commit()
+
+        flash(f'تم إعادة تعيين كلمة المرور بنجاح! كلمة المرور الجديدة: {new_password}', 'success')
+
+        return jsonify({
+            'success': True,
+            'password': new_password,
+            'message': 'تم إعادة تعيين كلمة المرور بنجاح'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @fleet.route('/drivers/<int:id>/delete', methods=['POST'])
@@ -550,7 +639,7 @@ def complete_mission(id):
 def delete_mission(id):
     """Delete mission"""
     mission = Mission.query.get_or_404(id)
-    
+
     try:
         db.session.delete(mission)
         db.session.commit()
@@ -558,5 +647,174 @@ def delete_mission(id):
     except Exception as e:
         db.session.rollback()
         flash(f'حدث خطأ: {str(e)}', 'error')
-    
+
     return redirect(url_for('fleet.missions_list'))
+
+
+# ==================== MISSION REQUESTS (Driver-Reported) ====================
+
+@fleet.route('/mission-requests')
+@login_required
+@admin_required
+def mission_requests():
+    """List pending driver-reported mission requests"""
+    status_filter = request.args.get('status', 'pending')
+
+    query = Mission.query.filter_by(mission_type='driver_reported')
+
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+
+    missions = query.order_by(Mission.created_at.desc()).all()
+
+    # Count by status for badges
+    pending_count = Mission.query.filter_by(mission_type='driver_reported', status='pending').count()
+    approved_count = Mission.query.filter_by(mission_type='driver_reported', status='approved').count()
+
+    return render_template('admin/fleet/mission_requests.html',
+                         missions=missions,
+                         status_filter=status_filter,
+                         pending_count=pending_count,
+                         approved_count=approved_count)
+
+
+@fleet.route('/missions/<int:id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def approve_mission(id):
+    """Approve a driver-reported mission request"""
+    mission = Mission.query.get_or_404(id)
+
+    if mission.mission_type != 'driver_reported':
+        flash('هذه المهمة ليست من السائق', 'error')
+        return redirect(url_for('fleet.mission_details', id=id))
+
+    if mission.status != 'pending':
+        flash('المهمة ليست في حالة انتظار', 'warning')
+        return redirect(url_for('fleet.mission_details', id=id))
+
+    try:
+        mission.approve_mission()
+        db.session.commit()
+
+        # Send notification to driver
+        try:
+            from app.utils.notification_service import send_driver_notification, DriverNotificationTemplates
+            template = DriverNotificationTemplates.mission_approved(
+                mission.from_location,
+                mission.to_location
+            )
+            send_driver_notification(
+                mission.driver_id,
+                template['title'],
+                template['body'],
+                template['data']
+            )
+        except Exception as e:
+            print(f"Failed to send driver notification: {e}")
+
+        flash('تم الموافقة على المهمة بنجاح', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+
+    return redirect(url_for('fleet.mission_requests'))
+
+
+@fleet.route('/missions/<int:id>/reject', methods=['POST'])
+@login_required
+@admin_required
+def reject_mission(id):
+    """Reject a driver-reported mission request"""
+    mission = Mission.query.get_or_404(id)
+
+    if mission.mission_type != 'driver_reported':
+        flash('هذه المهمة ليست من السائق', 'error')
+        return redirect(url_for('fleet.mission_details', id=id))
+
+    if mission.status not in ['pending', 'approved']:
+        flash('لا يمكن رفض هذه المهمة', 'warning')
+        return redirect(url_for('fleet.mission_details', id=id))
+
+    reason = request.form.get('reason', '')
+
+    try:
+        mission.reject_mission(reason)
+        db.session.commit()
+
+        # Send notification to driver
+        try:
+            from app.utils.notification_service import send_driver_notification, DriverNotificationTemplates
+            template = DriverNotificationTemplates.mission_rejected(reason)
+            send_driver_notification(
+                mission.driver_id,
+                template['title'],
+                template['body'],
+                template['data']
+            )
+        except Exception as e:
+            print(f"Failed to send driver notification: {e}")
+
+        flash('تم رفض المهمة', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+
+    return redirect(url_for('fleet.mission_requests'))
+
+
+@fleet.route('/missions/<int:id>/allow-start', methods=['POST'])
+@login_required
+@admin_required
+def allow_mission_start(id):
+    """Give driver permission to start the mission"""
+    mission = Mission.query.get_or_404(id)
+
+    # For admin-assigned missions, they should be approved first
+    if mission.mission_type == 'driver_reported' and not mission.is_approved:
+        flash('يجب الموافقة على المهمة أولاً', 'warning')
+        return redirect(url_for('fleet.mission_details', id=id))
+
+    if mission.can_start:
+        flash('السائق لديه إذن البدء بالفعل', 'warning')
+        return redirect(url_for('fleet.mission_details', id=id))
+
+    if mission.status in ['completed', 'cancelled', 'rejected']:
+        flash('لا يمكن السماح ببدء هذه المهمة', 'error')
+        return redirect(url_for('fleet.mission_details', id=id))
+
+    try:
+        mission.allow_start()
+
+        # For admin-assigned missions, also mark as approved if not already
+        if mission.mission_type == 'admin_assigned' and not mission.is_approved:
+            mission.is_approved = True
+            mission.approved_at = datetime.utcnow()
+
+        db.session.commit()
+
+        # Send notification to driver
+        try:
+            from app.utils.notification_service import send_driver_notification, DriverNotificationTemplates
+            template = DriverNotificationTemplates.start_permission_granted(
+                mission.from_location,
+                mission.to_location
+            )
+            send_driver_notification(
+                mission.driver_id,
+                template['title'],
+                template['body'],
+                template['data']
+            )
+        except Exception as e:
+            print(f"Failed to send driver notification: {e}")
+
+        flash('تم إعطاء إذن البدء للسائق', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+
+    # Redirect based on where the request came from
+    if request.form.get('from_requests'):
+        return redirect(url_for('fleet.mission_requests'))
+    return redirect(url_for('fleet.mission_details', id=id))

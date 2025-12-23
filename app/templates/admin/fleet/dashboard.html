@@ -92,8 +92,19 @@
                     <a href="{{ url_for('fleet.add_mission') }}" class="btn btn-primary">
                         <i class="fas fa-clipboard-list"></i> إنشاء مهمة
                     </a>
-                    <a href="{{ url_for('fleet.missions_list') }}" class="btn btn-secondary">
-                        <i class="fas fa-list"></i> عرض جميع المهام
+                    <a href="{{ url_for('fleet.mission_requests') }}" class="btn btn-warning">
+                        <i class="fas fa-mobile-alt"></i> طلبات السائقين
+                    </a>
+                </div>
+                <div class="grid grid-4" style="gap: 1rem; margin-top: 1rem;">
+                    <a href="{{ url_for('fleet.cars_list') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-car"></i> السيارات
+                    </a>
+                    <a href="{{ url_for('fleet.drivers_list') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-users"></i> السائقين
+                    </a>
+                    <a href="{{ url_for('fleet.missions_list') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list"></i> كل المهام
                     </a>
                 </div>
             </div>

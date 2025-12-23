@@ -289,3 +289,194 @@ class NotificationTemplates:
             "body": f"تم إضافة {asset_name} - ابدأ الاستثمار الآن!",
             "data": {"type": "new_asset", "asset_type": asset_type, "screen": "market"}
         }
+
+
+# ==================== DRIVER NOTIFICATIONS ====================
+
+def send_driver_notification(driver_id, title, body, data=None, badge=None):
+    """
+    Send FCM push notification to a specific driver using Firebase Admin SDK
+
+    Args:
+        driver_id (int): Driver ID to send notification to
+        title (str): Notification title (max 65 chars)
+        body (str): Notification body (max 240 chars)
+        data (dict): Additional data payload for deep linking
+        badge (int): Badge count for iOS (optional)
+
+    Returns:
+        bool: True if sent successfully, False otherwise
+    """
+    try:
+        from app.models import Driver
+        from firebase_admin import messaging
+
+        # Initialize Firebase if not already done
+        if not initialize_firebase():
+            return False
+
+        # Get driver's FCM token
+        driver = Driver.query.get(driver_id)
+        if not driver or not hasattr(driver, 'fcm_token') or not driver.fcm_token:
+            current_app.logger.warning(f"No FCM token for driver {driver_id}")
+            return False
+
+        # Convert data values to strings (FCM requirement)
+        string_data = None
+        if data:
+            string_data = {k: str(v) for k, v in data.items()}
+
+        # Create message
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title=title,
+                body=body,
+            ),
+            data=string_data,
+            token=driver.fcm_token,
+            android=messaging.AndroidConfig(
+                priority='high',
+                notification=messaging.AndroidNotification(
+                    sound='default',
+                    click_action='FLUTTER_NOTIFICATION_CLICK',
+                ),
+            ),
+            apns=messaging.APNSConfig(
+                payload=messaging.APNSPayload(
+                    aps=messaging.Aps(
+                        sound='default',
+                        badge=badge or 1,
+                    ),
+                ),
+            ),
+        )
+
+        # Send message
+        response = messaging.send(message)
+        current_app.logger.info(f"Notification sent to driver {driver_id}: {response}")
+        return True
+
+    except Exception as e:
+        current_app.logger.error(f"Failed to send notification to driver {driver_id}: {str(e)}")
+        return False
+
+
+def notify_admin_new_mission_request(driver, mission):
+    """
+    Notify admin(s) when a driver reports a new mission
+
+    Args:
+        driver: Driver object
+        mission: Mission object
+    """
+    from app.models import User
+
+    # Get all admin users
+    admins = User.query.filter_by(is_admin=True).all()
+
+    title = "🚗 طلب مهمة جديد"
+    body = f"السائق {driver.name} أبلغ عن مهمة من {mission.from_location} إلى {mission.to_location}"
+    data = {
+        "type": "mission_request",
+        "screen": "fleet_mission_requests",
+        "mission_id": mission.id,
+        "driver_id": driver.id
+    }
+
+    for admin in admins:
+        if admin.fcm_token:
+            send_push_notification(admin.id, title, body, data)
+
+
+def notify_admin_mission_started(driver, mission):
+    """
+    Notify admin(s) when a driver starts a mission
+
+    Args:
+        driver: Driver object
+        mission: Mission object
+    """
+    from app.models import User
+
+    # Get all admin users
+    admins = User.query.filter_by(is_admin=True).all()
+
+    title = "▶️ بدأ السائق المهمة"
+    body = f"السائق {driver.name} بدأ المهمة من {mission.from_location} إلى {mission.to_location}"
+    data = {
+        "type": "mission_started",
+        "screen": "fleet_missions",
+        "mission_id": mission.id,
+        "driver_id": driver.id
+    }
+
+    for admin in admins:
+        if admin.fcm_token:
+            send_push_notification(admin.id, title, body, data)
+
+
+def notify_admin_mission_completed(driver, mission):
+    """
+    Notify admin(s) when a driver completes a mission
+
+    Args:
+        driver: Driver object
+        mission: Mission object
+    """
+    from app.models import User
+
+    # Get all admin users
+    admins = User.query.filter_by(is_admin=True).all()
+
+    title = "✅ أنهى السائق المهمة"
+    body = f"السائق {driver.name} أنهى المهمة. الإيراد: {mission.total_revenue:,.0f} جنيه"
+    data = {
+        "type": "mission_completed",
+        "screen": "fleet_missions",
+        "mission_id": mission.id,
+        "driver_id": driver.id
+    }
+
+    for admin in admins:
+        if admin.fcm_token:
+            send_push_notification(admin.id, title, body, data)
+
+
+# Driver notification templates
+class DriverNotificationTemplates:
+    """Pre-defined notification templates for drivers in Arabic"""
+
+    @staticmethod
+    def mission_assigned(from_location, to_location):
+        return {
+            "title": "🚗 لديك مهمة جديدة",
+            "body": f"تم تعيين مهمة لك من {from_location} إلى {to_location}",
+            "data": {"type": "mission_assigned", "screen": "missions"}
+        }
+
+    @staticmethod
+    def mission_approved(from_location, to_location):
+        return {
+            "title": "✅ تمت الموافقة على المهمة",
+            "body": f"تمت الموافقة على مهمتك من {from_location} إلى {to_location}. في انتظار إذن البدء.",
+            "data": {"type": "mission_approved", "screen": "missions"}
+        }
+
+    @staticmethod
+    def mission_rejected(reason=None):
+        body = "تم رفض طلب المهمة."
+        if reason:
+            body += f" السبب: {reason}"
+        return {
+            "title": "❌ تم رفض المهمة",
+            "body": body,
+            "data": {"type": "mission_rejected", "screen": "missions"}
+        }
+
+    @staticmethod
+    def start_permission_granted(from_location, to_location):
+        return {
+            "title": "▶️ يمكنك بدء المهمة الآن",
+            "body": f"تم إعطاؤك إذن بدء المهمة من {from_location} إلى {to_location}. ابدأ الآن!",
+            "data": {"type": "start_permission", "screen": "missions"}
+        }

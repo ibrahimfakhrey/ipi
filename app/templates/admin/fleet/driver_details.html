@@ -37,16 +37,23 @@
                     <p><i class="fas fa-id-card" style="color: var(--primary-gold);"></i> {{ driver.national_id }}</p>
                     <p>
                         {% if driver.is_approved %}
-                        <span class="badge badge-success" style="font-size: 16px;">{{ driver.approval_status_arabic
-                            }}</span>
+                        <span class="badge badge-success" style="font-size: 16px;">{{ driver.approval_status_arabic }}</span>
                         {% else %}
-                        <span class="badge badge-warning" style="font-size: 16px;">{{ driver.approval_status_arabic
-                            }}</span>
+                        <span class="badge badge-warning" style="font-size: 16px;">{{ driver.approval_status_arabic }}</span>
                         {% endif %}
                     </p>
 
-                    <form method="POST" action="{{ url_for('fleet.toggle_driver_approval', id=driver.id) }}"
-                        class="mt-2">
+                    <!-- Verification Status -->
+                    <p>
+                        {% if driver.is_verified %}
+                        <span class="badge badge-info" style="font-size: 14px;"><i class="fas fa-mobile-alt"></i> {{ driver.verification_status_arabic }}</span>
+                        <br><small class="text-muted">رقم السائق: {{ driver.driver_number }}</small>
+                        {% else %}
+                        <span class="badge badge-secondary" style="font-size: 14px;"><i class="fas fa-mobile-alt"></i> {{ driver.verification_status_arabic }}</span>
+                        {% endif %}
+                    </p>
+
+                    <form method="POST" action="{{ url_for('fleet.toggle_driver_approval', id=driver.id) }}" class="mt-2">
                         {% if driver.is_approved %}
                         <button type="submit" class="btn btn-warning btn-block">
                             <i class="fas fa-times-circle"></i> إلغاء الاعتماد
@@ -57,6 +64,17 @@
                         </button>
                         {% endif %}
                     </form>
+
+                    <!-- Verification Button -->
+                    {% if not driver.is_verified %}
+                    <button type="button" class="btn btn-info btn-block mt-2" id="verifyDriverBtn">
+                        <i class="fas fa-user-check"></i> تفعيل حساب السائق
+                    </button>
+                    {% else %}
+                    <button type="button" class="btn btn-outline-warning btn-block mt-2" id="resetPasswordBtn">
+                        <i class="fas fa-key"></i> إعادة تعيين كلمة المرور
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -125,4 +143,134 @@
         </div>
     </div>
 </div>
+
+<!-- Credentials Modal -->
+<div class="modal fade" id="credentialsModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="background: var(--dark-gray); border: 2px solid var(--primary-gold);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--primary-gold);">
+                <h5 class="modal-title" style="color: var(--primary-gold);">
+                    <i class="fas fa-key"></i> بيانات تسجيل الدخول
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>مهم!</strong> احفظ هذه البيانات الآن. لن تتمكن من استعادة كلمة المرور لاحقاً.
+                </div>
+
+                <div class="mb-3">
+                    <label><strong>رقم السائق:</strong></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control text-center" id="driverNumberDisplay" readonly
+                               style="font-size: 18px; font-weight: bold; background: var(--black); color: var(--primary-gold);">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-warning" type="button" onclick="copyToClipboard('driverNumberDisplay')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label><strong>كلمة المرور:</strong></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control text-center" id="passwordDisplay" readonly
+                               style="font-size: 18px; font-weight: bold; background: var(--black); color: var(--success);">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-success" type="button" onclick="copyToClipboard('passwordDisplay')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--primary-gold);">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    var copyText = document.getElementById(elementId);
+    copyText.select();
+    document.execCommand("copy");
+
+    // Show feedback
+    var btn = copyText.parentElement.querySelector('button');
+    var originalIcon = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    setTimeout(function() {
+        btn.innerHTML = originalIcon;
+    }, 1500);
+}
+
+{% if not driver.is_verified %}
+document.getElementById('verifyDriverBtn').addEventListener('click', function() {
+    if (!confirm('هل تريد تفعيل حساب السائق؟ سيتم إنشاء رقم سائق وكلمة مرور.')) {
+        return;
+    }
+
+    fetch('{{ url_for("fleet.verify_driver", id=driver.id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('driverNumberDisplay').value = data.driver_number;
+            document.getElementById('passwordDisplay').value = data.password;
+            $('#credentialsModal').modal('show');
+
+            // Reload page after modal is closed
+            $('#credentialsModal').on('hidden.bs.modal', function () {
+                location.reload();
+            });
+        } else {
+            alert('حدث خطأ: ' + (data.error || 'خطأ غير معروف'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ في الاتصال');
+    });
+});
+{% endif %}
+
+{% if driver.is_verified %}
+document.getElementById('resetPasswordBtn').addEventListener('click', function() {
+    if (!confirm('هل تريد إعادة تعيين كلمة مرور السائق؟')) {
+        return;
+    }
+
+    fetch('{{ url_for("fleet.reset_driver_password", id=driver.id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('driverNumberDisplay').value = '{{ driver.driver_number }}';
+            document.getElementById('passwordDisplay').value = data.password;
+            $('#credentialsModal').modal('show');
+        } else {
+            alert('حدث خطأ: ' + (data.error || 'خطأ غير معروف'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ في الاتصال');
+    });
+});
+{% endif %}
+</script>
 {% endblock %}
