@@ -196,6 +196,9 @@
 </div>
 
 <script>
+// Track if we should reload after modal close
+var shouldReloadOnModalClose = false;
+
 function copyToClipboard(elementId) {
     var copyText = document.getElementById(elementId);
     copyText.select();
@@ -209,6 +212,26 @@ function copyToClipboard(elementId) {
         btn.innerHTML = originalIcon;
     }, 1500);
 }
+
+function showCredentials(driverNumber, password, reload) {
+    // Set values
+    document.getElementById('driverNumberDisplay').value = driverNumber || '';
+    document.getElementById('passwordDisplay').value = password || '';
+    shouldReloadOnModalClose = reload;
+
+    // Show modal
+    $('#credentialsModal').modal('show');
+
+    // Also show alert as backup so user can copy
+    alert('بيانات السائق:\n\nرقم السائق: ' + driverNumber + '\nكلمة المرور: ' + password + '\n\nاحفظ هذه البيانات!');
+}
+
+// Handle modal close
+$('#credentialsModal').on('hidden.bs.modal', function () {
+    if (shouldReloadOnModalClose) {
+        location.reload();
+    }
+});
 
 {% if not driver.is_verified %}
 document.getElementById('verifyDriverBtn').addEventListener('click', function() {
@@ -225,14 +248,7 @@ document.getElementById('verifyDriverBtn').addEventListener('click', function() 
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            document.getElementById('driverNumberDisplay').value = data.driver_number;
-            document.getElementById('passwordDisplay').value = data.password;
-            $('#credentialsModal').modal('show');
-
-            // Reload page after modal is closed
-            $('#credentialsModal').on('hidden.bs.modal', function () {
-                location.reload();
-            });
+            showCredentials(data.driver_number, data.password, true);
         } else {
             alert('حدث خطأ: ' + (data.error || 'خطأ غير معروف'));
         }
@@ -263,17 +279,9 @@ document.getElementById('resetPasswordBtn').addEventListener('click', function()
         return response.json();
     })
     .then(data => {
-        console.log('Response data:', data);
+        console.log('Reset password response:', data);
         if (data.success) {
-            var driverNum = data.driver_number || '{{ driver.driver_number }}';
-            var pwd = data.password || '';
-
-            document.getElementById('driverNumberDisplay').value = driverNum;
-            document.getElementById('passwordDisplay').value = pwd;
-            $('#credentialsModal').modal('show');
-
-            // Also show alert as backup
-            alert('رقم السائق: ' + driverNum + '\nكلمة المرور: ' + pwd);
+            showCredentials(data.driver_number, data.password, false);
         } else {
             alert('حدث خطأ: ' + (data.error || 'خطأ غير معروف'));
         }
