@@ -1039,6 +1039,12 @@ class Mission(db.Model):
     ended_at = db.Column(db.DateTime)  # When driver ended
     completed_at = db.Column(db.DateTime)  # When marked as completed (legacy, same as ended_at)
 
+    # Location tracking (GPS coordinates from driver's mobile)
+    start_latitude = db.Column(db.Float)  # Latitude when mission started
+    start_longitude = db.Column(db.Float)  # Longitude when mission started
+    end_latitude = db.Column(db.Float)  # Latitude when mission ended
+    end_longitude = db.Column(db.Float)  # Longitude when mission ended
+
     @property
     def status_arabic(self):
         """Get status in Arabic"""
@@ -1098,19 +1104,24 @@ class Mission(db.Model):
         """Admin gives permission for driver to start the mission"""
         self.can_start = True
 
-    def start_mission(self):
-        """Driver starts the mission"""
+    def start_mission(self, latitude=None, longitude=None):
+        """Driver starts the mission with optional GPS location"""
         if not self.can_start:
             return False
         self.status = 'in_progress'
         self.started_at = datetime.utcnow()
+        # Store start location if provided
+        if latitude is not None:
+            self.start_latitude = latitude
+        if longitude is not None:
+            self.start_longitude = longitude
         # Update car status
         if self.fleet_car:
             self.fleet_car.status = 'in_mission'
         return True
 
-    def end_mission(self, total_revenue=None, fuel_cost=None, driver_fees=None, distance_km=None):
-        """Driver ends the mission with actual costs"""
+    def end_mission(self, total_revenue=None, fuel_cost=None, driver_fees=None, distance_km=None, latitude=None, longitude=None):
+        """Driver ends the mission with actual costs and optional GPS location"""
         if total_revenue is not None:
             self.total_revenue = total_revenue
         if fuel_cost is not None:
@@ -1119,6 +1130,11 @@ class Mission(db.Model):
             self.driver_fees = driver_fees
         if distance_km is not None:
             self.distance_km = distance_km
+        # Store end location if provided
+        if latitude is not None:
+            self.end_latitude = latitude
+        if longitude is not None:
+            self.end_longitude = longitude
 
         self.calculate_profit()
         self.ended_at = datetime.utcnow()

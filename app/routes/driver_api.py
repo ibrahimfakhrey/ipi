@@ -92,6 +92,11 @@ def serialize_mission(mission):
         "approved_at": mission.approved_at.isoformat() if mission.approved_at else None,
         "started_at": mission.started_at.isoformat() if mission.started_at else None,
         "ended_at": mission.ended_at.isoformat() if mission.ended_at else None,
+        # GPS Location tracking
+        "start_latitude": mission.start_latitude,
+        "start_longitude": mission.start_longitude,
+        "end_latitude": mission.end_latitude,
+        "end_longitude": mission.end_longitude,
         "fleet_car": {
             "id": mission.fleet_car.id,
             "brand": mission.fleet_car.brand,
@@ -498,6 +503,12 @@ def report_mission(driver):
 def start_mission(driver, mission_id):
     """
     Driver starts a mission (requires admin permission via can_start=True)
+
+    Request body (optional):
+    {
+        "latitude": 30.0444,
+        "longitude": 31.2357
+    }
     """
     mission = Mission.query.get(mission_id)
 
@@ -545,7 +556,12 @@ def start_mission(driver, mission_id):
         )
 
     try:
-        if not mission.start_mission():
+        # Get location from request body (optional)
+        data = request.get_json() or {}
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+
+        if not mission.start_mission(latitude=latitude, longitude=longitude):
             return error_response(
                 message="لا يمكن بدء المهمة",
                 code="START_FAILED",
@@ -588,6 +604,8 @@ def end_mission(driver, mission_id):
         "fuel_cost": 30.0,
         "driver_fees": 50.0,  // Optional, can be set by admin later
         "distance_km": 15.5,
+        "latitude": 30.0444,  // Optional, end location
+        "longitude": 31.2357, // Optional, end location
         "notes": "تم بنجاح"
     }
     """
@@ -632,12 +650,14 @@ def end_mission(driver, mission_id):
         )
 
     try:
-        # Update mission with actual costs
+        # Update mission with actual costs and location
         mission.end_mission(
             total_revenue=float(data.get('total_revenue', 0)),
             fuel_cost=float(data.get('fuel_cost', 0)),
             driver_fees=float(data.get('driver_fees', 0)),
-            distance_km=float(data.get('distance_km', 0))
+            distance_km=float(data.get('distance_km', 0)),
+            latitude=data.get('latitude'),
+            longitude=data.get('longitude')
         )
 
         if data.get('notes'):

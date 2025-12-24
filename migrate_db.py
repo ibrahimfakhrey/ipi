@@ -185,6 +185,12 @@ def migrate():
             add_column_if_missing(cursor, 'missions', 'started_at', 'DATETIME', 'NULL')
             add_column_if_missing(cursor, 'missions', 'ended_at', 'DATETIME', 'NULL')
             add_column_if_missing(cursor, 'missions', 'completed_at', 'DATETIME', 'NULL')
+
+            # GPS Location tracking
+            add_column_if_missing(cursor, 'missions', 'start_latitude', 'FLOAT', 'NULL')
+            add_column_if_missing(cursor, 'missions', 'start_longitude', 'FLOAT', 'NULL')
+            add_column_if_missing(cursor, 'missions', 'end_latitude', 'FLOAT', 'NULL')
+            add_column_if_missing(cursor, 'missions', 'end_longitude', 'FLOAT', 'NULL')
         else:
             print("  Table does not exist - creating it...")
             cursor.execute('''
@@ -214,6 +220,10 @@ def migrate():
                     started_at DATETIME,
                     ended_at DATETIME,
                     completed_at DATETIME,
+                    start_latitude FLOAT,
+                    start_longitude FLOAT,
+                    end_latitude FLOAT,
+                    end_longitude FLOAT,
                     FOREIGN KEY (fleet_car_id) REFERENCES fleet_cars(id),
                     FOREIGN KEY (driver_id) REFERENCES drivers(id)
                 )
