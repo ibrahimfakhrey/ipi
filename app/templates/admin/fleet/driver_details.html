@@ -259,7 +259,7 @@ document.getElementById('resetPasswordBtn').addEventListener('click', function()
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            document.getElementById('driverNumberDisplay').value = '{{ driver.driver_number }}';
+            document.getElementById('driverNumberDisplay').value = data.driver_number;
             document.getElementById('passwordDisplay').value = data.password;
             $('#credentialsModal').modal('show');
         } else {
