@@ -922,6 +922,7 @@ class Driver(db.Model):
     driver_number = db.Column(db.String(20), unique=True, index=True)  # IPI-DRV-001 format
     password_hash = db.Column(db.String(256))  # For driver login
     fcm_token = db.Column(db.String(500))  # Push notifications token
+    fcm_token_updated_at = db.Column(db.DateTime)  # When FCM token was last updated
     is_verified = db.Column(db.Boolean, default=False, index=True)  # Can login to mobile app
 
     # Document uploads

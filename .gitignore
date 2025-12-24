@@ -69,3 +69,8 @@ apartment_platform.db
 # Apple Private Key - DO NOT COMMIT
 AuthKey_*.p8
 *.p8
+
+# Firebase Service Account - DO NOT COMMIT
+firebase-service-account.json
+*firebase*.json
+!firebase.json

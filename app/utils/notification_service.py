@@ -480,3 +480,15 @@ class DriverNotificationTemplates:
             "body": f"تم إعطاؤك إذن بدء المهمة من {from_location} إلى {to_location}. ابدأ الآن!",
             "data": {"type": "start_permission", "screen": "missions"}
         }
+
+    @staticmethod
+    def mission_cancelled(from_location=None, to_location=None):
+        if from_location and to_location:
+            body = f"تم إلغاء المهمة من {from_location} إلى {to_location}"
+        else:
+            body = "تم إلغاء المهمة"
+        return {
+            "title": "🚫 تم إلغاء المهمة",
+            "body": body,
+            "data": {"type": "mission_cancelled", "screen": "missions"}
+        }

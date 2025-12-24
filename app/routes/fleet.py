@@ -541,7 +541,23 @@ def add_mission():
             
             db.session.add(mission)
             db.session.commit()
-            
+
+            # Send notification to driver about new mission assignment
+            try:
+                from app.utils.notification_service import send_driver_notification, DriverNotificationTemplates
+                template = DriverNotificationTemplates.mission_assigned(
+                    mission.from_location,
+                    mission.to_location
+                )
+                send_driver_notification(
+                    mission.driver_id,
+                    template['title'],
+                    template['body'],
+                    {**template['data'], 'mission_id': str(mission.id)}
+                )
+            except Exception as e:
+                print(f"Failed to send driver notification: {e}")
+
             flash('تم إنشاء المهمة بنجاح', 'success')
             return redirect(url_for('fleet.missions_list'))
             
@@ -634,6 +650,46 @@ def complete_mission(id):
         db.session.rollback()
         flash(f'حدث خطأ: {str(e)}', 'error')
     
+    return redirect(url_for('fleet.mission_details', id=id))
+
+
+@fleet.route('/missions/<int:id>/cancel', methods=['POST'])
+@login_required
+@admin_required
+def cancel_mission(id):
+    """Cancel a mission and notify driver"""
+    mission = Mission.query.get_or_404(id)
+
+    if mission.status in ['completed', 'cancelled']:
+        flash('لا يمكن إلغاء هذه المهمة', 'warning')
+        return redirect(url_for('fleet.mission_details', id=id))
+
+    try:
+        old_status = mission.status
+        mission.status = 'cancelled'
+        db.session.commit()
+
+        # Send notification to driver
+        try:
+            from app.utils.notification_service import send_driver_notification, DriverNotificationTemplates
+            template = DriverNotificationTemplates.mission_cancelled(
+                mission.from_location,
+                mission.to_location
+            )
+            send_driver_notification(
+                mission.driver_id,
+                template['title'],
+                template['body'],
+                {**template['data'], 'mission_id': str(mission.id)}
+            )
+        except Exception as e:
+            print(f"Failed to send driver notification: {e}")
+
+        flash('تم إلغاء المهمة بنجاح', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'حدث خطأ: {str(e)}', 'error')
+
     return redirect(url_for('fleet.mission_details', id=id))
 
 

@@ -312,6 +312,7 @@ def update_driver_fcm_token(driver):
         )
 
     driver.fcm_token = data['fcm_token']
+    driver.fcm_token_updated_at = datetime.utcnow()
     db.session.commit()
 
     return success_response(
