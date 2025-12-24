@@ -398,29 +398,30 @@ def verify_driver(id):
 @admin_required
 def reset_driver_password(id):
     """Reset driver password and generate a new one"""
-    driver = Driver.query.get_or_404(id)
-
-    if not driver.is_verified:
-        flash('السائق غير مفعّل. قم بتفعيله أولاً', 'warning')
-        return redirect(url_for('fleet.driver_details', id=id))
-
     try:
+        driver = Driver.query.get(id)
+        if not driver:
+            return jsonify({'success': False, 'error': 'السائق غير موجود'}), 404
+
+        if not driver.is_verified:
+            return jsonify({'success': False, 'error': 'السائق غير مفعّل. قم بتفعيله أولاً'})
+
         # Generate new password
         new_password = generate_random_password(8)
         driver.set_password(new_password)
         db.session.commit()
 
-        flash(f'تم إعادة تعيين كلمة المرور بنجاح! كلمة المرور الجديدة: {new_password}', 'success')
-
         return jsonify({
             'success': True,
             'password': new_password,
+            'driver_number': driver.driver_number,
             'message': 'تم إعادة تعيين كلمة المرور بنجاح'
         })
 
     except Exception as e:
         db.session.rollback()
-        flash(f'حدث خطأ: {str(e)}', 'error')
+        import traceback
+        print(f"Error in reset_driver_password: {traceback.format_exc()}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
