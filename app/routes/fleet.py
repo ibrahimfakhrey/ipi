@@ -349,13 +349,18 @@ def verify_driver(id):
     Verify driver and generate login credentials for mobile app
     Creates driver_number and password
     """
-    driver = Driver.query.get_or_404(id)
-
-    if driver.is_verified:
-        flash('السائق مفعّل بالفعل', 'warning')
-        return redirect(url_for('fleet.driver_details', id=id))
-
     try:
+        driver = Driver.query.get(id)
+        if not driver:
+            return jsonify({'success': False, 'error': 'السائق غير موجود'}), 404
+
+        if driver.is_verified:
+            return jsonify({
+                'success': False,
+                'error': 'السائق مفعّل بالفعل',
+                'driver_number': driver.driver_number
+            })
+
         # Generate unique driver number
         driver_number = Driver.generate_driver_number()
 
@@ -373,10 +378,6 @@ def verify_driver(id):
 
         db.session.commit()
 
-        # Return credentials via flash message (admin should note these down)
-        flash(f'تم تفعيل السائق بنجاح! رقم السائق: {driver_number} - كلمة المرور: {password}', 'success')
-
-        # Also return as JSON for modal display
         return jsonify({
             'success': True,
             'driver_number': driver_number,
@@ -386,7 +387,9 @@ def verify_driver(id):
 
     except Exception as e:
         db.session.rollback()
-        flash(f'حدث خطأ: {str(e)}', 'error')
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in verify_driver: {error_details}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
