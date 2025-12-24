@@ -12,12 +12,18 @@ import sys
 
 # Try multiple possible database locations
 POSSIBLE_DB_PATHS = [
-    # PythonAnywhere paths
+    # PythonAnywhere paths - app.db
+    '/home/amsfiles/ipi/instance/app.db',
+    '/home/amsfiles/ipi/app.db',
+    '/home/amsfiles/instance/app.db',
+    # PythonAnywhere paths - ipi.db
     '/home/amsfiles/ipi/instance/ipi.db',
     '/home/amsfiles/ipi/ipi.db',
     '/home/amsfiles/instance/ipi.db',
     # Local development paths
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'app.db'),
     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', 'ipi.db'),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app.db'),
     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ipi.db'),
 ]
 
