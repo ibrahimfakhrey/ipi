@@ -256,19 +256,31 @@ document.getElementById('resetPasswordBtn').addEventListener('click', function()
             'Content-Type': 'application/json',
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Server error: ' + response.status);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Response data:', data);
         if (data.success) {
-            document.getElementById('driverNumberDisplay').value = data.driver_number;
-            document.getElementById('passwordDisplay').value = data.password;
+            var driverNum = data.driver_number || '{{ driver.driver_number }}';
+            var pwd = data.password || '';
+
+            document.getElementById('driverNumberDisplay').value = driverNum;
+            document.getElementById('passwordDisplay').value = pwd;
             $('#credentialsModal').modal('show');
+
+            // Also show alert as backup
+            alert('رقم السائق: ' + driverNum + '\nكلمة المرور: ' + pwd);
         } else {
             alert('حدث خطأ: ' + (data.error || 'خطأ غير معروف'));
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('حدث خطأ في الاتصال');
+        alert('حدث خطأ في الاتصال: ' + error.message);
     });
 });
 {% endif %}
