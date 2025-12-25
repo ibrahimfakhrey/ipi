@@ -349,13 +349,17 @@ def debug_fcm_status():
             "id": d.id,
             "name": d.name,
             "driver_number": d.driver_number,
+            "has_password": bool(d.password_hash),
             "phone": d.phone,
+            "email": d.email,
+            "national_id": d.national_id,
             "is_verified": d.is_verified,
             "is_approved": d.is_approved,
             "has_fcm_token": bool(d.fcm_token),
             "fcm_token_preview": d.fcm_token[:50] + "..." if d.fcm_token else None,
             "fcm_token_length": len(d.fcm_token) if d.fcm_token else 0,
-            "fcm_token_updated_at": d.fcm_token_updated_at.isoformat() if d.fcm_token_updated_at else None
+            "fcm_token_updated_at": d.fcm_token_updated_at.isoformat() if d.fcm_token_updated_at else None,
+            "created_at": d.created_at.isoformat() if d.created_at else None
         })
 
     return jsonify({
@@ -363,7 +367,8 @@ def debug_fcm_status():
         "total_drivers": len(drivers),
         "drivers_with_token": sum(1 for d in drivers if d.fcm_token),
         "drivers_without_token": sum(1 for d in drivers if not d.fcm_token),
-        "drivers": result
+        "drivers": result,
+        "note": "Passwords are hashed and cannot be displayed. Use /admin/fleet/drivers/<id>/reset-password to generate a new password."
     })
 
 
