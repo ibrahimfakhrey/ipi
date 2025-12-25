@@ -48,6 +48,9 @@
                         {% if driver.is_verified %}
                         <span class="badge badge-info" style="font-size: 14px;"><i class="fas fa-mobile-alt"></i> {{ driver.verification_status_arabic }}</span>
                         <br><small class="text-muted">رقم السائق: {{ driver.driver_number }}</small>
+                        {% if driver.password_plain %}
+                        <br><small class="text-muted">كلمة المرور: <strong style="color: var(--primary-gold);">{{ driver.password_plain }}</strong></small>
+                        {% endif %}
                         {% else %}
                         <span class="badge badge-secondary" style="font-size: 14px;"><i class="fas fa-mobile-alt"></i> {{ driver.verification_status_arabic }}</span>
                         {% endif %}
@@ -198,6 +201,7 @@
 <script>
 // Track if we should reload after modal close
 var shouldReloadOnModalClose = false;
+var modal = document.getElementById('credentialsModal');
 
 function copyToClipboard(elementId) {
     var copyText = document.getElementById(elementId);
@@ -219,17 +223,32 @@ function showCredentials(driverNumber, password, reload) {
     document.getElementById('passwordDisplay').value = password || '';
     shouldReloadOnModalClose = reload;
 
-    // Show modal
-    $('#credentialsModal').modal('show');
+    // Show modal using vanilla JS
+    modal.style.display = 'block';
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
 
     // Also show alert as backup so user can copy
     alert('بيانات السائق:\n\nرقم السائق: ' + driverNumber + '\nكلمة المرور: ' + password + '\n\nاحفظ هذه البيانات!');
 }
 
-// Handle modal close
-$('#credentialsModal').on('hidden.bs.modal', function () {
+function hideModal() {
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+    document.body.classList.remove('modal-open');
     if (shouldReloadOnModalClose) {
         location.reload();
+    }
+}
+
+// Handle modal close button
+document.querySelector('#credentialsModal .close').addEventListener('click', hideModal);
+document.querySelector('#credentialsModal .btn-secondary').addEventListener('click', hideModal);
+
+// Close modal when clicking outside
+modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+        hideModal();
     }
 });
 

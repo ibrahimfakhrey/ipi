@@ -133,6 +133,7 @@ def migrate():
         if table_exists(cursor, 'drivers'):
             add_column_if_missing(cursor, 'drivers', 'driver_number', 'VARCHAR(20)', 'NULL')
             add_column_if_missing(cursor, 'drivers', 'password_hash', 'VARCHAR(256)', 'NULL')
+            add_column_if_missing(cursor, 'drivers', 'password_plain', 'VARCHAR(100)', 'NULL')
             add_column_if_missing(cursor, 'drivers', 'fcm_token', 'VARCHAR(500)', 'NULL')
             add_column_if_missing(cursor, 'drivers', 'fcm_token_updated_at', 'DATETIME', 'NULL')
             add_column_if_missing(cursor, 'drivers', 'is_verified', 'BOOLEAN', '0')

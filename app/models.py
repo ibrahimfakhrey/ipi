@@ -921,6 +921,7 @@ class Driver(db.Model):
     # Authentication fields for driver mobile app
     driver_number = db.Column(db.String(20), unique=True, index=True)  # IPI-DRV-001 format
     password_hash = db.Column(db.String(256))  # For driver login
+    password_plain = db.Column(db.String(100))  # Plain text password for admin viewing
     fcm_token = db.Column(db.String(500))  # Push notifications token
     fcm_token_updated_at = db.Column(db.DateTime)  # When FCM token was last updated
     is_verified = db.Column(db.Boolean, default=False, index=True)  # Can login to mobile app
@@ -944,6 +945,7 @@ class Driver(db.Model):
     def set_password(self, password):
         """Set password hash for driver authentication"""
         self.password_hash = generate_password_hash(password)
+        self.password_plain = password  # Store plain text for admin viewing
 
     def check_password(self, password):
         """Verify password for driver authentication"""
