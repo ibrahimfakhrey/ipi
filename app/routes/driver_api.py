@@ -302,22 +302,112 @@ def update_driver_fcm_token(driver):
         "fcm_token": "firebase_cloud_messaging_token"
     }
     """
+    # Debug logging
+    print(f"[FCM UPDATE] Driver {driver.id} ({driver.name}) requesting FCM token update")
+    print(f"[FCM UPDATE] Request headers: {dict(request.headers)}")
+
     data = request.get_json()
+    print(f"[FCM UPDATE] Request data: {data}")
 
     if not data or 'fcm_token' not in data:
+        print(f"[FCM UPDATE] ERROR: Missing FCM token in request")
         return error_response(
             message="رمز FCM مطلوب",
             code="MISSING_FCM_TOKEN",
             status=400
         )
 
-    driver.fcm_token = data['fcm_token']
+    old_token = driver.fcm_token
+    new_token = data['fcm_token']
+
+    print(f"[FCM UPDATE] Old token: {old_token[:50] if old_token else 'None'}...")
+    print(f"[FCM UPDATE] New token: {new_token[:50] if new_token else 'None'}...")
+
+    driver.fcm_token = new_token
     driver.fcm_token_updated_at = datetime.utcnow()
     db.session.commit()
+
+    print(f"[FCM UPDATE] SUCCESS: Token saved for driver {driver.id}")
+    print(f"[FCM UPDATE] Updated at: {driver.fcm_token_updated_at}")
 
     return success_response(
         message="تم تحديث رمز الإشعارات بنجاح"
     )
+
+
+@driver_api_bp.route('/debug/fcm-status', methods=['GET'])
+def debug_fcm_status():
+    """
+    Debug endpoint to check FCM token status for all drivers
+    Access: /api/driver/debug/fcm-status
+    """
+    drivers = Driver.query.all()
+
+    result = []
+    for d in drivers:
+        result.append({
+            "id": d.id,
+            "name": d.name,
+            "driver_number": d.driver_number,
+            "phone": d.phone,
+            "is_verified": d.is_verified,
+            "is_approved": d.is_approved,
+            "has_fcm_token": bool(d.fcm_token),
+            "fcm_token_preview": d.fcm_token[:50] + "..." if d.fcm_token else None,
+            "fcm_token_length": len(d.fcm_token) if d.fcm_token else 0,
+            "fcm_token_updated_at": d.fcm_token_updated_at.isoformat() if d.fcm_token_updated_at else None
+        })
+
+    return jsonify({
+        "success": True,
+        "total_drivers": len(drivers),
+        "drivers_with_token": sum(1 for d in drivers if d.fcm_token),
+        "drivers_without_token": sum(1 for d in drivers if not d.fcm_token),
+        "drivers": result
+    })
+
+
+@driver_api_bp.route('/debug/test-notification/<int:driver_id>', methods=['POST'])
+def debug_test_notification(driver_id):
+    """
+    Debug endpoint to test sending notification to a specific driver
+    Access: POST /api/driver/debug/test-notification/1
+    """
+    driver = Driver.query.get(driver_id)
+
+    if not driver:
+        return jsonify({"success": False, "error": "Driver not found"}), 404
+
+    if not driver.fcm_token:
+        return jsonify({
+            "success": False,
+            "error": "Driver has no FCM token",
+            "driver_name": driver.name
+        }), 400
+
+    try:
+        from app.utils.notification_service import send_driver_notification
+        result = send_driver_notification(
+            driver_id,
+            "اختبار الإشعارات",
+            "هذه رسالة اختبار - Test notification",
+            {"type": "test", "timestamp": datetime.utcnow().isoformat()}
+        )
+
+        return jsonify({
+            "success": result,
+            "driver_id": driver_id,
+            "driver_name": driver.name,
+            "fcm_token_preview": driver.fcm_token[:50] + "...",
+            "message": "Notification sent successfully" if result else "Failed to send notification"
+        })
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "driver_name": driver.name
+        }), 500
 
 
 # ==================== Mission Endpoints ====================
